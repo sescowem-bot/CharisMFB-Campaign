@@ -122,3 +122,28 @@ body{font-family:var(--platform-font,system-ui,sans-serif)}.btn:not(.secondary),
 .charis-footer{padding-top:45px}.charis-footer-grid{display:grid;grid-template-columns:2fr 1fr;gap:35px}.charis-footer-grid>div{display:flex;flex-direction:column;align-items:flex-start;gap:10px}.charis-footer-grid p,.charis-footer-grid small{color:#c1d1e0}.charis-footer-grid a{font-size:13px}
 @media(max-width:900px){.charis-landing-hero{grid-template-columns:1fr;gap:35px;padding-top:55px;min-height:0}.charis-landing-copy h1{font-size:clamp(40px,8vw,64px)}.charis-value-grid{grid-template-columns:1fr}}
 @media(max-width:560px){.charis-landing-hero{padding-top:38px;padding-bottom:55px}.charis-landing-copy h1{letter-spacing:-2px}.charis-landing-copy>p:not(.charis-landing-note){font-size:16px}.charis-landing-panel-body{padding:22px}.charis-footer-grid{grid-template-columns:1fr}.charis-mini-label{display:none}}
+
+/* Charis bank staff management: responsive, legible, safe role updates */
+.charis-team-columns{align-items:start;grid-template-columns:repeat(2,minmax(0,1fr))}
+.charis-team-form{margin:0;max-width:none;min-width:0}
+.charis-team-members{min-width:0}
+.charis-team-member-list{list-style:none;margin:18px 0;padding:0}
+.charis-team-member-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0;border-bottom:1px solid #e3eaf2;min-width:0}
+.charis-team-member-list li>div{min-width:0;flex:1}
+.charis-team-member-list .btn{flex:none;padding:10px 13px}
+.charis-team-email{display:block;overflow-wrap:anywhere;font-size:14px}
+.charis-team-role{display:block;color:#526983;font-size:13px;margin-top:5px}
+.charis-team-current{padding:12px 14px;border:1px solid #dae5f3;background:#f1f6fc;border-radius:9px;font-size:13px}
+.charis-team-role-help{font-size:13px;margin:0}
+.charis-team-footnote{font-size:13px;line-height:1.6}
+@media(max-width:1050px){.charis-team-columns{grid-template-columns:1fr}}
+@media(max-width:520px){.charis-team-member-list li{align-items:flex-start;flex-direction:column}.charis-team-member-list .btn{align-self:flex-start}}
+/* Charis bank staff onboarding: compact, responsive invitation workspace. */
+.charis-invite-panel{margin:22px 0 28px;min-width:0}
+.charis-invite-panel .workspace-heading{align-items:flex-start}
+.charis-invite-panel .workspace-heading h2{margin:0 0 6px}
+.charis-invite-form{max-width:none;margin:12px 0 25px;background:#f8fafd;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:end}
+.charis-invite-form .btn{grid-column:1 / -1;justify-self:start}
+.charis-invite-form [aria-live]{grid-column:1 / -1}
+.charis-invite-panel .table-scroll{max-width:100%;overflow-x:auto}
+@media(max-width:700px){.charis-invite-form{grid-template-columns:1fr}}
