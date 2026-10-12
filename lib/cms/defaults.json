@@ -38,7 +38,7 @@
       }
     ],
     "primary_label": "",
-    "primary_href": "/pricing",
+    "primary_href": "/login",
     "secondary_label": "",
     "secondary_href": "/features",
     "section_title": "",
@@ -48,36 +48,11 @@
   },
   "solutions": {
     "label": "SOLUTIONS",
-    "title": "Made for how your business communicates.",
-    "subtitle": "Flexible workflows for organizations that value clarity and trust.",
-    "sections": [
-      {
-        "title": "Financial services",
-        "description": "Controlled customer updates and authorized product communication."
-      },
-      {
-        "title": "Healthcare",
-        "description": "Service announcements and privacy-aware messaging."
-      },
-      {
-        "title": "Retail",
-        "description": "Offers, launches, newsletters and customer segments."
-      },
-      {
-        "title": "Education",
-        "description": "Updates, invitations and community outreach."
-      },
-      {
-        "title": "Professional services",
-        "description": "Client onboarding and ongoing engagement."
-      },
-      {
-        "title": "Growing teams",
-        "description": "One organized workspace for communication."
-      }
-    ],
+    "title": "Customer communication workflows",
+    "subtitle": "A dedicated Charis Microfinance Bank staff tool for authorised email communication.",
+    "sections": [],
     "primary_label": "",
-    "primary_href": "/pricing",
+    "primary_href": "/login",
     "secondary_label": "",
     "secondary_href": "/features",
     "section_title": "",
@@ -86,25 +61,25 @@
     "highlight_text": ""
   },
   "about": {
-    "label": "ABOUT",
-    "title": "Designed with purpose.",
-    "subtitle": "SESCO Campaign Cloud is a product initiative by Sesco Studio.",
+    "label": "CHARIS MICROFINANCE BANK",
+    "title": "Customer communication with purpose.",
+    "subtitle": "A dedicated communication workspace for authorised Charis Microfinance Bank staff.",
     "sections": [
       {
-        "title": "Our mission",
-        "description": "Make professional customer communication accessible and manageable."
+        "title": "Consistent communication",
+        "description": "Keep customer messages consistent, clear and professional."
       },
       {
-        "title": "Our approach",
-        "description": "Thoughtful design paired with reliable, secure engineering."
+        "title": "Responsible outreach",
+        "description": "Contact selection, suppression checks and appropriate review controls support authorised communication."
       },
       {
-        "title": "Our priorities",
-        "description": "Brand control, responsible sending and transparent reporting."
+        "title": "Operational visibility",
+        "description": "Monitor campaigns, delivery activity and outcomes in one secure workspace."
       }
     ],
     "primary_label": "",
-    "primary_href": "/pricing",
+    "primary_href": "/login",
     "secondary_label": "",
     "secondary_href": "/features",
     "section_title": "",
@@ -139,7 +114,7 @@
       }
     ],
     "primary_label": "",
-    "primary_href": "/pricing",
+    "primary_href": "/login",
     "secondary_label": "",
     "secondary_href": "/features",
     "section_title": "",
@@ -148,37 +123,29 @@
     "highlight_text": ""
   },
   "faq": {
-    "label": "HELP CENTER",
-    "title": "Frequently asked questions.",
-    "subtitle": "Answers about accounts, company workspaces and email campaigns.",
+    "label": "STAFF HELP",
+    "title": "Help using Campaign Centre",
+    "subtitle": "Frequently asked questions for authorised Charis staff.",
     "sections": [
       {
-        "title": "Can I use my own domain?",
-        "description": "Yes. Company administrators verify sending domains through DNS before using them for campaigns."
+        "title": "How do I send to one customer?",
+        "description": "Open Create campaign, select individual recipients, search and choose the eligible customer."
       },
       {
-        "title": "Can I create my own templates?",
-        "description": "Create company templates and save reusable designs in the template studio."
+        "title": "Can I send to an uploaded group?",
+        "description": "Upload a CSV or Excel file, save its contacts as a group, then choose that group while creating a campaign."
       },
       {
-        "title": "Can I customize my email footer?",
-        "description": "Yes. Company branding, links and reusable footer templates are core features."
+        "title": "Why can’t I send immediately?",
+        "description": "The sender, permissions, contact eligibility, approvals and delivery configuration must be verified before a live campaign can be released."
       },
       {
-        "title": "Can I send WhatsApp messages?",
-        "description": "WhatsApp is planned for a future release."
-      },
-      {
-        "title": "Can I pay to upgrade?",
-        "description": "Available subscriptions are managed through Billing in your company workspace. Contact our team for help choosing a plan."
-      },
-      {
-        "title": "How do I access my company workspace?",
-        "description": "Create an account and verify your email. Your company administrator can then assign your account to a workspace."
+        "title": "Does it send SMS or WhatsApp?",
+        "description": "The current release supports email delivery. Other channels require separate integrations."
       }
     ],
     "primary_label": "",
-    "primary_href": "/pricing",
+    "primary_href": "/login",
     "secondary_label": "",
     "secondary_href": "/features",
     "section_title": "",
@@ -189,7 +156,7 @@
   "privacy": {
     "label": "POLICIES",
     "title": "Privacy information",
-    "subtitle": "Prelaunch policy information for SESCO Campaign Cloud.",
+    "subtitle": "Draft platform information. Charis compliance and legal teams must approve policies before production use.",
     "sections": [
       {
         "title": "Status",
@@ -209,7 +176,7 @@
       }
     ],
     "primary_label": "",
-    "primary_href": "/pricing",
+    "primary_href": "/login",
     "secondary_label": "",
     "secondary_href": "/features",
     "section_title": "",
@@ -220,7 +187,7 @@
   "terms": {
     "label": "POLICIES",
     "title": "Terms of service",
-    "subtitle": "Prelaunch policy information for SESCO Campaign Cloud.",
+    "subtitle": "Draft platform information. Charis compliance and legal teams must approve policies before production use.",
     "sections": [
       {
         "title": "Status",
@@ -233,14 +200,10 @@
       {
         "title": "Sending",
         "description": "Campaigns must comply with applicable law and provider requirements."
-      },
-      {
-        "title": "Billing",
-        "description": "Final subscription, renewal and refund terms will be published before payments launch."
       }
     ],
     "primary_label": "",
-    "primary_href": "/pricing",
+    "primary_href": "/login",
     "secondary_label": "",
     "secondary_href": "/features",
     "section_title": "",
@@ -251,7 +214,7 @@
   "cookies": {
     "label": "POLICIES",
     "title": "Cookie information",
-    "subtitle": "Prelaunch policy information for SESCO Campaign Cloud.",
+    "subtitle": "Draft platform information. Charis compliance and legal teams must approve policies before production use.",
     "sections": [
       {
         "title": "Status",
@@ -267,7 +230,7 @@
       }
     ],
     "primary_label": "",
-    "primary_href": "/pricing",
+    "primary_href": "/login",
     "secondary_label": "",
     "secondary_href": "/features",
     "section_title": "",
@@ -278,7 +241,7 @@
   "acceptable-use": {
     "label": "POLICIES",
     "title": "Acceptable use policy",
-    "subtitle": "Prelaunch policy information for SESCO Campaign Cloud.",
+    "subtitle": "Draft platform information. Charis compliance and legal teams must approve policies before production use.",
     "sections": [
       {
         "title": "Status",
@@ -298,7 +261,7 @@
       }
     ],
     "primary_label": "",
-    "primary_href": "/pricing",
+    "primary_href": "/login",
     "secondary_label": "",
     "secondary_href": "/features",
     "section_title": "",
@@ -308,16 +271,11 @@
   },
   "contact": {
     "label": "CONTACT",
-    "title": "Let\u2019s talk about your next campaign.",
-    "subtitle": "Get in touch about pricing, company access or your campaign needs.",
-    "sections": [
-      {
-        "title": "Talk to our team",
-        "description": "Ask about plans, company workspaces and getting started with your email campaigns."
-      }
-    ],
+    "title": "Support for Charis staff",
+    "subtitle": "For access or campaign assistance, contact your authorised system administrator.",
+    "sections": [],
     "primary_label": "",
-    "primary_href": "/pricing",
+    "primary_href": "/login",
     "secondary_label": "",
     "secondary_href": "/features",
     "section_title": "",
@@ -327,11 +285,11 @@
   },
   "pricing": {
     "label": "PLANS & PRICING",
-    "title": "Plans that grow with your business.",
-    "subtitle": "Choose the right plan for your team and your audience.",
+    "title": "Staff access only",
+    "subtitle": "This is an internal Charis Microfinance Bank system and is not sold through public subscription plans.",
     "sections": [],
     "primary_label": "",
-    "primary_href": "/pricing",
+    "primary_href": "/login",
     "secondary_label": "",
     "secondary_href": "/features",
     "section_title": "",
@@ -341,11 +299,11 @@
   },
   "login": {
     "label": "ACCOUNT ACCESS",
-    "title": "Welcome back",
-    "subtitle": "Sign in securely to your campaign workspace.",
+    "title": "Staff sign in",
+    "subtitle": "Access the Charis Campaign Centre using your authorised staff account.",
     "sections": [],
     "primary_label": "",
-    "primary_href": "/pricing",
+    "primary_href": "/login",
     "secondary_label": "",
     "secondary_href": "/features",
     "section_title": "",
@@ -355,11 +313,11 @@
   },
   "register": {
     "label": "GET STARTED",
-    "title": "Create your account",
-    "subtitle": "Verify your email. Organization access is assigned separately by the platform team.",
+    "title": "Staff access",
+    "subtitle": "Accounts are managed by authorised Charis administrators.",
     "sections": [],
     "primary_label": "",
-    "primary_href": "/pricing",
+    "primary_href": "/login",
     "secondary_label": "",
     "secondary_href": "/features",
     "section_title": "",
@@ -368,42 +326,34 @@
     "highlight_text": ""
   },
   "home": {
-    "label": "COMMUNICATION, BEAUTIFULLY ORGANIZED",
-    "title": "Every campaign. One powerful workspace.",
-    "subtitle": "Manage your audience, create branded campaigns and communicate with confidence. A thoughtfully designed platform for growing teams.",
+    "label": "CHARIS MICROFINANCE BANK",
+    "title": "Every message matters.",
+    "subtitle": "Manage customer communication confidently with Charis Campaign Centre.",
     "sections": [
       {
-        "title": "Audience management",
-        "description": "Import contacts, organize lists and build targeted segments."
+        "title": "Choose your audience",
+        "description": "Reach an individual customer, selected contacts, an approved group or all eligible contacts."
       },
       {
-        "title": "Campaign design studio",
-        "description": "Create reusable email templates with your brand identity."
+        "title": "Write & personalise",
+        "description": "Use reusable Charis email templates and preview before review."
       },
       {
-        "title": "Verified sender domains",
-        "description": "Manage authorized sending domains and sender addresses."
+        "title": "Review & send",
+        "description": "Apply appropriate permissions and approval controls before dispatch."
       },
       {
-        "title": "Company Brand Studio",
-        "description": "Edit logos, headers, footers, social links and colors."
-      },
-      {
-        "title": "Approvals and scheduling",
-        "description": "Plan communications and apply review workflows."
-      },
-      {
-        "title": "Delivery insights",
-        "description": "Understand delivery, bounces and unsubscribes."
+        "title": "Track your campaigns",
+        "description": "See messages queued, sent and delivery results in one place."
       }
     ],
-    "primary_label": "Explore plans",
-    "primary_href": "/pricing",
-    "secondary_label": "Discover features",
-    "secondary_href": "/features",
-    "section_title": "Powerful tools. Simpler workflows.",
-    "section_subtitle": "All the essentials for meaningful business communication.",
-    "highlight_title": "Your message, your identity.",
-    "highlight_text": "Bring your own verified email domain, design your campaign templates, and add company footers and links that reflect your business."
+    "primary_label": "Staff sign in",
+    "primary_href": "/login",
+    "secondary_label": "Help centre",
+    "secondary_href": "/faq",
+    "section_title": "One secure place for customer outreach",
+    "section_subtitle": "From selecting recipients to reviewing delivery, everything your team needs is organised in one workspace.",
+    "highlight_title": "Clear communication. Responsible delivery.",
+    "highlight_text": "Designed for verified staff access and authorised contact lists."
   }
 }

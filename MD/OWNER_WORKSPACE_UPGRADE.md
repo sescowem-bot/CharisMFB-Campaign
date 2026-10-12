@@ -38,7 +38,7 @@ Hosted Supabase credentials, signed-in desktop/mobile browser behavior, real Res
 ## SQL files
 
 - Existing database at migration 012: run **013 only**.
-- Completely new empty database: run `supabase/SESCO_Complete_Fresh_Install.sql`, containing 001–013, once. Do not run it on the existing database and do not run individual migrations afterward.
+- Completely new empty database: run `supabase/ARCHIVED_Generic_Install_DO_NOT_RUN.sql`, containing 001–013, once. Do not run it on the existing database and do not run individual migrations afterward.
 
 ## Main changed files
 

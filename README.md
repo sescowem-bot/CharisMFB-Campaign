@@ -1,35 +1,30 @@
-# SESCO Campaign Cloud
+# Charis Campaign Centre
 
-Current release: **Admin campaign testing, version 0.14.0**. Complete editable Next.js and Supabase source through migration 014 by Sesco Studio. Production acceptance remains outstanding.
+**A dedicated internal customer communication platform for Charis Microfinance Bank.**
+
+This application is for one bank. The portal supports staff sign-in, individual and group recipient selection, contact imports, controlled email campaigns, sender management, reusable templates, delivery tracking, reports, role management and audit logs. The current version **does not** send SMS or WhatsApp messages.
 
 ## Setup
 
-1. Use Node.js 24 and run `npm ci`.
-2. Copy `.env.example` to `.env.local` and configure Supabase values.
-3. On a new database, apply SQL migrations 001 through 014 in order, or use the fresh install SQL once. At migration 013, apply only 014. At migration 012, apply 013 then 014.
-4. Follow [admin campaign testing setup](MD/ADMIN_CAMPAIGN_TESTING.md) and the provider/worker instructions in [Batch 9 setup](MD/BATCH9_SETUP.md).
-5. Run `npm run dev`, or `npm run build` then `npm start`.
+1. Run Node.js **24.x** and `npm ci`.
+2. Create a dedicated Charis Supabase project.
+3. For a **new empty database**, execute `supabase/Charis_Complete_Fresh_Install.sql` **once**, then bootstrap the first verified bank administrator using `supabase/Charis_First_Admin_Bootstrap.sql`.
+4. For an **already installed** Charis database, use the separate `Charis_Brand_Correction_Existing_Supabase.sql` supplied with the branding release. Never rerun the fresh-install SQL on an existing database.
+5. Add Vercel environment variables from `.env.charis.example`, particularly `SINGLE_COMPANY_MODE=true` and the UUID of the `charis-mfb` organisation as `SINGLE_COMPANY_ORG_ID`.
+6. Optionally set `CHARIS_LOGO_URL` to a verified bank-provided HTTPS logo URL. Otherwise a clean monogram appears.
+7. Run `npm run typecheck`, `npm test`, and `npm run build`. Verify contacts, campaign workflows, sender identity, permissions and delivery using approved internal test addresses.
 
-## Available modules
+## Staff navigation
 
-Protected account and company workspaces; contacts and CSV/XLSX imports; lists and segments; branding and structured email templates; domain verification and senders; campaign composition, owner approval in the dedicated brand workspace and independent customer approvals; durable scheduled delivery queues; provider events and suppression; aggregate reports and CSV exports; Paystack billing; company status, subscription and role administration; public website CMS with drafts, revisions, preview and publication; audit activity.
+Dashboard · Create campaign · Campaigns · Customers · Import contacts · Saved groups · Delivery · Reports · Templates · Branding · Email footers · Senders · Team access.
 
-`/admin` requires Super Admin access. `/dashboard` requires sign-in and company membership for company tools. Bootstrap the first owner through reviewed Supabase SQL instructions in [engineering handoff](MD/AGENTS.md). Company role assignment requires an existing verified account and does not send invitations.
+Subscription sales, billing and public self-registration are disabled in dedicated Charis mode. Generic multi-tenant database structures remain for compatibility with the existing delivery/role functions, but bank users cannot switch organisations in the supported interface.
 
-## Documentation
+## Deployment and security
 
-All authored Markdown is in **MD**, except this GitHub README. Start with [admin campaign testing](MD/ADMIN_CAMPAIGN_TESTING.md), [development progress](MD/DEVELOPMENT_PROGRESS.md), [release notes](MD/BATCH12_RELEASE_NOTES.md) and [quality report](MD/QUALITY_REPORT_BATCH12.md). Historical batch notes describe their original releases; current setup notes take precedence.
+- Set `EMAIL_DELIVERY_ENABLED=false` until a verified sender, worker schedule, approval policy, authorised contacts and delivery callback handling have been tested.
+- Do not commit Vercel secrets, Supabase service credentials or provider API keys.
+- The bank must approve actual branding, privacy/legal notices, customer communication consent and staff access arrangements before production rollout.
+- To make registration invitation-only, disable public sign-ups in the Supabase Authentication settings; hiding registration pages alone is insufficient.
 
-## Verification
-
-Run `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm run test:smoke` and `npm audit --omit=dev`. CI runs the same source gates with a clean dependency installation.
-
-## Production status
-
-12 of 12 source packages are delivered. This is a release candidate requiring the pending checks in [live acceptance](MD/LIVE_ACCEPTANCE.md). Live Supabase/provider/DNS/payment acceptance, browser checks, load tests, backups, operational scheduling and deployment remain release gates. No live sends, payments or deployment are claimed. SMS and WhatsApp are unavailable. Keep email delivery disabled until configured and accepted in staging. Public legal copy remains draft material requiring the operator's review.
-
-Deployment and recovery procedures are in [deployment runbook](MD/DEPLOYMENT_RUNBOOK.md) and [backup recovery](MD/BACKUP_RECOVERY.md). `npm run check:release` validates configured environment names/roles without contacting services or printing secrets.
-
-## Starting from a fresh project
-
-See [Fresh installation](MD/FRESH_INSTALL.md). The complete database installation is `supabase/SESCO_Complete_Fresh_Install.sql`. Run it once instead of applying migrations 001 through 012 individually.
+See [Charis branding release notes](MD/CHARIS_BRANDING_RELEASE.md) and the archived engineering documentation in `MD/`.

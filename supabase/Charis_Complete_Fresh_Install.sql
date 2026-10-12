@@ -20,12 +20,12 @@ begin
 end;
 $charis_preflight$;
 
--- SESCO Campaign Cloud 0.14.0 | Complete fresh installation
+-- Charis Campaign Centre 0.14.0 | Complete fresh installation
 -- NEW EMPTY DATABASE ONLY. Existing databases must apply only missing migrations.
 -- Includes 001 through 014.
 
 -- BEGIN 001_foundation.sql
--- SESCO Campaign Cloud | 001 Foundation
+-- Charis Campaign Centre | 001 Foundation
 -- Execute in a NEW Supabase project. Run only after reviewing this migration.
 create extension if not exists pgcrypto;
 create table if not exists public.organizations (
@@ -49,7 +49,7 @@ create table if not exists public.platform_staff (
 );
 create table if not exists public.platform_branding (
   id boolean primary key default true check (id),
-  display_name text not null default 'SESCO Campaign Cloud',
+  display_name text not null default 'Charis Campaign Centre',
   tagline text not null default 'Professional Business Communication',
   logo_path text, primary_color text not null default '#102b4e',
   updated_at timestamptz not null default now()
@@ -408,7 +408,7 @@ using (organization_id is null and exists(select 1 from public.organization_memb
 -- END 005_brand_templates.sql
 
 -- BEGIN 006_contacts_audiences.sql
--- SESCO Campaign Cloud | Batch 6 | Contacts & audiences
+-- Charis Campaign Centre | Batch 6 | Contacts & audiences
 -- Apply after 005_brand_templates.sql. Non-destructive; no demo customer records.
 -- The only allowed mutations are through guarded SECURITY DEFINER functions.
 
@@ -1830,3 +1830,6 @@ from public.organizations o
 join public.organization_subscriptions s on s.organization_id=o.id and s.status='active'
 join public.subscription_plans p on p.id=s.plan_id
 where o.slug='charis-mfb';
+
+-- Dedicated Charis site branding. Keeps user-created pages for future review.
+UPDATE public.site_pages SET draft=coalesce(draft,'{}'::jsonb)||jsonb_build_object('display_name','Charis Campaign Centre','operator_name','Charis Microfinance Bank','tagline','Secure customer communications for Charis Microfinance Bank'), published=coalesce(published,'{}'::jsonb)||jsonb_build_object('display_name','Charis Campaign Centre','operator_name','Charis Microfinance Bank','tagline','Secure customer communications for Charis Microfinance Bank') WHERE slug='site';

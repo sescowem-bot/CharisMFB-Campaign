@@ -1,4 +1,4 @@
-# SESCO Campaign Cloud — Batch 6: Contacts, Excel/CSV, Lists, Segments
+# Charis Campaign Centre — Batch 6: Contacts, Excel/CSV, Lists, Segments
 
 ## Installation
 

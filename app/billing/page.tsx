@@ -3,6 +3,7 @@ import {supabaseServer} from '@/lib/supabase/server';
 import {WorkspaceShell} from '@/components/workspace-shell';
 import {BillingCheckout} from '@/components/billing-checkout';
 export default async function Billing(){
+ if(process.env.SINGLE_COMPANY_MODE==='true')redirect('/dashboard');
  const db=await supabaseServer();const {data:{user}}=await db.auth.getUser();if(!user)redirect('/login');
  const [{data:members},{data:staff}]=await Promise.all([db.from('organization_members').select('organization_id,role').eq('user_id',user.id).eq('role','company_admin'),db.from('platform_staff').select('role').eq('user_id',user.id).maybeSingle()]);
  const isOwner=staff?.role==='super_admin';

@@ -25,7 +25,7 @@ test('all authored Markdown lives in MD except the GitHub README',()=>{
 });
 test('public CMS upgrades exact legacy setup copy while preserving custom published copy',()=>{
  const legacy={...pageDefault('pricing'),subtitle:'Plans and prices are managed directly by SESCO Super Admin.'};
- assert.equal(publicContent('pricing',legacy).subtitle,pageDefault('pricing').subtitle);
+ assert.equal(publicContent('pricing',legacy).subtitle,'Choose the right plan for your team and your audience.');
  const custom={...legacy,subtitle:'Plans for our partner network.'};
  assert.equal(publicContent('pricing',custom).subtitle,custom.subtitle);
 });

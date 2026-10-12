@@ -95,3 +95,30 @@ body{font-family:var(--platform-font,system-ui,sans-serif)}.btn:not(.secondary),
 .recipient-picker{display:grid;gap:13px;border:1px solid #d9e5f3;border-radius:14px;padding:18px;background:#f8fbff}.recipient-picker-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}.recipient-picker-heading h3{margin:0 0 5px}.recipient-picker-heading p{margin:0;font-size:12px}.recipient-count{color:#114b7e;background:#e3f2ff;border-radius:30px;padding:7px 12px;font-size:12px;white-space:nowrap}.recipient-search-row{display:flex;gap:8px;align-items:center}.recipient-search-row>input{flex:1;min-width:0}.recipient-search-row .btn{padding:10px 12px}.recipient-picker-actions{display:flex;flex-wrap:wrap;align-items:center;gap:9px}.recipient-picker-actions .btn{font-size:12px;padding:8px 10px}.recipient-picker-actions small{color:#5f718a;font-size:11px}.recipient-results{max-height:235px;overflow:auto;background:#fff;border:1px solid #dce6ef;border-radius:12px}.recipient-result{display:flex!important;flex-direction:row!important;align-items:center!important;gap:10px;padding:12px!important;margin:0;border-bottom:1px solid #edf1f7;cursor:pointer}.recipient-result input{width:17px!important;height:17px;flex:none}.recipient-result span{display:grid;gap:3px;min-width:0}.recipient-result strong{font-size:13px}.recipient-result small{font-size:12px;color:#596e87;overflow-wrap:anywhere}.recipient-results>.muted{padding:14px}.recipient-chosen summary{font-weight:700;cursor:pointer}.recipient-chip-list{display:flex;gap:7px;flex-wrap:wrap;padding-top:10px}.recipient-chip{border:1px solid #d1deea;border-radius:30px;padding:7px 12px;background:#fff;color:#114b7e;cursor:pointer;font-size:12px}
 @media(max-width:760px){.charis-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.charis-shortcuts{grid-template-columns:1fr}.charis-dashboard-hero{padding:27px 22px}.recipient-picker-heading{align-items:flex-start;flex-wrap:wrap}}
 .quick-send-confirm{display:flex!important;flex-direction:row!important;gap:10px!important;align-items:center}.quick-send-confirm input{width:19px!important;height:19px;flex:none}.quick-send-form{border-color:#b7d1e9;background:#f8fcff}
+
+
+/* Charis Microfinance Bank dedicated staff portal */
+.charis-public{background:linear-gradient(145deg,#f5f8fc 0%,#fff 62%,#eef5fc 100%)}
+.charis-landing-hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);align-items:center;gap:60px;padding-top:90px;padding-bottom:100px;min-height:640px}
+.charis-pill{display:inline-flex;align-items:center;border:1px solid #ccdced;background:#eaf2fb;border-radius:100px;padding:10px 15px;color:#123d63;font-size:11px;font-weight:800;letter-spacing:1px}
+.charis-landing-copy h1{color:#0c2c4a;font-size:clamp(44px,5.7vw,72px);letter-spacing:-3px;line-height:1.07;margin:27px 0}
+.charis-landing-copy h1 em{color:#1f6596;font-style:normal}
+.charis-landing-copy>p:not(.charis-landing-note){font-size:18px;line-height:1.8;color:#5b6c7d;max-width:570px;margin-bottom:27px}
+.charis-landing-note{font-size:12px!important;color:#607588!important;margin-top:26px}
+.charis-landing-panel{background:#fff;border:1px solid #d6e4f0;box-shadow:0 34px 65px rgba(17,53,82,.11);border-radius:22px;overflow:hidden}
+.charis-landing-panel-head{background:#102f4d;color:#fff;padding:22px 25px;display:flex;align-items:center;gap:12px}
+.charis-landing-panel-head .mark{background:#2f76a4;color:#fff;border-radius:11px;width:40px;height:40px;display:grid;place-items:center;font-weight:900}
+.charis-landing-panel-head strong,.charis-landing-panel-head small{display:block}
+.charis-landing-panel-head strong{font-size:14px}.charis-landing-panel-head small{font-size:11px;color:#bfd8e9;margin-top:3px}
+.charis-mini-label{margin-left:auto;color:#cbe1f1;font-size:10px;font-weight:800;letter-spacing:.9px}
+.charis-landing-panel-body{padding:27px 30px 16px}.charis-landing-panel-body h2{font-size:23px;color:#132e48;letter-spacing:-.6px;margin:12px 0 26px}
+.charis-process{display:flex;align-items:flex-start;gap:15px;border-top:1px solid #e6edf4;padding:19px 0}
+.charis-process-num{background:#eaf3fb;color:#17527d;padding:9px;border-radius:10px;font-weight:800;font-size:12px}
+.charis-process strong,.charis-process small{display:block}.charis-process strong{color:#1b3955;font-size:14px}.charis-process small{color:#607588;line-height:1.55;font-size:12px;margin-top:5px}
+.charis-landing-panel-foot{background:#f5f9fc;border-top:1px solid #e3ecf3;padding:15px 30px;color:#687d91;font-size:11px}
+.charis-value-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;padding-bottom:100px}
+.charis-value-grid article{border:1px solid #e2eaf1;background:white;border-radius:17px;padding:28px;box-shadow:0 8px 20px rgba(19,59,92,.04)}
+.charis-value-grid article span{color:#23678d;font-weight:800;font-size:12px}.charis-value-grid h3{font-size:17px;color:#153b59;margin:15px 0 8px}.charis-value-grid p{font-size:13px;line-height:1.75;color:#67788a}
+.charis-footer{padding-top:45px}.charis-footer-grid{display:grid;grid-template-columns:2fr 1fr;gap:35px}.charis-footer-grid>div{display:flex;flex-direction:column;align-items:flex-start;gap:10px}.charis-footer-grid p,.charis-footer-grid small{color:#c1d1e0}.charis-footer-grid a{font-size:13px}
+@media(max-width:900px){.charis-landing-hero{grid-template-columns:1fr;gap:35px;padding-top:55px;min-height:0}.charis-landing-copy h1{font-size:clamp(40px,8vw,64px)}.charis-value-grid{grid-template-columns:1fr}}
+@media(max-width:560px){.charis-landing-hero{padding-top:38px;padding-bottom:55px}.charis-landing-copy h1{letter-spacing:-2px}.charis-landing-copy>p:not(.charis-landing-note){font-size:16px}.charis-landing-panel-body{padding:22px}.charis-footer-grid{grid-template-columns:1fr}.charis-mini-label{display:none}}

@@ -6,6 +6,7 @@ import {supabaseServer} from '@/lib/supabase/server';
 import {paystackRequest} from '@/lib/payments/paystack';
 const schema=z.object({organization_id:z.string().uuid(),plan_id:z.string().uuid()});
 export async function POST(req:Request){
+ if(process.env.SINGLE_COMPANY_MODE==='true')return NextResponse.json({error:'Billing is not available in the Charis staff portal'},{status:404});
  if(!sameOrigin(req))return NextResponse.json({error:'Cross-origin request denied'},{status:403});
  if(!(req.headers.get('content-type')||'').startsWith('application/json'))return NextResponse.json({error:'JSON required'},{status:415});
  try{

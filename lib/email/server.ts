@@ -25,7 +25,7 @@ export async function providerFor(provider:Provider) {
   return providerAdapter(provider,key||'');
 }
 export async function ownershipVerified(domain:string,token:string):Promise<boolean> {
-  try { const resolver=new Resolver({timeout:5000,tries:1});const records=await resolver.resolveTxt('_sesco-campaign.'+domainName(domain)); return records.some(parts=>parts.join('')==='sesco-verification='+token); }
+  try { const resolver=new Resolver({timeout:5000,tries:1});const records=await resolver.resolveTxt('_charis-campaign.'+domainName(domain)); return records.some(parts=>parts.join('')==='charis-verification='+token); }
   catch { return false; }
 }
 export async function refreshDomain(org:string,id:string,trigger=false) {

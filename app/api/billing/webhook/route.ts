@@ -4,6 +4,7 @@ import {boundedBytes,bodyErrorResponse} from '@/lib/security/request';
 import {finalizeVerifiedPayment,paystackSecret} from '@/lib/payments/paystack';
 import {NextResponse} from 'next/server';
 export async function POST(req:Request){
+ if(process.env.SINGLE_COMPANY_MODE==='true')return NextResponse.json({error:'Billing is not available in the Charis staff portal'},{status:404});
  let secret:string;try{secret=paystackSecret();}catch{return NextResponse.json({error:'Webhook unavailable'},{status:503});}
  let bytes:Uint8Array;try{bytes=await boundedBytes(req,150000);}catch(e){return bodyErrorResponse(e)||NextResponse.json({error:'Invalid payload'},{status:400});}
  if(!paymentSignatureValid(bytes,req.headers.get('x-paystack-signature'),secret))return NextResponse.json({error:'Invalid signature'},{status:401});

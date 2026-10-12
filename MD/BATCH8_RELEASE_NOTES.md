@@ -1,4 +1,4 @@
-# SESCO Campaign Cloud Batch 8
+# Charis Campaign Centre Batch 8
 
 ## Added
 

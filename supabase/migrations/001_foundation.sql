@@ -1,4 +1,4 @@
--- SESCO Campaign Cloud | 001 Foundation
+-- Charis Campaign Centre | 001 Foundation
 -- Execute in a NEW Supabase project. Run only after reviewing this migration.
 create extension if not exists pgcrypto;
 create table if not exists public.organizations (
@@ -22,7 +22,7 @@ create table if not exists public.platform_staff (
 );
 create table if not exists public.platform_branding (
   id boolean primary key default true check (id),
-  display_name text not null default 'SESCO Campaign Cloud',
+  display_name text not null default 'Charis Campaign Centre',
   tagline text not null default 'Professional Business Communication',
   logo_path text, primary_color text not null default '#102b4e',
   updated_at timestamptz not null default now()

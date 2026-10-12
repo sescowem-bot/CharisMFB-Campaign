@@ -6,7 +6,7 @@ Deploy this complete source package. No new environment variables are required.
 
 - If migration 013 is already installed, run only `supabase/migrations/014_owner_campaign_tests.sql`.
 - If your database is still at 012, run 013, then 014, in order.
-- Only for a new empty database, run `supabase/SESCO_Complete_Fresh_Install.sql` once. Never run the fresh install script on your existing database.
+- Only for a new empty database, run `supabase/ARCHIVED_Generic_Install_DO_NOT_RUN.sql` once. Never run the fresh install script on your existing database.
 
 Migration 014 is transactional and repeatable. It adds campaign and revision references to test history, a not-sent outcome, and a protected owner test reservation function. Existing customer campaign approvals and delivery rules remain unchanged.
 

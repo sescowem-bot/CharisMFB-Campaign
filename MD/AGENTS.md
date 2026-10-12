@@ -1,7 +1,7 @@
-# SESCO Campaign Cloud | Codex Engineering Handoff
+# Charis Campaign Centre | Codex Engineering Handoff
 
 ## Mission
-Treat this as a real multi-tenant commercial SaaS product by Sesco Studio. Take ownership of the existing source from Batch 5; do not recreate it from scratch or delete any implemented routes or modules. Conduct an evidence-based audit, fix failing foundations, then implement subsequent batches with working features and verification.
+Treat this as a real multi-tenant commercial SaaS product by Charis Microfinance Bank. Take ownership of the existing source from Batch 5; do not recreate it from scratch or delete any implemented routes or modules. Conduct an evidence-based audit, fix failing foundations, then implement subsequent batches with working features and verification.
 
 ## Baseline source
 Import the file `sesco-campaign-cloud-batch5-brand-template-studio.zip` and inspect all files including SQL migrations 001 to 005 and `MD/` before changing code. The earlier development packages were not proven production-ready. **Do not assume the current project builds, that Supabase migrations work, or that payment handling is secure and correct until you test it.**

@@ -49,7 +49,7 @@ export function providerAdapter(provider:Provider,key:string,transport:typeof fe
       const name=senderName(input.name),email=mailbox(input.email),to=mailbox(input.to),replyTo=mailbox(input.replyTo);
       const subject=input.subject??'Sender configuration test';
       if(!subject.trim()||subject.length>207||/[\r\n]/.test(subject))throw new Error('Invalid test email subject.');
-      const body=provider==='resend'?{from:`${name} <${email}>`,to:[to],reply_to:replyTo,subject,html:input.html}:{sender:{name,email},to:[{email:to}],replyTo:{email:replyTo},subject,htmlContent:input.html,headers:{'X-Sesco-Test-ID':input.attempt}};
+      const body=provider==='resend'?{from:`${name} <${email}>`,to:[to],reply_to:replyTo,subject,html:input.html}:{sender:{name,email},to:[{email:to}],replyTo:{email:replyTo},subject,htmlContent:input.html,headers:{'X-Charis-Test-ID':input.attempt}};
       const result=await request(provider==='resend'?'/emails':'/smtp/email','POST',body);
       const id=String(result.id??result.messageId??'');
       if(!id) throw new Error('Provider acknowledgement missing. Check its dashboard before retrying.');

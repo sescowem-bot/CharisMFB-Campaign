@@ -3,6 +3,7 @@ import {NextResponse} from 'next/server';
 import {supabaseServer} from '@/lib/supabase/server';
 import {finalizeVerifiedPayment} from '@/lib/payments/paystack';
 export async function POST(req:Request){
+ if(process.env.SINGLE_COMPANY_MODE==='true')return NextResponse.json({error:'Billing is not available in the Charis staff portal'},{status:404});
  if(!sameOrigin(req))return NextResponse.json({error:'Cross-origin request denied'},{status:403});
  try{
  const {reference}=JSON.parse(await boundedText(req,4000));if(typeof reference!=='string'||!/^scc_[a-f0-9]{32}$/.test(reference))return NextResponse.json({error:'Invalid reference'},{status:400});

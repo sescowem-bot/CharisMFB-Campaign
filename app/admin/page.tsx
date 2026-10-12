@@ -6,6 +6,7 @@ import {WorkspaceShell} from '@/components/workspace-shell';
 import {CompanyForm} from '@/components/admin-forms';
 import {selectOperationCompany,operationLinks} from '@/lib/admin-operations';
 export default async function Admin({searchParams}:{searchParams:Promise<{org?:string}>}){
+ if(process.env.SINGLE_COMPANY_MODE==='true')redirect('/dashboard');
  const {org}=await searchParams;const db=await supabaseServer();const {data:{user}}=await db.auth.getUser();if(!user)redirect('/login');
  const {data:owner}=await db.rpc('is_platform_super_admin');if(owner!==true)redirect('/dashboard');
  const {data:companies,error}=await db.from('organizations').select('id,name,status').order('name');

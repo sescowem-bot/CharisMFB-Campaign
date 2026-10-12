@@ -5,7 +5,7 @@ This package includes the complete source through migration 014, version 0.14.0.
 ## Database
 
 1. Create a new Supabase project for this application.
-2. Open SQL Editor. Copy the entire contents of `supabase/SESCO_Complete_Fresh_Install.sql` and run it once as the project administrator.
+2. Open SQL Editor. Copy the entire contents of `supabase/ARCHIVED_Generic_Install_DO_NOT_RUN.sql` and run it once as the project administrator.
 3. This file includes all fourteen migrations in order, within one transaction. Do not additionally run individual migrations. It is a fresh installation script, not a repeatable upgrade script. If execution fails, retain the error and resolve it before retrying.
 4. After success, later releases use only their new incremental migrations. Keep a record that migrations 001 through 014 are installed.
 

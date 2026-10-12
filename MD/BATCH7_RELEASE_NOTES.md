@@ -1,4 +1,4 @@
-# SESCO Campaign Cloud Batch 7
+# Charis Campaign Centre Batch 7
 
 ## Delivered
 

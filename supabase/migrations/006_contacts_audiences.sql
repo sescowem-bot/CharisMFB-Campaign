@@ -1,4 +1,4 @@
--- SESCO Campaign Cloud | Batch 6 | Contacts & audiences
+-- Charis Campaign Centre | Batch 6 | Contacts & audiences
 -- Apply after 005_brand_templates.sql. Non-destructive; no demo customer records.
 -- The only allowed mutations are through guarded SECURITY DEFINER functions.
 

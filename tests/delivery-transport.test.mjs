@@ -18,7 +18,7 @@ test('only an explicit 429 retries; timeouts and 5xx are unknown without blind r
 });
 test('Brevo delivery uses one recipient, normalized message ID and fixed endpoint',async()=>{
  let body;const result=await sendQueuedEmail({...input,provider:'brevo'},async(url,options)=>{assert.equal(url,'https://api.brevo.com/v3/smtp/email');body=JSON.parse(options.body);return Response.json({messageId:'<brevo-id>'});});
- assert.equal(result.message,'brevo-id');assert.equal(body.headers['X-Mailin-custom'],'sesco_delivery='+input.id);
+ assert.equal(result.message,'brevo-id');assert.equal(body.headers['X-Mailin-custom'],'charis_delivery='+input.id);
 });
 test('worker and Brevo bearer secrets reject missing and incorrect values',()=>{
  const secret='s'.repeat(40);assert.ok(bearerMatches('Bearer '+secret,secret));assert.equal(bearerMatches('Bearer wrong',secret),false);assert.equal(bearerMatches(null,secret),false);assert.equal(bearerMatches('Bearer short','short'),false);
