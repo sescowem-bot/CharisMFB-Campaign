@@ -3,6 +3,23 @@ import {revalidatePath} from 'next/cache';
 import {z} from 'zod';
 import {contactsAccess,organizationIdSchema} from '@/lib/contacts/access';
 export type FormResult = {success?: string; error?: string};
+/** Bank-authorised contact management. Hard deletion is refused for delivery history. */
+export async function manageContact(_:FormResult,form:FormData):Promise<FormResult>{
+ try{
+  const org=organizationIdSchema.parse(form.get('organization_id'));
+  const id=organizationIdSchema.parse(form.get('contact_id'));
+  const operation=z.enum(['archive','restore','delete']).parse(form.get('operation'));
+  const {db,authorized}=await contactsAccess(org);
+  if(!authorized)return {error:'You do not have customer management permission.'};
+  const {error}=operation==='delete'
+   ?await db.rpc('charis_contact_delete',{p_org:org,p_contact:id})
+   :await db.rpc('charis_contact_archive',{p_org:org,p_contact:id,p_archive:operation==='archive'});
+  if(error)return {error:error.message};
+  revalidatePath('/dashboard/contacts');revalidatePath('/dashboard');
+  return {success:operation==='delete'?'Customer permanently deleted.':operation==='restore'?'Customer restored. Marketing remains opted out until a separately documented opt-in.':'Customer archived and removed from eligible audiences.'};
+ }catch{return {error:'Unable to manage customer. Confirm migration 018 is installed.'};}
+}
+
 const contactSchema=z.object({
  organization_id:organizationIdSchema,
  contact_id:z.union([z.literal(''),z.string().uuid()]),

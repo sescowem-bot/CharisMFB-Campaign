@@ -1,6 +1,6 @@
 'use client';
 import {useActionState} from 'react';
-import {connectCharisResend,disableCharisSender} from '@/app/dashboard/senders/charis-actions';
+import {connectCharisResend,disableCharisSender,setupCharisResendDomain,checkCharisResendDomain,removePendingCharisDomain,removeUnusedCharisSender} from '@/app/dashboard/senders/charis-actions';
 
 export function CharisResendForm({org,domains,defaultName,defaultLocal,defaultDomain,defaultReply}:{org:string;domains:string[];defaultName:string;defaultLocal:string;defaultDomain:string;defaultReply:string}){
  const [state,action,pending]=useActionState(connectCharisResend,{});
@@ -24,5 +24,39 @@ export function DisableCharisSender({org,id}:{org:string;id:string}){
   <input type="hidden" name="organization_id" value={org}/><input type="hidden" name="sender_id" value={id}/>
   <button type="submit" className="btn secondary" disabled={pending}>{pending?'Disabling…':'Disable sender'}</button>
   {state.error&&<p className="feedback-error" role="alert">{state.error}</p>}{state.success&&<p className="feedback-success" role="status">{state.success}</p>}
+ </form>;
+}
+
+export function CharisDomainConnectForm({org}:{org:string}){
+ const [state,action,pending]=useActionState(setupCharisResendDomain,{});
+ return <form action={action} className="admin-form">
+  <input type="hidden" name="organization_id" value={org}/>
+  <label>Domain you control<input name="domain" required placeholder="sescoconcept.name.ng" autoCapitalize="none" autoComplete="off"/></label>
+  <button className="btn" disabled={pending}>{pending?'Checking Resend…':'Connect sending domain'}</button>
+  {state.error&&<p className="feedback-error" role="alert">{state.error}</p>}{state.success&&<p className="feedback-success" role="status">{state.success}</p>}
+ </form>;
+}
+export function CharisDomainCheckForm({org,id}:{org:string;id:string}){
+ const [state,action,pending]=useActionState(checkCharisResendDomain,{});
+ return <form action={action}><input type="hidden" name="organization_id" value={org}/><input type="hidden" name="domain_id" value={id}/>
+  <button className="btn secondary" disabled={pending}>{pending?'Checking…':'Check verification'}</button>
+  {state.error&&<p className="feedback-error" role="alert">{state.error}</p>}{state.success&&<p className="feedback-success" role="status">{state.success}</p>}
+ </form>;
+}
+export function CharisDomainUnlinkForm({org,id}:{org:string;id:string}){
+ const [state,action,pending]=useActionState(removePendingCharisDomain,{});
+ return <form action={action} onSubmit={e=>{if(!window.confirm('Remove this unfinished domain connection from Charis?'))e.preventDefault();}}>
+  <input type="hidden" name="organization_id" value={org}/><input type="hidden" name="domain_id" value={id}/>
+  <button className="btn secondary" disabled={pending}>{pending?'Removing…':'Remove unfinished connection'}</button>
+  {state.error&&<p className="feedback-error" role="alert">{state.error}</p>}
+ </form>;
+}
+
+export function RemoveUnusedCharisSender({org,id}:{org:string;id:string}){
+ const [state,action,pending]=useActionState(removeUnusedCharisSender,{});
+ return <form action={action} onSubmit={e=>{if(!window.confirm('Remove this disabled sender? Historical senders cannot be deleted.'))e.preventDefault();}}>
+  <input type="hidden" name="organization_id" value={org}/><input type="hidden" name="sender_id" value={id}/>
+  <button className="btn secondary" disabled={pending}>{pending?'Removing…':'Remove unused sender'}</button>
+  {state.error&&<p role="alert" className="feedback-error">{state.error}</p>}{state.success&&<p role="status" className="feedback-success">{state.success}</p>}
  </form>;
 }

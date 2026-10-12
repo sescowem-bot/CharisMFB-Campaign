@@ -4,7 +4,7 @@ import {z} from 'zod';
 import {supabaseServer} from '@/lib/supabase/server';
 import {WorkspaceShell} from '@/components/workspace-shell';
 import {SenderForm} from '@/components/sender-form';
-import {CharisResendForm,DisableCharisSender} from '@/components/charis-resend-form';
+import {CharisResendForm,DisableCharisSender,CharisDomainConnectForm,CharisDomainCheckForm,CharisDomainUnlinkForm,RemoveUnusedCharisSender} from '@/components/charis-resend-form';
 import {listVerifiedResendDomains} from '@/lib/email/charis-resend';
 import type {DnsRecord} from '@/lib/email/providers';
 export default async function Senders({searchParams}:{searchParams:Promise<{org?:string}>}) {
@@ -23,22 +23,30 @@ export default async function Senders({searchParams}:{searchParams:Promise<{org?
   let domainsAvailable:string[]=[];let domainError='';
   try{domainsAvailable=(await listVerifiedResendDomains()).map(d=>d.domain);}
   catch(e){domainError=e instanceof Error?e.message:'Could not load verified domains.';}
-  const current=senders.data.find(s=>s.is_active&&domainsAvailable.includes(String(s.from_email).split('@')[1])) || senders.data.find(s=>s.is_active);
+  const connected=domains.data.filter(d=>d.provider==='resend'&&d.verification_status==='verified'&&d.charis_connected===true&&Boolean(d.provider_domain_id)).map(d=>d.domain).filter(d=>domainsAvailable.includes(d));
+  const current=senders.data.find(s=>s.is_active&&connected.includes(String(s.from_email).split('@')[1]));
   const fromEmail=String(current?.from_email||'');
   const fromDomain=fromEmail.split('@')[1]||'';
-  const selected=domainsAvailable.includes(fromDomain)?fromDomain:domainsAvailable[0]||'';
+  const selected=connected.includes(fromDomain)?fromDomain:connected[0]||'';
   return <WorkspaceShell org={org} title="Email sending settings">
    <section className="panel"><h2>Sender identity and Resend connection</h2>
     <p>Charis administrators can change the sender name, address and reply-to email here. Only the Resend API key is stored in Vercel. No email identity is hardcoded in the deployment.</p>
     {domainError&&<p role="alert" className="feedback-error">{domainError}</p>}
-    {!domainError&&!domainsAvailable.length&&<p role="alert" className="notice">No verified sending domains were found in this Resend account. A domain must be verified and enabled for sending in Resend once before it can be selected here.</p>}
-    {!!domainsAvailable.length&&<CharisResendForm org={org} domains={domainsAvailable} defaultName={String(current?.from_name||'Charis Microfinance Bank')} defaultLocal={fromEmail.split('@')[0]||'campaigns'} defaultDomain={selected} defaultReply={String(current?.reply_to||'')}/>}
+    {!domainError&&!connected.length&&<p role="alert" className="notice">No verified domain has been connected to Charis yet. Enter your testing domain below. Unrelated domains in the same Resend account are never selected automatically.</p>}
+    {!!connected.length&&<CharisResendForm org={org} domains={connected} defaultName={String(current?.from_name||'Charis Microfinance Bank')} defaultLocal={fromEmail.split('@')[0]||'campaigns'} defaultDomain={selected} defaultReply={String(current?.reply_to||'')}/>}
+   </section>
+
+   <section className="panel"><h2>Connect your testing domain</h2><p className="muted">Enter the domain you control, such as sescoconcept.name.ng. The system uses the Resend API key already in Vercel. No provider Domain ID or hardcoded sender address is needed.</p><CharisDomainConnectForm org={org}/>
+   {domains.data.filter(d=>d.provider==='resend'&&d.charis_connected===true&&d.verification_status!=='revoked').map(d=><div className="sender-domain" key={d.id}><h3>{d.domain} · {d.verification_status}</h3>
+    {d.verification_status!=='verified'&&<><p className="muted">Add the following DNS records at your DNS hosting provider. Keep existing email records intact.</p><div className="table-scroll"><table className="admin-table"><thead><tr><th>Type</th><th>Host</th><th>Value</th></tr></thead><tbody>{(Array.isArray(d.dns_records)?d.dns_records:[]).map((r:DnsRecord,i:number)=><tr key={i}><td>{r.type}</td><td><code>{r.name}</code></td><td><code>{r.value}</code></td></tr>)}</tbody></table></div></>}
+    <div className="actions"><CharisDomainCheckForm org={org} id={d.id}/>{d.verification_status!=='verified'&&<CharisDomainUnlinkForm org={org} id={d.id}/>}</div>
+   </div>)}
    </section>
    <section className="panel"><h2>Saved sender identities</h2>
     <p className="muted">The campaign editor lets staff choose an active sender. A test email goes only to your own verified account.</p>
     {!senders.data.length&&<p className="muted">No sender configured yet.</p>}
     {senders.data.map(s=><div key={s.id} className="sender-domain"><strong>{s.from_name}</strong><p>{s.from_email} · Replies: {s.reply_to} · {s.is_active?'Active':'Disabled'}</p>
-     {s.is_active&&<div className="sender-inline"><SenderForm org={org} action="test" label="Send test to my account"><input type="hidden" name="sender_id" value={s.id}/></SenderForm><DisableCharisSender org={org} id={s.id}/></div>}
+     {s.is_active&&!connected.includes(String(s.from_email).split('@')[1])&&<p className="notice">This sender is not connected to a verified Charis domain. Disable it before testing.</p>}{s.is_active&&connected.includes(String(s.from_email).split('@')[1])&&<div className="sender-inline"><SenderForm org={org} action="test" label="Send test to my account"><input type="hidden" name="sender_id" value={s.id}/></SenderForm></div>}{s.is_active?<DisableCharisSender org={org} id={s.id}/>:<RemoveUnusedCharisSender org={org} id={s.id}/>}
      </div>)}
    </section>
    </WorkspaceShell>;

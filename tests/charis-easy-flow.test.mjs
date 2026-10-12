@@ -18,7 +18,8 @@ test('Charis campaign test is visible and authenticated to own account',()=>{
 test('Resend sync uses a Vercel-held API key and insists on provider verification',()=>{
  const code=src('app/dashboard/senders/charis-actions.ts');
  assert.match(code,/process.env.RESEND_API_KEY/);
- assert.match(code,/process.env.CHARIS_FROM_EMAIL/);
+ assert.doesNotMatch(code,/process.env.CHARIS_FROM_EMAIL/);
+ assert.match(code,/charis_connected/);
  assert.match(code,/status\.verified/);
  assert.match(code,/senderAccess\(org\)/);
  assert.doesNotMatch(code,/provider_domain_id.*form\.get/);
