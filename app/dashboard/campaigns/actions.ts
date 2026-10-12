@@ -17,14 +17,19 @@ export async function campaignAction(_:CampaignResult,form:FormData):Promise<Cam
    const design=campaignDesign.parse(JSON.parse(String(form.get('design'))));
    const subject=z.string().trim().min(1).max(200).refine(s=>!/[\r\n]/.test(s)).parse(form.get('subject'));
    renderCampaign({design,subject,company:'Your company',address:'Preview address'});
-   const type=z.enum(['all','list','segment']).parse(form.get('audience_type'));
+   const type=z.enum(['all','list','segment','selected']).parse(form.get('audience_type'));
    const rawTime=String(form.get('requested_send_at')||'');
    if(rawTime&&!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(rawTime))throw new Error('Invalid requested UTC time.');
    const scheduled=rawTime?rawTime+'Z':'';
    if(scheduled&&(!Number.isFinite(Date.parse(scheduled))||Date.parse(scheduled)<=Date.now()))throw new Error('Choose a future requested send time.');
-   const {data:id,error}=await db.rpc('campaign_save',{p_org:org,p_id:form.get('campaign_id')?z.string().uuid().parse(form.get('campaign_id')):null,p_expected:revision,p_name:z.string().trim().min(2).max(120).parse(form.get('name')),p_subject:subject,p_preheader:z.string().max(250).parse(form.get('preheader')||''),p_design:design,p_sender:form.get('sender_id')?z.string().uuid().parse(form.get('sender_id')):null,p_type:type,p_audience:type==='all'?null:z.string().uuid().parse(form.get('audience_id')),p_requested:scheduled?new Date(scheduled).toISOString():null});
+   const common={p_org:org,p_id:form.get('campaign_id')?z.string().uuid().parse(form.get('campaign_id')):null,p_expected:revision,p_name:z.string().trim().min(2).max(120).parse(form.get('name')),p_subject:subject,p_preheader:z.string().max(250).parse(form.get('preheader')||''),p_design:design,p_sender:form.get('sender_id')?z.string().uuid().parse(form.get('sender_id')):null,p_requested:scheduled?new Date(scheduled).toISOString():null};
+   const selected=type==='selected'?z.array(z.string().uuid()).min(1,'Select at least one eligible customer').max(500).parse(JSON.parse(String(form.get('selected_contacts')||'[]'))):[];
+   if(new Set(selected).size!==selected.length)throw new Error('Selection includes duplicate contacts');
+   const {data:id,error}=type==='selected'
+    ?await db.rpc('charis_campaign_save_selected',{...common,p_contacts:selected})
+    :await db.rpc('campaign_save',{...common,p_type:type,p_audience:type==='all'?null:z.string().uuid().parse(form.get('audience_id'))});
    if(error)throw new Error(error.message);
-   revalidatePath('/dashboard/campaigns');return {id,success:'Draft saved. Open the saved campaign to prepare approval and delivery.'};
+   revalidatePath('/dashboard/campaigns');return {id,success:'Draft saved. Open it to review and send when ready.'};
   }
   const id=z.string().uuid().parse(form.get('campaign_id'));
   if(action==='test') {

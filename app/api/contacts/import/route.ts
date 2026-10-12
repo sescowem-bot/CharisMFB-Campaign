@@ -5,6 +5,7 @@ import {contactsAccess} from '@/lib/contacts/access';
 const schema=z.object({
  organization_id:z.string().uuid(),
  batch_key:z.string().uuid(),
+ list_id:z.string().uuid().optional(),
  rows:z.array(z.object({
   first_name:z.string().trim().max(100),last_name:z.string().trim().max(100),
   email:z.string().trim().max(254),phone:z.string().trim().max(20),
@@ -22,7 +23,9 @@ export async function POST(request:Request){
   const {db,user,authorized}=await contactsAccess(parsed.data.organization_id);
   if(!user)return NextResponse.json({error:'Sign in required'},{status:401});
   if(!authorized)return NextResponse.json({error:'Not authorized'},{status:403});
-  const {data,error}=await db.rpc('import_contact_batch',{p_org:parsed.data.organization_id,p_batch_key:parsed.data.batch_key,p_rows:parsed.data.rows});
+  const {data,error}=parsed.data.list_id
+   ?await db.rpc('charis_import_batch_to_list',{p_org:parsed.data.organization_id,p_batch_key:parsed.data.batch_key,p_rows:parsed.data.rows,p_list:parsed.data.list_id})
+   :await db.rpc('import_contact_batch',{p_org:parsed.data.organization_id,p_batch_key:parsed.data.batch_key,p_rows:parsed.data.rows});
   if(error)return NextResponse.json({error:'Contact import rejected: '+error.message},{status:422});
   const summary=Array.isArray(data)?data[0]:data;
   return NextResponse.json({inserted:summary?.inserted??0,skipped:summary?.skipped??0,rejected:summary?.rejected??0});

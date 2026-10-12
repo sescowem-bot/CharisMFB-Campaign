@@ -11,8 +11,4 @@ test('consolidated fresh installation creates the owner workspace atomically',as
  await db.exec(readFileSync(new URL('../supabase/SESCO_Complete_Fresh_Install.sql',import.meta.url),'utf8').replace('create extension if not exists pgcrypto;',''));
  assert.equal((await db.query('select count(*)::int as n from platform_workspace')).rows[0].n,1);
  assert.equal((await db.query('select o.status from organizations o join platform_workspace w on w.organization_id=o.id')).rows[0].status,'active');
- await db.exec(readFileSync(new URL('../supabase/seed_charis.sql',import.meta.url),'utf8'));
- assert.equal((await db.query('select o.name,b.display_name as brand from organizations o join platform_workspace w on w.organization_id=o.id join organization_branding b on b.organization_id=o.id')).rows[0].name,'Charis Microfinance Bank');
- assert.equal((await db.query('select display_name from platform_branding')).rows[0].display_name,'Charis MFB Campaign Centre');
- assert.equal((await db.query('select owner_self_approval as v from platform_workspace')).rows[0].v,false);
 });

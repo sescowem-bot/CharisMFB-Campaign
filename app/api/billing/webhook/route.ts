@@ -2,10 +2,8 @@ import {z} from 'zod';
 import {paymentSignatureValid} from '@/lib/payments/signature';
 import {boundedBytes,bodyErrorResponse} from '@/lib/security/request';
 import {finalizeVerifiedPayment,paystackSecret} from '@/lib/payments/paystack';
-import {appMode} from '@/lib/mode';
 import {NextResponse} from 'next/server';
 export async function POST(req:Request){
- if(appMode()==='single')return new Response(null,{status:404});
  let secret:string;try{secret=paystackSecret();}catch{return NextResponse.json({error:'Webhook unavailable'},{status:503});}
  let bytes:Uint8Array;try{bytes=await boundedBytes(req,150000);}catch(e){return bodyErrorResponse(e)||NextResponse.json({error:'Invalid payload'},{status:400});}
  if(!paymentSignatureValid(bytes,req.headers.get('x-paystack-signature'),secret))return NextResponse.json({error:'Invalid signature'},{status:401});

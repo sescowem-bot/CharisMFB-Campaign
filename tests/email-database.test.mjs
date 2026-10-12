@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,readdirSync} from 'node:fs';
 import {PGlite} from '@electric-sql/pglite';
 const ids={owner:'10000000-0000-4000-8000-000000000001',a:'10000000-0000-4000-8000-000000000002',b:'10000000-0000-4000-8000-000000000003',viewer:'10000000-0000-4000-8000-000000000004',orgA:'20000000-0000-4000-8000-000000000001',orgB:'20000000-0000-4000-8000-000000000002'};
-test('migrations 001–015 and tenant/security flows in isolated PostgreSQL',async t=>{
+test('migrations 001–014 and tenant/security flows in isolated PostgreSQL',async t=>{
  const db=new PGlite();t.after(()=>db.close());
  await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;
  create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);
@@ -231,7 +231,6 @@ test('migrations 001–015 and tenant/security flows in isolated PostgreSQL',asy
   await db.exec('reset role');
   const before=(await db.query('select organization_id from platform_workspace')).rows[0].organization_id;
   await db.exec(readFileSync(new URL('../supabase/migrations/013_owner_workspace.sql',import.meta.url),'utf8'));
-  await db.exec(readFileSync(new URL('../supabase/migrations/015_single_system.sql',import.meta.url),'utf8'));
   assert.equal((await db.query('select organization_id from platform_workspace')).rows[0].organization_id,before);
   await as(ids.a);assert.equal((await db.query('select * from platform_workspace')).rows.length,0);
   await assert.rejects(db.query('update platform_workspace set monthly_email_limit=999999'),/permission denied/);
@@ -240,8 +239,6 @@ test('migrations 001–015 and tenant/security flows in isolated PostgreSQL',asy
  });
  await t.test('owner can draft without sender, connect existing domain, approve and queue without subscription',async()=>{
   await as(ids.owner);const org=(await db.query('select organization_id from platform_workspace')).rows[0].organization_id;
-  assert.equal((await db.query('select owner_self_approval as v from platform_workspace')).rows[0].v,false,'self-approval is off by default');
-  await db.exec('reset role');await db.exec('update platform_workspace set owner_self_approval=true');await as(ids.owner);
   const design=JSON.stringify({version:'1',blocks:[{type:'heading',text:'Owner update'}]});
   const args=[org,null,0,'Owner campaign','Owner update','',design,null,'all',null,null];
   const campaign=(await db.query('select campaign_save($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) as id',args)).rows[0].id;
@@ -259,9 +256,6 @@ test('migrations 001–015 and tenant/security flows in isolated PostgreSQL',asy
   await db.query("select campaign_transition($1,$2,2,'owner_approve','Owner reviewed')",[org,campaign]);
   const row=(await db.query('select status,reviewed_by from campaign_drafts where id=$1',[campaign])).rows[0];assert.equal(row.status,'approved');assert.equal(row.reviewed_by,ids.owner);
   const audit=(await db.query("select count(*)::int as n from audit_logs where action='campaign.owner_approve' and entity_id=$1",[campaign])).rows[0];assert.equal(audit.n,1);
-  await db.exec('reset role');await db.exec('update platform_workspace set owner_self_approval=false');await as(ids.owner);
-  await assert.rejects(db.query("select campaign_transition($1,$2,3,'owner_approve','')",[org,campaign]),/Independent approval required/);
-  await db.exec('reset role');await db.exec('update platform_workspace set owner_self_approval=true');await as(ids.owner);
   const ownRun=(await db.query('select campaign_enqueue($1,$2,3) as id',[org,campaign])).rows[0].id;assert.ok(ownRun);
   await assert.rejects(db.query('select owner_delivery_claim($1,$2)',[org,ownRun]),/permission denied/);
   await as(ids.owner,'service_role');

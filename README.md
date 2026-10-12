@@ -1,35 +1,35 @@
-# Charis MFB Campaign Centre
+# SESCO Campaign Cloud
 
-Single-organisation email campaign system for Charis Microfinance Bank. Built on the Sesco campaign engine
-(Next.js 15, React 19, TypeScript, Supabase Postgres + Auth with row-level security, Resend/Brevo delivery).
+Current release: **Admin campaign testing, version 0.14.0**. Complete editable Next.js and Supabase source through migration 014 by Sesco Studio. Production acceptance remains outstanding.
 
-Version **0.15.0**. Source complete for single-system mode; live acceptance is still outstanding.
-No live sends, payments or deployment have been performed.
+## Setup
 
-## Start here
+1. Use Node.js 24 and run `npm ci`.
+2. Copy `.env.example` to `.env.local` and configure Supabase values.
+3. On a new database, apply SQL migrations 001 through 014 in order, or use the fresh install SQL once. At migration 013, apply only 014. At migration 012, apply 013 then 014.
+4. Follow [admin campaign testing setup](MD/ADMIN_CAMPAIGN_TESTING.md) and the provider/worker instructions in [Batch 9 setup](MD/BATCH9_SETUP.md).
+5. Run `npm run dev`, or `npm run build` then `npm start`.
 
-- **[MD/CHARIS_GO_LIVE.md](MD/CHARIS_GO_LIVE.md)** — install, roles, scheduling, capacity, go-live checklist.
-- [MD/DEPLOYMENT_RUNBOOK.md](MD/DEPLOYMENT_RUNBOOK.md), [MD/BACKUP_RECOVERY.md](MD/BACKUP_RECOVERY.md), [MD/LIVE_ACCEPTANCE.md](MD/LIVE_ACCEPTANCE.md), [MD/ADMIN_CAMPAIGN_TESTING.md](MD/ADMIN_CAMPAIGN_TESTING.md).
-- Earlier batch notes are kept in `MD/archive` for history; current documents take precedence.
+## Available modules
 
-## Quick start
+Protected account and company workspaces; contacts and CSV/XLSX imports; lists and segments; branding and structured email templates; domain verification and senders; campaign composition, owner approval in the dedicated brand workspace and independent customer approvals; durable scheduled delivery queues; provider events and suppression; aggregate reports and CSV exports; Paystack billing; company status, subscription and role administration; public website CMS with drafts, revisions, preview and publication; audit activity.
 
-```bash
-nvm use 24            # Node 24 is required
-cp .env.example .env.local
-npm ci
-npm run dev
-```
+`/admin` requires Super Admin access. `/dashboard` requires sign-in and company membership for company tools. Bootstrap the first owner through reviewed Supabase SQL instructions in [engineering handoff](MD/AGENTS.md). Company role assignment requires an existing verified account and does not send invitations.
 
-Database: run `supabase/SESCO_Complete_Fresh_Install.sql` once, then `supabase/seed_charis.sql`.
-Existing database at migration 014: run only `supabase/migrations/015_single_system.sql`.
+## Documentation
 
-## Modes
-
-`APP_MODE=single` (default) is the Charis deployment: invite-only, no public site, billing or company switching,
-maker-checker approval. `APP_MODE=multi` restores the original multi-company surface; the schema is the same.
+All authored Markdown is in **MD**, except this GitHub README. Start with [admin campaign testing](MD/ADMIN_CAMPAIGN_TESTING.md), [development progress](MD/DEVELOPMENT_PROGRESS.md), [release notes](MD/BATCH12_RELEASE_NOTES.md) and [quality report](MD/QUALITY_REPORT_BATCH12.md). Historical batch notes describe their original releases; current setup notes take precedence.
 
 ## Verification
 
-`npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm run test:smoke`, `npm audit --omit=dev`.
-CI runs the same gates on Node 24.
+Run `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm run test:smoke` and `npm audit --omit=dev`. CI runs the same source gates with a clean dependency installation.
+
+## Production status
+
+12 of 12 source packages are delivered. This is a release candidate requiring the pending checks in [live acceptance](MD/LIVE_ACCEPTANCE.md). Live Supabase/provider/DNS/payment acceptance, browser checks, load tests, backups, operational scheduling and deployment remain release gates. No live sends, payments or deployment are claimed. SMS and WhatsApp are unavailable. Keep email delivery disabled until configured and accepted in staging. Public legal copy remains draft material requiring the operator's review.
+
+Deployment and recovery procedures are in [deployment runbook](MD/DEPLOYMENT_RUNBOOK.md) and [backup recovery](MD/BACKUP_RECOVERY.md). `npm run check:release` validates configured environment names/roles without contacting services or printing secrets.
+
+## Starting from a fresh project
+
+See [Fresh installation](MD/FRESH_INSTALL.md). The complete database installation is `supabase/SESCO_Complete_Fresh_Install.sql`. Run it once instead of applying migrations 001 through 012 individually.

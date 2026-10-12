@@ -1,6 +1,6 @@
 {
-  "name": "charis-campaign-centre",
-  "version": "0.15.0",
+  "name": "sesco-campaign-cloud",
+  "version": "0.14.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
