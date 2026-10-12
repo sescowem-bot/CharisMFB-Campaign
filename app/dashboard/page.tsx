@@ -1,0 +1,16 @@
+import Link from 'next/link';
+import {redirect} from 'next/navigation';
+import {supabaseServer} from '@/lib/supabase/server';
+import {WorkspaceShell} from '@/components/workspace-shell';
+import {appMode} from '@/lib/mode';
+export default async function Dashboard(){
+ const db=await supabaseServer();const {data:{user}}=await db.auth.getUser();if(!user)redirect('/login');
+ const {data:owner}=await db.rpc('is_platform_super_admin');
+ const {data:memberships,error}=await db.from('organization_members').select('organization_id,role,organizations(name,status)').eq('user_id',user.id);
+ if(error)return <WorkspaceShell title="Company workspace"><p role="alert">Workspace could not be loaded. Please retry or contact support.</p></WorkspaceShell>;
+ let companies=(memberships||[]).map(m=>({id:m.organization_id,name:(m.organizations as {name?:string}|null)?.name||m.organization_id,status:(m.organizations as {status?:string}|null)?.status||'pending',role:m.role}));
+ if(owner){const {data,error}=await db.from('organizations').select('id,name,status').order('name');if(error)return <WorkspaceShell title="Company workspace"><p role="alert">Companies could not be loaded. Please retry.</p></WorkspaceShell>;companies=(data||[]).map(c=>({...c,role:'super_admin'}));}
+ if(appMode()==='single'&&companies.length){const home=companies.find(c=>c.status==='active')??companies[0];redirect(`/dashboard/campaigns?org=${home.id}`);}
+ return <WorkspaceShell title="Company workspaces"><p className="muted">Choose a company to create campaigns, upload contacts and manage communication.</p>{owner&&<div className="actions"><Link className="btn" href="/admin/companies">Create or manage companies</Link><Link className="btn secondary" href="/admin">Platform administration</Link></div>}
+ {companies.length?<div className="workspace-company-grid">{companies.map(c=><section className="panel" key={c.id}><h2>{c.name}</h2><p className="muted">{c.role.replaceAll('_',' ')} · {c.status}</p><div className="actions">{(c.status==='active'&&(owner||['company_admin','manager','designer'].includes(c.role)))&&<Link className="btn" href={`/dashboard/campaigns?org=${c.id}&create=1`}>Create campaign</Link>}{(owner||c.status==='active'&&['company_admin','manager'].includes(c.role))&&<Link className="btn secondary" href={`/dashboard/imports?org=${c.id}`}>Upload contacts</Link>}</div><div className="workspace-links">{[['Campaign studio','campaigns'],['Contacts','contacts'],['Delivery queue','delivery'],['Reports','reports'],['Team & roles','team'],['Senders & domains','senders'],['Lists','lists'],['Segments','segments'],['Brand Studio','branding'],['Email templates','templates'],['Email footers','footers']].map(([label,path])=><Link key={path} href={`/dashboard/${path}?org=${c.id}`}>{label}</Link>)}</div>{c.status!=='active'&&<p>Activate this workspace through company management before creating campaigns.</p>}</section>)}</div>:<section className="panel"><h2>{owner?'Create your first company':'Workspace access needed'}</h2><p>{owner?'Create a company workspace to organize its contacts, templates and campaigns.':'Ask your platform or company administrator to add your verified account to a company workspace.'}</p>{owner&&<Link className="btn" href="/admin/companies">Create company workspace</Link>}</section>}</WorkspaceShell>;
+}

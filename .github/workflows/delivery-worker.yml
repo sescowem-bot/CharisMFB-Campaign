@@ -1,0 +1,21 @@
+name: Delivery worker
+# Fallback scheduler. GitHub cron runs at most every 5 minutes and may be delayed; for steadier
+# throughput use Vercel Cron (Pro) or an external scheduler every minute. See MD/CHARIS_GO_LIVE.md.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions: {}
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    if: ${{ vars.DELIVERY_WORKER_ENABLED == 'true' }}
+    steps:
+      - name: Run one delivery batch
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          WORKER_SECRET: ${{ secrets.EMAIL_WORKER_SECRET }}
+        run: |
+          curl --fail --silent --show-error --max-time 115 -X POST \
+            -H "Authorization: Bearer ${WORKER_SECRET}" \
+            "${APP_URL}/api/worker/delivery"
