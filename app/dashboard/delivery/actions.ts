@@ -20,9 +20,22 @@ export async function queueAction(_:QueueResult,form:FormData):Promise<QueueResu
    if(process.env.EMAIL_DELIVERY_ENABLED!=='true')throw new Error('Campaign dispatch is disabled by the platform operator.');
    const base=process.env.NEXT_PUBLIC_APP_URL||'';const url=new URL(base);if(url.protocol!=='https:'||url.pathname!=='/'||url.username||url.password||url.search||url.hash)throw new Error('An HTTPS public application origin must be configured.');
    const id=z.string().uuid().parse(form.get('campaign_id'));
-   const {data:row,error:read}=await db.from('campaign_drafts').select('design,subject,preheader').eq('id',id).eq('organization_id',org).single();if(read||!row)throw new Error('Campaign unavailable.');
+   const {data:row,error:read}=await db.from('campaign_drafts').select('design,subject,preheader,requested_send_at').eq('id',id).eq('organization_id',org).single();if(read||!row)throw new Error('Campaign unavailable.');
    renderCampaign({design:row.design,subject:row.subject,preheader:row.preheader,company:'Your company',address:'Preview address'});
-   const {error}=await db.rpc('campaign_enqueue',{p_org:org,p_campaign:id,p_revision:z.coerce.number().int().positive().parse(form.get('revision'))});if(error)throw new Error(error.message);
+   const {data:run,error}=await db.rpc('campaign_enqueue',{p_org:org,p_campaign:id,p_revision:z.coerce.number().int().positive().parse(form.get('revision'))});if(error)throw new Error(error.message);
+   // The same explicit Send action dispatches ONE due recipient immediately in Charis mode.
+   // Remaining recipients stay safely queued for the scheduled worker (or controlled dispatch).
+   if(process.env.SINGLE_COMPANY_MODE==='true'&&org===process.env.SINGLE_COMPANY_ORG_ID&&!row.requested_send_at&&run){
+    try{
+     const outcome=await processDelivery({org,run:String(run)});
+     revalidatePath('/dashboard/delivery');revalidatePath('/dashboard/campaigns');
+     if(outcome.result==='accepted')return {success:'Campaign queued. The first email was accepted by Resend. Open Send & delivery to track remaining recipients.'};
+     if(outcome.result==='paused')return {success:'Campaign queued but sending paused during preparation. Check Send & delivery before continuing.'};
+     return {success:`Campaign queued. Initial dispatch: ${outcome.result}. Open Send & delivery to check the outcome.`};
+    }catch{
+     return {success:'Campaign queued. Immediate dispatch could not be confirmed. Check Send & delivery and the provider dashboard before retrying.'};
+    }
+   }
   }else{const {error}=await db.rpc('campaign_run_control',{p_org:org,p_run:z.string().uuid().parse(form.get('run_id')),p_action:action});if(error)throw new Error(error.message);}
   revalidatePath('/dashboard/delivery');revalidatePath('/dashboard/campaigns');return {success:action==='enqueue'?'Approved campaign queued. The configured worker processes it when due.':'Run control saved. In-flight provider submissions may still finish.'};
  }catch(e){return {error:e instanceof Error?e.message:'Delivery action failed.'};}

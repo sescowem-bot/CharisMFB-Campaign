@@ -1,11 +1,25 @@
 'use client';
-import {useActionState} from 'react';
+import {useActionState, useEffect, useState} from 'react';
 import {saveContact,createList,changeListMembership,createSegment} from '@/app/dashboard/contacts/actions';
 function Feedback({state}:{state:{error?:string;success?:string}}){return <p aria-live="polite" role="status" className={state.error?'feedback-error':'feedback-success'}>{state.error||state.success}</p>}
 export type ExistingContact={id:string;first_name:string;last_name:string;email:string|null;phone:string|null;consent_status:'unknown'|'granted'|'denied';consent_evidence:string|null};
 export function ContactForm({org,initial}:{org:string;initial?:ExistingContact}){
  const [state,action,pending]=useActionState(saveContact,{});
- return <form action={action} className="admin-form"><h2>{initial?'Edit contact':'Add a contact'}</h2><input type="hidden" name="organization_id" value={org}/><input type="hidden" name="contact_id" value={initial?.id||''}/><div className="form-two"><label>First name<input name="first_name" defaultValue={initial?.first_name||''} placeholder="Ada" maxLength={100}/></label><label>Last name<input name="last_name" defaultValue={initial?.last_name||''} placeholder="Okafor" maxLength={100}/></label></div><div className="form-two"><label>Email address<input name="email" defaultValue={initial?.email||''} type="email" placeholder="ada@example.com" maxLength={254}/></label><label>Phone (international format)<input name="phone" defaultValue={initial?.phone||''} type="tel" placeholder="+2348031234567" pattern="\+[1-9][0-9]{7,14}"/></label></div><p className="muted">An email or phone number is required. Only record marketing consent you can document.</p><label>Marketing email consent<select name="consent_status" defaultValue={initial?.consent_status||'unknown'}><option value="unknown">Unknown (not approved for marketing)</option><option value="granted">Explicit opt-in documented</option><option value="denied">Declined / opted out</option></select></label><label>Consent evidence (required when opted in)<textarea name="consent_evidence" defaultValue={initial?.consent_evidence||''} maxLength={500} rows={2} placeholder="e.g. Web registration opt-in recorded on 2026-10-10"/></label><button className="btn" disabled={pending}>{pending?'Saving…':initial?'Save changes':'Save contact'}</button><Feedback state={state}/></form>
+ const [consent,setConsent]=useState<'unknown'|'granted'|'denied'>(initial?.consent_status||'unknown');
+ const [dismissed,setDismissed]=useState(false);
+ // Do not keep showing an error from an earlier attempt after the input has changed.
+ useEffect(()=>{setDismissed(false);},[state]);
+ return <form action={action} className="admin-form" onInputCapture={()=>setDismissed(true)} onChangeCapture={()=>setDismissed(true)}>
+ <h2>{initial?'Edit contact':'Add a contact'}</h2>
+ <input type="hidden" name="organization_id" value={org}/><input type="hidden" name="contact_id" value={initial?.id||''}/>
+ <div className="form-two"><label>First name<input name="first_name" defaultValue={initial?.first_name||''} placeholder="Ada" maxLength={100}/></label><label>Last name<input name="last_name" defaultValue={initial?.last_name||''} placeholder="Okafor" maxLength={100}/></label></div>
+ <div className="form-two"><label>Email address<input name="email" defaultValue={initial?.email||''} type="email" placeholder="ada@example.com" maxLength={254}/></label><label>Phone (international format)<input name="phone" defaultValue={initial?.phone||''} type="tel" placeholder="+2348031234567" pattern="\+[1-9][0-9]{7,14}"/></label></div>
+ <p className="muted">An email or phone number is required. Only record marketing consent you can document.</p>
+ <label>Marketing email consent<select name="consent_status" value={consent} onChange={e=>setConsent(e.target.value as 'unknown'|'granted'|'denied')}><option value="unknown">Unknown (not approved for marketing)</option><option value="granted">Explicit opt-in documented</option><option value="denied">Declined / opted out</option></select></label>
+ {consent==='granted'?<label>Evidence of explicit consent (required)<textarea name="consent_evidence" defaultValue={initial?.consent_evidence||''} minLength={6} maxLength={500} required rows={2} placeholder="e.g. Web registration opt-in recorded on 2026-10-10"/></label>:<><input type="hidden" name="consent_evidence" value=""/><p className="muted">This contact can be saved, but will not be eligible for marketing campaigns without documented opt-in.</p></>}
+ <button className="btn" disabled={pending}>{pending?'Saving…':initial?'Save changes':'Save contact'}</button>
+ {!dismissed&&<Feedback state={state}/>}
+ </form>;
 }
 export function ContactListForm({org}:{org:string}){
  const [state,action,pending]=useActionState(createList,{});

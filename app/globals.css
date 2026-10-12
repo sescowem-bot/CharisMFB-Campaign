@@ -147,3 +147,9 @@ body{font-family:var(--platform-font,system-ui,sans-serif)}.btn:not(.secondary),
 .charis-invite-form [aria-live]{grid-column:1 / -1}
 .charis-invite-panel .table-scroll{max-width:100%;overflow-x:auto}
 @media(max-width:700px){.charis-invite-form{grid-template-columns:1fr}}
+
+/* Charis sender setup and secure sign-out usability */
+.sender-steps{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:16px 0 22px}
+.sender-steps span{display:inline-flex;align-items:center;padding:9px 13px;border:1px solid var(--border);border-radius:10px;background:#fff;font-weight:600;font-size:13px}
+.sidebar-signout-error{margin:9px 0 0;color:#ffd5d5;font-size:12px;line-height:1.4}
+.sidebar-signout button:disabled{opacity:.7;cursor:wait}
