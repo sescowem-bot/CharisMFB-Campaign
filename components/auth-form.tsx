@@ -1,5 +1,41 @@
 'use client';
-import {useState, type FormEvent} from 'react';import Link from 'next/link';import {useRouter} from 'next/navigation';import {supabaseBrowser} from '@/lib/supabase/browser';
-export function AuthForm({mode}:{mode:'login'|'register'}){const [email,setEmail]=useState('');const [password,setPassword]=useState('');const [busy,setBusy]=useState(false);const [message,setMessage]=useState('');const router=useRouter();
- async function submit(e:FormEvent){e.preventDefault();setBusy(true);setMessage('');try{const client=supabaseBrowser();if(mode==='register'){const {error}=await client.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin+'/auth/callback'}});if(error)throw error;setMessage('Check your inbox for an account confirmation link. Company workspace access is granted by an administrator.')}else{const {error}=await client.auth.signInWithPassword({email,password});if(error)throw error;const {data:owner}=await client.rpc('is_platform_super_admin');router.replace(owner===true?'/admin':'/dashboard');router.refresh()}}catch(err){setMessage(err instanceof Error?err.message:'Unable to complete request')}finally{setBusy(false)}}
- return <form onSubmit={submit} className="contact-card" style={{maxWidth:480,margin:'0 auto',display:'grid',gap:16}}><label>Email address<input required type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} style={{display:'block',width:'100%',padding:12,marginTop:6}}/></label><label>Password<input required minLength={8} type="password" autoComplete={mode==='login'?'current-password':'new-password'} value={password} onChange={e=>setPassword(e.target.value)} style={{display:'block',width:'100%',padding:12,marginTop:6}}/></label><button className="btn" disabled={busy} type="submit">{busy?'Please wait…':mode==='login'?'Sign in':'Create account'}</button>{message&&<p role="status">{message}</p>}<p>{mode==='login'?<>New here? <Link href="/register">Create an account</Link></>:<>Already registered? <Link href="/login">Sign in</Link></>}</p></form>}
+import {useState,type FormEvent} from 'react';
+import Link from 'next/link';
+import {useRouter} from 'next/navigation';
+import {Eye,EyeOff,LockKeyhole} from 'lucide-react';
+import {supabaseBrowser} from '@/lib/supabase/browser';
+
+/** Authentication remains entirely Supabase managed; no credentials are stored by the app. */
+export function AuthForm({mode}:{mode:'login'|'register'}) {
+ const [email,setEmail]=useState('');
+ const [password,setPassword]=useState('');
+ const [showPassword,setShowPassword]=useState(false);
+ const [busy,setBusy]=useState(false);
+ const [message,setMessage]=useState('');
+ const router=useRouter();
+ async function submit(e:FormEvent<HTMLFormElement>){
+  e.preventDefault();setBusy(true);setMessage('');
+  try{
+   const client=supabaseBrowser();
+   if(mode==='register'){
+    const {error}=await client.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin+'/auth/callback'}});
+    if(error)throw error;
+    setMessage('Check your inbox for a confirmation link. Your administrator must grant workspace access.');
+   } else {
+    const {error}=await client.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    router.replace('/dashboard');router.refresh();
+   }
+  }catch(err){setMessage(err instanceof Error?err.message:'Unable to sign in. Please retry.');}
+  finally{setBusy(false);}
+ }
+ return <form onSubmit={submit} className="contact-card charis-auth-form" style={{display:'grid',gap:18}}>
+  <div><h2>{mode==='login'?'Sign in to Charis':'Create your account'}</h2><p className="muted">{mode==='login'?'Use your authorised staff email and password.':'Your administrator will assign your workspace access.'}</p></div>
+  <label htmlFor="charis-auth-email">Staff email address<input id="charis-auth-email" required type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} style={{display:'block',width:'100%',marginTop:7}} placeholder="you@company.com"/></label>
+  <label htmlFor="charis-auth-password">Password<div className="charis-password-field"><input id="charis-auth-password" required minLength={8} type={showPassword?'text':'password'} autoComplete={mode==='login'?'current-password':'new-password'} value={password} onChange={e=>setPassword(e.target.value)} style={{display:'block',marginTop:7}}/><button type="button" className="charis-password-toggle" aria-label={showPassword?'Hide password':'Show password'} onClick={()=>setShowPassword(v=>!v)}>{showPassword?<EyeOff size={16}/>:<Eye size={16}/>}</button></div></label>
+  <button className="btn" disabled={busy} type="submit" style={{width:'100%'}}><LockKeyhole size={17}/>{busy?'Please wait…':mode==='login'?'Secure sign in':'Create account'}</button>
+  {message&&<p role="status" aria-live="polite" className="notice" style={{margin:0}}>{message}</p>}
+  {mode==='register'&&<p>Already registered? <Link className="inline-link" href="/login">Sign in</Link></p>}
+  <p className="muted" style={{fontSize:12,margin:0}}>Access is restricted to authorised staff. Never share your password.</p>
+ </form>;
+}

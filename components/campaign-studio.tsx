@@ -8,7 +8,7 @@ type Option={id:string;name:string};
 export type CampaignDraft={id:string;name:string;subject:string;preheader:string;design:Design;sender_id:string|null;audience_type:string;audience_id:string|null;requested_send_at:string|null;revision:number};
 export function CampaignStudio({org,initial,templates,senders,lists,segments,brand}:{org:string;initial?:CampaignDraft;templates:(Option&{subject:string;design:Design})[];senders:Option[];lists:Option[];segments:Option[];brand:{display_name:string;postal_address:string;primary_color:string}}) {
  const [result,action,pending]=useActionState(campaignAction,{});
- const [design,setDesign]=useState<Design>(initial?.design||{version:'1',blocks:[{type:'heading',text:'Hello {{first_name}}'},{type:'paragraph',text:'Share your company update here.'}]});
+ const [design,setDesign]=useState<Design>(initial?.design||{version:'1',blocks:[{type:'heading',text:'Hello {{first_name}}'},{type:'paragraph',text:'We have an important update from {{company_name}}.'}]});
  const [subject,setSubject]=useState(initial?.subject||'An update from {{company_name}}');
  const [preheader,setPreheader]=useState(initial?.preheader||'');
  const [audience,setAudience]=useState(initial?.audience_type||'selected');

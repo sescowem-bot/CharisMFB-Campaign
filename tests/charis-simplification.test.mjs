@@ -24,9 +24,9 @@ test('import-to-group reuses guarded idempotent importer without altering consen
 });
 test('single company hides day-to-day company switching without removing protected routes',()=>{
  const shell=read('components/workspace-shell.tsx');
- assert.match(shell,/SINGLE_COMPANY_MODE/);
- assert.match(shell,/Charis navigation/);
- assert.match(shell,/!single&&<Link href="\/dashboard"/);
+ const navigation=read('components/charis-navigation.tsx');
+ assert.match(shell,/CharisNavigation/);
+ assert.doesNotMatch(navigation,/Switch company|Pricing|Billing/);
  assert.match(read('app/dashboard/page.tsx'),/SINGLE_COMPANY_ORG_ID/);
 });
 test('campaign composer includes individual, group and all email recipients',()=>{

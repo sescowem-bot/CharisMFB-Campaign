@@ -1,11 +1,21 @@
 import {redirect} from 'next/navigation';
 import {supabaseServer} from '@/lib/supabase/server';
 import {WorkspaceShell} from '@/components/workspace-shell';
-import {ProviderForm,ProviderLimitsForm,ReconcileForm} from '@/components/provider-form';
+import {ProviderForm,ProviderLimitsForm} from '@/components/provider-form';
+
+/** Provider health and limits. No DNS, Domain ID or old company-registration flows in Charis. */
 export default async function Providers() {
- const db=await supabaseServer();const {data:{user}}=await db.auth.getUser();if(!user)redirect('/login');
- const {data:owner}=await db.rpc('is_platform_super_admin');if(!owner)redirect('/dashboard');
- const {data:unresolved}=await db.from('sending_domains').select('id,domain,provider,organization_id').is('provider_domain_id',null).neq('verification_status','revoked');
+ const db=await supabaseServer();
+ const {data:{user}}=await db.auth.getUser();if(!user)redirect('/login');
+ const {data:admin}=await db.rpc('is_platform_super_admin');if(!admin)redirect('/dashboard');
  const {data,error}=await db.from('email_provider_settings').select('*').order('provider');
- return <WorkspaceShell admin title="Email providers"><p className="muted">Manage approved email provider access and delivery limits for Charis.</p><div className="notice">API keys stay in server environment settings. Configure RESEND_API_KEY and BREVO_API_KEY before enabling access. Delivery must also be enabled in the server environment. Budgets are shared across companies and configuration tests.</div>{error?<p role="alert">Provider settings unavailable. Confirm migrations 007 and 009 is installed.</p>:<div className="admin-columns">{data.map(p=><section className="panel" key={p.provider}><span className="workspace-overline">Email infrastructure</span><h2>{p.provider==='resend'?'Resend':'Brevo'}</h2><span className={`status-chip ${p.enabled?'status-granted':''}`}>{p.enabled?'Enabled':'Disabled'}</span><p className="muted">Connection: {p.health_status}. {p.checked_at?`Last checked ${new Date(p.checked_at).toISOString()}`:'Not checked yet.'}</p><ProviderForm provider={p.provider} enabled={p.enabled}/><ProviderLimitsForm provider={p.provider} daily={p.daily_limit} interval={p.minimum_interval_seconds}/></section>)}</div>}{process.env.SINGLE_COMPANY_MODE==='true'?<div className="notice">For Charis, reuse a domain already verified in your Resend account from Sender Settings. Technical provider registration and recovery tools are not needed for staff.</div>:<><h2>Registration recovery</h2><p className="muted">Check the provider dashboard before linking an unresolved registration. The company must still prove domain ownership.</p>{unresolved?.length?unresolved.map(d=><section key={d.id} className="panel sender-domain"><h3>{d.domain}</h3><p className="muted">Company: {d.organization_id}</p><ReconcileForm id={d.id} provider={d.provider}/></section>):<p className="muted">No unresolved registrations.</p>}</>}</WorkspaceShell>;
+ return <WorkspaceShell admin title="Email service health">
+  <div className="charis-guide-card">Provider API keys stay in Vercel. Charis administrators can monitor the connection and safe sending limits here. Sender names and verified domains are managed in Sender Settings.</div>
+  {error||!data?<p role="alert" className="feedback-error">Email provider settings are unavailable. Confirm the installed migrations.</p>:<div className="admin-columns">{data.map(p=><section className="panel" key={p.provider}>
+   <div className="workspace-heading"><h2>{p.provider==='resend'?'Resend':'Brevo'}</h2><span className={`status-chip ${p.enabled?'status-granted':''}`}>{p.enabled?'Enabled':'Disabled'}</span></div>
+   <p className="muted">Connection: {p.health_status}. {p.checked_at?`Last checked ${new Date(p.checked_at).toLocaleString('en-NG')}`:'Not checked yet.'}</p>
+   <ProviderForm provider={p.provider} enabled={p.enabled} charis/>
+   <ProviderLimitsForm provider={p.provider} daily={p.daily_limit} interval={p.minimum_interval_seconds}/>
+  </section>)}</div>}
+ </WorkspaceShell>;
 }

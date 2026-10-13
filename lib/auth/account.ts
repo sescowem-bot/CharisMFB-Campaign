@@ -6,6 +6,15 @@ export const currentAccount=cache(async()=>{
  if(!process.env.NEXT_PUBLIC_SUPABASE_URL||!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)return null;
  try{
  const db=await supabaseServer();const {data:{user},error}=await db.auth.getUser();if(error||!user)return null;
+ const configured=process.env.SINGLE_COMPANY_MODE==='true'?process.env.SINGLE_COMPANY_ORG_ID:undefined;
+ // Single-bank deployments never load every legacy platform company on each request.
+ if(configured){
+  const [{data:owner},{data:workspace}]=await Promise.all([
+   db.rpc('is_platform_super_admin'),
+   db.from('organizations').select('id,name,status').eq('id',configured).maybeSingle()
+  ]);
+  return {id:user.id,admin:owner===true,workspace:workspace??null,ownerWorkspace:null};
+ }
  const {data:owner}=await db.rpc('is_platform_super_admin');
  const {data:companies}=await db.from('organizations').select('id,name,status').order('name');
  const {data:own}=owner===true?await db.from('platform_workspace').select('organization_id').maybeSingle():{data:null};

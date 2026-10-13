@@ -9,7 +9,10 @@ add('HTTPS Supabase origin',httpsOrigin(env.NEXT_PUBLIC_SUPABASE_URL));
 add('Public key has public role',env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.startsWith('sb_publishable_')||role(env.NEXT_PUBLIC_SUPABASE_ANON_KEY||'')==='anon');
 add('Service key is server-only role',env.SUPABASE_SERVICE_ROLE_KEY?.startsWith('sb_secret_')||role(env.SUPABASE_SERVICE_ROLE_KEY||'')==='service_role');
 for(const key of Object.keys(env).filter(k=>k.startsWith('NEXT_PUBLIC_')&&/(SECRET|SERVICE_ROLE|API_KEY)/.test(k)))add('No public secret variable: '+key,false);
-add('Paystack key configured',/^sk_(test|live)_/.test(env.PAYSTACK_SECRET_KEY||''));
+// Charis is a single-bank communication system, not a subscription billing product.
+const singleCompany=env.SINGLE_COMPANY_MODE==='true';
+if(singleCompany)add('Charis organisation UUID configured',/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(env.SINGLE_COMPANY_ORG_ID||''));
+else add('Legacy billing key configured',/^sk_(test|live)_/.test(env.PAYSTACK_SECRET_KEY||''));
 add('Worker secret configured',(env.EMAIL_WORKER_SECRET||'').length>=32);
 add('At least one email provider key',env.RESEND_API_KEY||env.BREVO_API_KEY);
 if(env.RESEND_API_KEY)add('Resend webhook signing secret',env.RESEND_WEBHOOK_SECRET?.startsWith('whsec_'));

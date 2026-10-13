@@ -1,17 +1,28 @@
 import {currentAccount} from '@/lib/auth/account';
-import {publishedSite} from '@/lib/cms/server';
+import {charisBrandAssets} from '@/lib/charis-brand-assets';
+import {CharisNavigation} from '@/components/charis-navigation';
 import Link from 'next/link';
-import Image from 'next/image';
-import {SignOutForm} from '@/components/signout-form';
-import {Building2, BarChart3, LayoutDashboard, Users, Upload, List, Filter, Palette, FileText, Mail, CreditCard, ArrowUpRight, ShieldCheck} from 'lucide-react';
-/** Shared responsive navigation for company and platform administrators. */
-export async function WorkspaceShell({title,admin=false,org,children}:{title:string;admin?:boolean;org?:string;children:React.ReactNode}){
- const [site,account]=await Promise.all([publishedSite(),currentAccount()]);
- admin=account?.admin===true;
- const single=process.env.SINGLE_COMPANY_MODE==='true';
- org=org||account?.workspace?.id;
- const displayName=single?(account?.workspace?.name||'Charis Microfinance Bank'):site.display_name;
- const scoped=(path:string)=>org?`${path}?org=${encodeURIComponent(org)}`:path;
- return <div className="dash"><aside className="side"><Link href="/" className="logo">{single&&site.logo_url?<Image unoptimized src={site.logo_url} width={40} height={40} alt="Charis Microfinance Bank logo" className="platform-logo"/>:<span className="mark">{displayName.slice(0,1)}</span>}<span>{displayName}<small className="sidebar-subtitle">{single?'Customer Communications':site.tagline}</small></span></Link>{single&&<><div className="sidebar-label">CHARIS WORKSPACE</div><nav aria-label="Charis navigation"><Link href="/dashboard"><LayoutDashboard size={17}/> Overview</Link><Link href={org?`${scoped('/dashboard/campaigns')}&create=1`:'/dashboard'}><Mail size={17}/> Create campaign</Link><Link href={scoped('/dashboard/campaigns')}><Mail size={17}/> All campaigns</Link><Link href={scoped('/dashboard/contacts')}><Users size={17}/> Customers</Link><Link href={scoped('/dashboard/imports')}><Upload size={17}/> Import contacts</Link><Link href={scoped('/dashboard/lists')}><List size={17}/> Saved groups</Link><Link href={scoped('/dashboard/approvals')}><ShieldCheck size={17}/> Approvals</Link><Link href={scoped('/dashboard/delivery')}><Mail size={17}/> Send & delivery</Link><Link href={scoped('/dashboard/reports')}><BarChart3 size={17}/> Reports</Link><div className="sidebar-label">SETTINGS</div><Link href={scoped('/dashboard/templates')}><FileText size={17}/> Email templates</Link><Link href={scoped('/dashboard/branding')}><Palette size={17}/> Brand settings</Link><Link href={scoped('/dashboard/footers')}><FileText size={17}/> Email footers</Link><Link href={scoped('/dashboard/senders')}><Mail size={17}/> Sender settings</Link><Link href={scoped('/dashboard/team')}><Users size={17}/> Team access</Link>{admin&&<><div className="sidebar-label">ADMINISTRATION</div><Link href="/admin/providers"><Mail size={17}/> Provider settings</Link><Link href="/admin/audit"><ShieldCheck size={17}/> Audit log</Link></>}</nav></>}
- {!single&&<><div className="sidebar-label">{admin?'PLATFORM CONTROL':'COMPANY WORKSPACE'}</div><nav aria-label="Workspace navigation"><Link href={admin?'/admin':'/dashboard'}><LayoutDashboard size={17}/> Overview</Link>{admin&&<><Link href="/admin/workspace"><Mail size={17}/> My brand workspace</Link><Link href="/admin/companies"><Building2 size={17}/> Companies</Link><Link href="/admin/plans"><ShieldCheck size={17}/> Plans & pricing</Link><Link href="/admin/cms"><FileText size={17}/> Website CMS</Link><Link href="/admin/audit"><ShieldCheck size={17}/> Audit activity</Link><Link href="/dashboard"><Building2 size={17}/> Campaigns & contacts</Link><Link href="/admin/providers"><Mail size={17}/> Email providers</Link></>}{org&&<><div className="sidebar-label">AUDIENCE</div><Link href={scoped('/dashboard/contacts')}><Users size={17}/> Contacts</Link><Link href={scoped('/dashboard/imports')}><Upload size={17}/> Upload contacts</Link><Link href={scoped('/dashboard/lists')}><List size={17}/> Contact lists</Link><Link href={scoped('/dashboard/segments')}><Filter size={17}/> Segments</Link><div className="sidebar-label">CAMPAIGNS</div><Link href={org?`${scoped('/dashboard/campaigns')}&create=1`:'/dashboard'}><Mail size={17}/> Create campaign</Link><Link href={scoped('/dashboard/campaigns')}><Mail size={17}/> Campaign studio</Link><Link href={scoped('/dashboard/delivery')}><Mail size={17}/> Delivery queue</Link><Link href={scoped('/dashboard/reports')}><BarChart3 size={17}/> Reports & analytics</Link><Link href={scoped('/dashboard/team')}><Users size={17}/> Team & roles</Link><div className="sidebar-label">EMAIL SETUP</div><Link href={scoped('/dashboard/senders')}><Mail size={17}/> Senders & domains</Link><div className="sidebar-label">BRANDING & DESIGN</div><Link href={scoped('/dashboard/branding')}><Palette size={17}/> Brand Studio</Link><Link href={scoped('/dashboard/templates')}><FileText size={17}/> Email templates</Link><Link href={scoped('/dashboard/footers')}><Mail size={17}/> Email footers</Link></>}<div className="sidebar-label">ACCOUNT</div><Link href="/billing"><CreditCard size={17}/> Billing</Link><Link href="/pricing"><CreditCard size={17}/> Pricing</Link><Link href="/"><ArrowUpRight size={17}/> Public website</Link></nav></>}<SignOutForm/></aside><main className="content"><header className="workspace-heading"><div><span className="workspace-overline">{admin?'Administration':'Workspace'}</span><h1 className="page-title">{title}</h1></div>{org&&!single&&<Link href="/dashboard" className="btn secondary">Switch company</Link>}</header>{children}</main></div>;
+import {ArrowLeft, Bell, ShieldCheck} from 'lucide-react';
+
+/** Consistent Charis-only application shell. The database remains the source of truth for access permissions. */
+export async function WorkspaceShell({title,admin:adminRequested=false,org,children}:{title:string;admin?:boolean;org?:string;children:React.ReactNode}) {
+  const [account,assets]=await Promise.all([currentAccount(),charisBrandAssets()]);
+  const admin=account?.admin===true;
+  const workspace=org||account?.workspace?.id;
+  const logo=assets.logo||'/charis-official-logo.png';
+  const routeHome=workspace?`/dashboard/campaigns?org=${encodeURIComponent(workspace)}`:'/dashboard';
+  return <div className="dash charis-app-shell">
+    <CharisNavigation org={workspace} admin={admin} logo={logo}/>
+    <main className="content charis-main" id="main-content">
+      <header className="charis-topbar">
+        <div className="charis-topbar-intro"><span className="charis-overline">CHARIS MICROFINANCE BANK / CAMPAIGN CENTRE</span><h1 className="page-title">{title}</h1></div>
+        <div className="charis-topbar-actions"><span className="charis-role-chip"><ShieldCheck size={15}/>{admin?'Administrator':'Staff workspace'}</span><Link href={`/dashboard/approvals${workspace?`?org=${encodeURIComponent(workspace)}`:''}`} className="charis-topbar-icon" aria-label="Go to campaign approvals"><Bell size={19}/></Link></div>
+      </header>
+      <div className="charis-page-content">
+        {adminRequested&&!admin&&<p className="notice">Some administrator features require elevated access.</p>}
+        {children}
+      </div>
+      <footer className="charis-main-footer"><span>© {new Date().getFullYear()} Charis Microfinance Bank Ltd</span><span>Internal customer communications</span><Link href={routeHome}><ArrowLeft size={13}/> Campaigns</Link></footer>
+    </main>
+  </div>;
 }

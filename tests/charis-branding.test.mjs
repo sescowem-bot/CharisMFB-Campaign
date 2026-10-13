@@ -9,17 +9,22 @@ test('Charis brand is authoritative in public CMS and app metadata',()=>{
  assert.match(defaults,/operator_name:'Charis Microfinance Bank'/);
  assert.doesNotMatch(read('lib/cms/defaults.json'),/SESCO Campaign Cloud|Sesco Studio/i);
 });
-test('Charis UI does not expose old self-signup or subscription navigation',()=>{
- const shell=read('components/workspace-shell.tsx'),publicUi=read('components/public.tsx'),middleware=read('middleware.ts');
- assert.match(shell,/Charis navigation/);
- assert.match(shell, /!single&&/);
- assert.match(publicUi, /!single&&<Link className=/);
+test('Charis UI uses exclusive staff navigation without subscriptions',()=>{
+ const shell=read('components/workspace-shell.tsx');
+ const nav=read('components/charis-navigation.tsx');
+ const publicUi=read('components/public.tsx');
+ const middleware=read('middleware.ts');
+ assert.match(shell,/CharisNavigation/);
+ assert.match(nav,/CHARIS/gi);
+ assert.doesNotMatch(nav,/billing|pricing|subscription/i);
+ assert.match(publicUi,/!single&&/);
  assert.match(middleware,/\/pricing/);
  assert.match(middleware,/\/register/);
 });
-test('brand-specific sender verification uses Charis names',()=>{
- for(const file of ['lib/email/server.ts','app/dashboard/senders/page.tsx']){
-  assert.match(read(file),/charis-verification/);
-  assert.doesNotMatch(read(file),/sesco-verification/i);
- }
+test('Charis has bundled official logo and favicon fallback',()=>{
+ const layout=read('app/layout.tsx');
+ const shell=read('components/workspace-shell.tsx');
+ assert.match(layout,/favicon\.ico/);
+ assert.match(shell,/charis-official-logo\.png/);
+ assert.match(read('app/charis-premium.css'),/--charis-purple/);
 });

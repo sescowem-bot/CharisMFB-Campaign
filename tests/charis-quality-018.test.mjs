@@ -23,6 +23,6 @@ test('unrelated Resend domains are never automatically eligible in Charis',()=>{
  assert.match(src('app/dashboard/campaigns/page.tsx'),/sending_domains\.charis_connected/);
 });
 test('technical recovery form is hidden in single-company mode',()=>{
- assert.match(src('app/admin/providers/page.tsx'),/SINGLE_COMPANY_MODE==='true'/);
+ assert.doesNotMatch(src('app/admin/providers/page.tsx'),/Registration recovery|Provider Domain ID/);
  assert.match(src('components/contact-row-actions.tsx'),/Archive|archive/);
 });
