@@ -9,7 +9,7 @@ const schema=z.object({
  rows:z.array(z.object({
   first_name:z.string().trim().max(100),last_name:z.string().trim().max(100),
   email:z.string().trim().max(254),phone:z.string().trim().max(20),
-  attributes:z.record(z.string().regex(/^[a-z][a-z0-9_]{0,39}$/),z.string().max(500)).refine(value=>Object.keys(value).length<=12).optional()
+  attributes:z.record(z.string().regex(/^[a-z][a-z0-9_]{0,39}$/),z.string().max(500)).refine(value=>Object.keys(value).length<=12&&Object.entries(value).every(([key,entry])=>!/(password|pin|otp|bvn|nin|cvv|card_number|secret|token)/.test(key)&&(!['account_number','account_no','account_reference'].includes(key)||entry.replace(/\D/g,'').length<=4))).optional()
  }).strict()).min(1).max(100)
 }).strict();
 export async function POST(request:Request){

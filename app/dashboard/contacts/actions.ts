@@ -35,11 +35,18 @@ export async function saveContact(_:FormResult,form:FormData):Promise<FormResult
  const parsed=contactSchema.safeParse(submitted);
  if(!parsed.success)return {error:parsed.error.issues[0]?.message||'Invalid contact'};
  const data=parsed.data;
+ let details:Record<string,string>={};
+ try{
+  const value=JSON.parse(String(form.get('custom_details')||'{}')) as unknown;
+  if(!value||typeof value!=='object'||Array.isArray(value))return {error:'Extra customer fields are invalid.'};
+  const entries=Object.entries(value);if(entries.length>12)return {error:'Maximum of 12 extra fields.'};
+  for(const [key,entry] of entries){if(!/^[a-z][a-z0-9_]{0,39}$/.test(key)||/(password|pin|otp|bvn|nin|cvv|card_number|secret|token)/.test(key)||typeof entry!=='string'||entry.length>200)return {error:'Use a short field name and text value. Do not enter sensitive credentials.'};if(['account_number','account_no','account_reference'].includes(key)&&entry.replace(/\D/g,'').length>4)return {error:'Enter only the last four digits for account references.'};details[key]=entry;}
+ }catch{return {error:'Could not read extra customer fields.'};}
  try{
   const {db,authorized}=await contactsAccess(data.organization_id);
   if(!authorized)return {error:'Not authorized to manage contacts'};
-  const {error}=await db.rpc('save_contact',{p_org:data.organization_id,p_id:data.contact_id||null,p_first:data.first_name,p_last:data.last_name,p_email:data.email,p_phone:data.phone,p_consent:data.consent_status,p_evidence:data.consent_evidence});
-  if(error)return {error:error.code==='23505'?'A contact with this email or phone already exists':error.message};
+  const {error}=await db.rpc('charis_save_contact_with_details',{p_org:data.organization_id,p_id:data.contact_id||null,p_first:data.first_name,p_last:data.last_name,p_email:data.email,p_phone:data.phone,p_consent:data.consent_status,p_evidence:data.consent_evidence,p_details:details});
+  if(error)return {error:error.code==='23505'?'A contact with this email or phone already exists':error.code==='PGRST202'?'Apply Charis SQL migration 021 before adding custom fields.':error.message};
   revalidatePath('/dashboard/contacts');return {success:'Contact saved successfully.'};
  }catch{return {error:'Unable to save contact'};}
 }

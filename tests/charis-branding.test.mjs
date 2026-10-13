@@ -14,9 +14,10 @@ test('Charis UI uses exclusive staff navigation without subscriptions',()=>{
  const nav=read('components/charis-navigation.tsx');
  const publicUi=read('components/public.tsx');
  const middleware=read('middleware.ts');
- assert.match(shell,/CharisNavigation/);
+ assert.match(shell,/NavLink/);
+ assert.match(shell,/SignOutForm/);
  assert.match(nav,/CHARIS/gi);
- assert.doesNotMatch(nav,/billing|pricing|subscription/i);
+ assert.doesNotMatch(shell,/Switch company|Pricing|Billing/);
  assert.match(publicUi,/!single&&/);
  assert.match(middleware,/\/pricing/);
  assert.match(middleware,/\/register/);

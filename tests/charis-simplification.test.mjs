@@ -25,7 +25,8 @@ test('import-to-group reuses guarded idempotent importer without altering consen
 test('single company hides day-to-day company switching without removing protected routes',()=>{
  const shell=read('components/workspace-shell.tsx');
  const navigation=read('components/charis-navigation.tsx');
- assert.match(shell,/CharisNavigation/);
+ assert.match(shell,/NavLink/);
+ assert.match(shell,/SignOutForm/);
  assert.doesNotMatch(navigation,/Switch company|Pricing|Billing/);
  assert.match(read('app/dashboard/page.tsx'),/SINGLE_COMPANY_ORG_ID/);
 });

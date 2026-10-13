@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 test('Charis uses a single browser-managed logout everywhere',()=>{
-  assert.match(read('components/workspace-shell.tsx'),/CharisNavigation/);
+  assert.match(read('components/workspace-shell.tsx'),/<SignOutForm\/>/);
   assert.match(read('components/charis-navigation.tsx'),/<SignOutForm\/>/);
   assert.match(read('components/public.tsx'),/<SignOutForm variant=/);
   assert.match(read('components/signout-form.tsx'),/auth\.signOut/);

@@ -58,7 +58,7 @@ export async function WorkspaceShell({title,subtitle,actions,org,admin:adminRequ
         <label htmlFor="nav-toggle" className="menu-btn" aria-label="Open navigation"><Menu size={20}/></label>
         <div className="crumbs"><Link href="/dashboard">Charis</Link><ArrowRight size={13} aria-hidden="true"/><span className="topbar-title">{title}</span></div>
         <div className="topbar-spacer"/>
-        <span className="topbar-env" title={liveSending?'Live approved-campaign sending is enabled.':'Customer sending is off; authorised tests are available.'}><span className={liveSending?'dot':'dot off'}/>{liveSending?'Sending enabled':'Test mode'}</span>
+        <span className="topbar-env" title={liveSending?'Approved customer campaigns may be sent.':'You can send staff test emails now. Customer campaigns stay off until the delivery worker and approval checks are enabled.'}><span className={liveSending?'dot':'dot off'}/>{liveSending?'Customer sending on':'Customer sending off'}</span>
       </header>
       <main className="page" id="main">
         <div className="page-head"><div><h1>{title}</h1>{subtitle&&<p>{subtitle}</p>}</div>{actions&&<div className="actions" style={{marginTop:0}}>{actions}</div>}</div>

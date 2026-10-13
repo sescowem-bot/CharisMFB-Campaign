@@ -2,11 +2,13 @@
 import {useActionState, useEffect, useState} from 'react';
 import {saveContact,createList,changeListMembership,createSegment} from '@/app/dashboard/contacts/actions';
 function Feedback({state}:{state:{error?:string;success?:string}}){return <p aria-live="polite" role="status" className={state.error?'feedback-error':'feedback-success'}>{state.error||state.success}</p>}
-export type ExistingContact={id:string;first_name:string;last_name:string;email:string|null;phone:string|null;consent_status:'unknown'|'granted'|'denied';consent_evidence:string|null};
+export type ExistingContact={id:string;first_name:string;last_name:string;email:string|null;phone:string|null;consent_status:'unknown'|'granted'|'denied';consent_evidence:string|null;attributes?:Record<string,string>};
 export function ContactForm({org,initial}:{org:string;initial?:ExistingContact}){
  const [state,action,pending]=useActionState(saveContact,{});
  const [consent,setConsent]=useState<'unknown'|'granted'|'denied'>(initial?.consent_status||'unknown');
  const [dismissed,setDismissed]=useState(false);
+ const [details,setDetails]=useState<{key:string;value:string}[]>(Object.entries(initial?.attributes||{}).slice(0,12).map(([key,value])=>({key,value:String(value)})));
+ const keySafe=(key:string)=>key.trim().toLowerCase().replace(/[^a-z0-9_]+/g,'_').replace(/^_+|_+$/g,'').slice(0,40);
  // Do not keep showing an error from an earlier attempt after the input has changed.
  useEffect(()=>{setDismissed(false);},[state]);
  return <form action={action} className="admin-form" onInputCapture={()=>setDismissed(true)} onChangeCapture={()=>setDismissed(true)}>
@@ -17,13 +19,18 @@ export function ContactForm({org,initial}:{org:string;initial?:ExistingContact})
  <p className="muted">An email or phone number is required. Only record marketing consent you can document.</p>
  <label>Marketing email consent<select name="consent_status" value={consent} onChange={e=>setConsent(e.target.value as 'unknown'|'granted'|'denied')}><option value="unknown">Unknown (not approved for marketing)</option><option value="granted">Explicit opt-in documented</option><option value="denied">Declined / opted out</option></select></label>
  {consent==='granted'?<label>Evidence of explicit consent (required)<textarea name="consent_evidence" defaultValue={initial?.consent_evidence||''} minLength={6} maxLength={500} required rows={2} placeholder="e.g. Web registration opt-in recorded on 2026-10-10"/></label>:<><input type="hidden" name="consent_evidence" value=""/><p className="muted">This contact can be saved, but will not be eligible for marketing campaigns without documented opt-in.</p></>}
+ <input type="hidden" name="custom_details" value={JSON.stringify(Object.fromEntries(details.filter(d=>d.key.trim()&&d.value.trim()).map(d=>[keySafe(d.key),d.value.trim()])))} />
+ <details className="charis-quick-group"><summary>Extra customer details (optional)</summary><p className="muted">Store details such as branch, product or account reference. Never enter PINs, BVNs, passwords or full account numbers.</p>
+ {details.map((item,i)=><div className="form-two" key={i}><label>Field name<input value={item.key} maxLength={40} placeholder="branch" onChange={e=>setDetails(old=>old.map((d,j)=>i===j?{...d,key:e.target.value}:d))}/></label><label>Value<input value={item.value} maxLength={200} placeholder="Surulere" onChange={e=>setDetails(old=>old.map((d,j)=>i===j?{...d,value:e.target.value}:d))}/></label><button type="button" className="btn secondary" onClick={()=>setDetails(old=>old.filter((_,j)=>i!==j))}>Remove</button></div>)}
+ <button type="button" className="btn secondary" disabled={details.length>=12} onClick={()=>setDetails(old=>[...old,{key:'',value:''}])}>Add a field</button>
+ <p className="muted">These details can be inserted into a campaign using the customer-detail buttons.</p></details>
  <button className="btn" disabled={pending}>{pending?'Saving…':initial?'Save changes':'Save contact'}</button>
  {!dismissed&&<Feedback state={state}/>}
  </form>;
 }
 export function ContactListForm({org}:{org:string}){
  const [state,action,pending]=useActionState(createList,{});
- return <form action={action} className="admin-form"><h2>Create contact list</h2><input name="organization_id" type="hidden" value={org}/><label>List name<input name="name" required minLength={2} maxLength={100} placeholder="October newsletter audience"/></label><label>Description<textarea name="description" rows={2} maxLength={500} placeholder="Why this audience is grouped together"/></label><button className="btn" disabled={pending}>{pending?'Creating…':'Create list'}</button><Feedback state={state}/></form>
+ return <form action={action} className="admin-form"><h2>Create customer group</h2><input name="organization_id" type="hidden" value={org}/><label>Group name<input name="name" required minLength={2} maxLength={100} placeholder="October newsletter audience"/></label><label>Description<textarea name="description" rows={2} maxLength={500} placeholder="Why this audience is grouped together"/></label><button className="btn" disabled={pending}>{pending?'Creating…':'Create group'}</button><Feedback state={state}/></form>
 }
 export function ListMembershipForm({org,lists,contacts}:{org:string;lists:{id:string;name:string}[];contacts:{id:string;name:string}[]}){
  const [state,action,pending]=useActionState(changeListMembership,{});
@@ -31,5 +38,5 @@ export function ListMembershipForm({org,lists,contacts}:{org:string;lists:{id:st
 }
 export function SegmentForm({org}:{org:string}){
  const [state,action,pending]=useActionState(createSegment,{});
- return <form action={action} className="admin-form"><h2>Create dynamic segment</h2><input name="organization_id" type="hidden" value={org}/><label>Segment name<input name="name" required minLength={2} maxLength={100} placeholder="Consented newsletter recipients"/></label><label>Description<input name="description" maxLength={500}/></label><label>Marketing consent<select name="consent_status"><option value="">Any</option><option value="granted">Explicit opt-in</option><option value="unknown">Unknown</option><option value="denied">Declined</option></select></label><label>Contact source<select name="source"><option value="">Any</option><option value="manual">Added manually</option><option value="import">Imported from file</option></select></label><label>Email availability<select name="has_email"><option value="">Any</option><option value="yes">Has email address</option><option value="no">No email address</option></select></label><p className="muted">Choose at least one filter. All selected filters must match. Membership updates automatically as contacts change.</p><button className="btn" disabled={pending}>{pending?'Saving…':'Save segment'}</button><Feedback state={state}/></form>
+ return <form action={action} className="admin-form"><h2>Create smart group</h2><input name="organization_id" type="hidden" value={org}/><label>Group name<input name="name" required minLength={2} maxLength={100} placeholder="Consented newsletter recipients"/></label><label>Description<input name="description" maxLength={500}/></label><label>Marketing consent<select name="consent_status"><option value="">Any</option><option value="granted">Explicit opt-in</option><option value="unknown">Unknown</option><option value="denied">Declined</option></select></label><label>Contact source<select name="source"><option value="">Any</option><option value="manual">Added manually</option><option value="import">Imported from file</option></select></label><label>Email availability<select name="has_email"><option value="">Any</option><option value="yes">Has email address</option><option value="no">No email address</option></select></label><p className="muted">Choose at least one rule. Customers appear in this group whenever they match all your rules.</p><button className="btn" disabled={pending}>{pending?'Saving…':'Save smart group'}</button><Feedback state={state}/></form>
 }

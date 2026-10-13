@@ -21,7 +21,7 @@ export default async function Contacts({searchParams}:{searchParams:Promise<{org
  if(q)request=request.or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,email.ilike.%${q}%,phone.ilike.%${q}%`);
  const {data:contacts,error,count}=await request;
  const editId=z.string().uuid().safeParse(params.edit);
- const {data:editing}=editId.success?await db.from('contacts').select('id,first_name,last_name,email,phone,consent_status,consent_evidence').eq('organization_id',org).eq('id',editId.data).maybeSingle():{data:null};
+ const {data:editing}=editId.success?await db.from('contacts').select('id,first_name,last_name,email,phone,consent_status,consent_evidence,attributes').eq('organization_id',org).eq('id',editId.data).maybeSingle():{data:null};
  const previous=new URLSearchParams({org:org,page:String(page-1)});
  const next=new URLSearchParams({org:org,page:String(page+1)});
  if(q){previous.set('q',q);next.set('q',q);}

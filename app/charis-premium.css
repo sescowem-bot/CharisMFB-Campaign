@@ -188,3 +188,29 @@ body.charis-premium {
 .charis-role-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:5px}
 .charis-eligibility-summary{display:flex;gap:18px;align-items:center;flex-wrap:wrap;padding:16px;border:1px solid #dcd4f5;border-radius:14px;margin:15px 0;background:#fbfaff}
 @media(max-width:720px){.charis-role-grid{grid-template-columns:1fr}.charis-bulk-bar{align-items:stretch}}
+/* Campaign editor: simple visual choices and self-service customer groups. */
+.charis-merge-fields,.charis-quick-group{margin:18px 0;padding:18px;border:1px solid #e4dcf4;border-radius:14px;background:#faf8ff}
+.charis-merge-fields>strong{color:#261653;display:block;margin-bottom:5px}
+.charis-field-buttons{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.charis-field-buttons .btn{min-height:34px;padding:7px 12px;font-size:13px;box-shadow:none}
+.charis-quick-group>summary{font-size:14px;font-weight:700;color:#40239a;cursor:pointer;list-style-position:inside}
+.charis-quick-group .admin-form{background:transparent;border:0;box-shadow:none;padding:12px 0 0}
+.charis-quick-group .form-two{margin-bottom:10px}
+.charis-premium .charis-email-modern{border-radius:16px;overflow:hidden;box-shadow:0 14px 35px #2a167019}
+.charis-premium .charis-email-minimal{border:0;box-shadow:none}
+.charis-premium .charis-email-minimal .email-canvas-brand{border-bottom:3px solid #40239a}
+.charis-premium .charis-email-announcement{border:1px solid #ddd3f5}
+@media(max-width:760px){.charis-merge-fields,.charis-quick-group{padding:12px}.charis-field-buttons .btn{flex:1 1 auto}}
+.charis-layout-picker{border:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:18px 0}
+.charis-layout-picker legend{font-size:14px;font-weight:700;margin-bottom:10px;color:#281952}
+.charis-layout-option{display:flex;flex-direction:column;gap:5px;text-align:left;padding:12px;min-width:0;border:1px solid #e3dbf2;border-radius:12px;background:#fff;cursor:pointer;color:#271a54}
+.charis-layout-option.selected{outline:2px solid #40239a;border-color:#40239a;background:#faf7ff}
+.charis-layout-option small{color:#6c647f}
+.charis-layout-swatch{height:24px;width:100%;display:block;border-radius:5px;background:linear-gradient(90deg,#40239a 0%,#30157e 100%)}
+.charis-layout-modern{background:linear-gradient(120deg,#40239a 0%,#38ef92 100%)}
+.charis-layout-minimal{background:linear-gradient(90deg,#ffffff 0%,#ffffff 85%,#40239a 85%);border:1px solid #ddd7f0}
+.charis-layout-announcement{background:#251354}
+.charis-preview-fields{padding:12px;margin:12px 0;border:1px solid #e4dcf4;border-radius:12px}
+.charis-preview-fields summary{font-size:13px;font-weight:700;color:#40239a;cursor:pointer}
+.charis-preview-fields label{margin:10px 0}
+@media(max-width:560px){.charis-layout-picker{grid-template-columns:1fr 1fr}}
