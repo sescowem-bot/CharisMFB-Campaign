@@ -1,3 +1,17 @@
+# Charis Premium v3 design upgrade (13 October 2026)
+
+This complete source release adopts the Claude-style Charis logo palette and uses Century Gothic for prominent headings (with local fallback). Its data and campaign workflow remain based on the operational release through Supabase migration 020.
+
+- New: `app/charis-design-v3.css`, imported after existing premium styles.
+- New: official purple/green palette preset and preview in Charis **Brand & media**. Click the preset, then click **Save company branding** to update existing saved email colors.
+- Improved: email template previews show current bank name and saved brand color, status indicators, and navigation to All campaigns and Audience filters.
+- All existing RLS, test restrictions, approvals and migration files are retained. **No new SQL migration is required for this upgrade**.
+- Century Gothic is an installed-font preference, **not a bundled font**. If unavailable, the device uses a licensed installed fallback.
+- See `docs/CHARIS_CLAUDE_CENTURY_GOTHIC_UPGRADE.md`.
+- Test with Node 24 using `npm ci && npm run lint && npm run typecheck && npm test && npm run build` before approving the deployment.
+
+---
+
 ## October 2026 operational workflow repair (migration 020)
 
 This release includes multi-customer actions, bulk group membership, staff role combinations, selectable verified staff test recipients, audience shortcuts and improved approval guidance. Back up production and apply migrations 019 and 020 in sequence if they are not installed. See `docs/CHARIS_OPERATIONS_020_RELEASE.md`. Keep live customer dispatch disabled until independently tested.

@@ -1,0 +1,114 @@
+/* Charis premium refinement v3: Claude-inspired palette, bank-grade contrast,
+   Century Gothic display typography with local/system fallbacks. No webfont download.
+   Scope the upgrade to Charis single-company mode only. */
+body.charis-premium {
+  --charis-purple:#40239a;
+  --charis-indigo:#2a1670;
+  --charis-teal:#38ef92;
+  --charis-green:#0f9f58;
+  --charis-navy:#140a38;
+  --charis-ink:#1b1733;
+  --charis-muted:#5e5a78;
+  --charis-bg:#f7f6fc;
+  --charis-line:#e4e1f0;
+  --charis-shadow:0 10px 30px rgba(20,10,56,.065),0 1px 3px rgba(20,10,56,.035);
+  --charis-radius:18px;
+  --charis-font-display:'Century Gothic','CenturyGothic','Avenir Next','Trebuchet MS',sans-serif;
+  --charis-font-body:'Inter',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  --ink:var(--charis-ink);
+  --muted:var(--charis-muted);
+  --blue:var(--charis-purple);
+  --canvas:var(--charis-bg);
+  --border:var(--charis-line);
+  font-family:var(--charis-font-body);
+  font-size:14px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+/* Display typography only: tables, form inputs, reports and long text retain the readable UI font. */
+.charis-premium .charis-topbar h1,
+.charis-premium .charis-login-feature h1,
+.charis-premium .charis-login-card h2,
+.charis-premium .charis-dashboard-hero h2,
+.charis-premium .charis-landing-hero h1,
+.charis-premium .charis-section-header h2,
+.charis-premium .charis-empty-state h3,
+.charis-premium .charis-page-content > h2,
+.charis-premium .charis-page-content > h3 {
+  font-family:var(--charis-font-display);
+  font-weight:700;
+  letter-spacing:-.024em;
+}
+.charis-premium .charis-topbar h1{font-size:clamp(23px,2.35vw,31px);line-height:1.23;letter-spacing:-.025em}
+.charis-premium .charis-overline{color:#67548e;letter-spacing:1.5px;font-size:10px}
+.charis-premium .charis-login-feature h1{font-size:clamp(31px,3.25vw,46px);line-height:1.18;font-weight:700}
+.charis-premium .charis-login-card h2{font-size:clamp(24px,2.5vw,30px)}
+.charis-premium .charis-dashboard-hero h2{font-size:clamp(27px,3vw,39px);line-height:1.23}
+.charis-premium .charis-page-content > h2{margin:25px 0 12px}
+.charis-premium .charis-page-content p{line-height:1.62}
+.charis-premium .charis-app-descriptor{color:#83efd1;letter-spacing:2.1px}
+.charis-premium .charis-premium-side{background:linear-gradient(167deg,#160b3b 0%,#1d1650 56%,#142e46 100%)}
+.charis-premium .charis-premium-side .charis-nav-link.is-active{background:linear-gradient(90deg,#5335a8,#352c83)}
+.charis-premium .charis-premium-side .charis-nav-link.is-active svg{color:#77f6b6}
+.charis-premium .charis-nav-accent{background:var(--charis-teal)}
+.charis-premium .charis-live-dot{background:var(--charis-teal);box-shadow:0 0 0 3px rgba(56,239,146,.18)}
+.charis-premium .charis-topbar{background:rgba(255,255,255,.96);border-color:var(--charis-line);min-height:92px}
+.charis-premium .charis-role-chip{background:#f4f1fc;border-color:#e6def8;color:#40239a}
+.charis-premium .charis-page-content{max-width:1500px}
+.charis-premium .panel,.charis-premium .contact-card,.charis-premium .studio-preview,.charis-premium .feature-card{
+  border:1px solid var(--charis-line);border-radius:var(--charis-radius);box-shadow:var(--charis-shadow)
+}
+.charis-premium .charis-dashboard-hero{
+ background:radial-gradient(ellipse at 95% 0%,rgba(56,239,146,.18),transparent 41%),linear-gradient(117deg,#23115e,#40239a 62%,#223963);
+ box-shadow:0 22px 48px rgba(29,15,82,.17);
+}
+.charis-premium .charis-dashboard-hero .charis-eyebrow{color:#91f5c0}
+.charis-premium .charis-metrics > div::before{background:linear-gradient(90deg,#40239a,#38ef92)}
+.charis-premium .charis-metrics strong{color:#342179}
+.charis-premium .charis-shortcuts > a:hover{border-color:#c6b7ec;box-shadow:0 18px 35px rgba(49,31,120,.11)}
+.charis-premium .charis-workflow-ribbon{border-color:#e4def1;background:#fff}
+.charis-premium .charis-workflow-ribbon span{background:#f6f3fd;color:#4a3f75}
+.charis-premium .charis-workflow-ribbon span:first-child{background:#e8e1f9;color:#40239a}
+.charis-premium .simple-step-number{background:#40239a!important}
+.charis-premium .recipient-picker,.charis-premium .charis-checklist{background:#faf9fe;border-color:#e4dff0}
+.charis-premium .recipient-count{background:#eee8fc;color:#40239a}
+.charis-premium .charis-guide-card{background:#effbf5;border-color:#c9efda;color:#205e48}
+.charis-premium .charis-status{font-family:var(--charis-font-body);font-weight:650;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;border-radius:999px;padding:5px 10px;font-size:12px;border:1px solid #dcd5ef;background:#f5f1fc;color:#553294}
+.charis-premium .charis-status[data-tone='success']{background:#e8f9ef;border-color:#bdeacb;color:#136946}
+.charis-premium .charis-status[data-tone='warning']{background:#fff6e8;border-color:#efdcaf;color:#83551c}
+.charis-premium .charis-status[data-tone='danger']{background:#fff0f0;border-color:#f5c8c8;color:#a32332}
+.charis-premium .charis-status[data-tone='neutral']{background:#f3f4f8;border-color:#e0e3ed;color:#505c73}
+.charis-premium .status-chip{background:#f2edfc;color:#4b278a;border-color:#e2d8f5}
+.charis-premium .status-granted{background:#e8f9ef;color:#136946;border-color:#bdeacb}
+.charis-premium .admin-table th{background:#f8f7fc;color:#52486a;letter-spacing:.035em}
+.charis-premium .admin-table td{font-family:var(--charis-font-body);line-height:1.5}
+.charis-premium .admin-table tr:hover td{background:#faf9ff}
+.charis-premium input:not([type=checkbox]):not([type=radio]),
+.charis-premium textarea,.charis-premium select{background:#fff;border-color:#cdc8e0;color:#24203a;min-height:45px}
+.charis-premium :is(input,textarea,select):focus-visible{outline:3px solid rgba(64,35,154,.23);outline-offset:2px;border-color:#694fc4}
+.charis-premium .btn{background:#40239a;border-color:#40239a;min-height:44px;font-weight:650}
+.charis-premium .btn:not(.secondary):hover{background:#2a1670;border-color:#2a1670}
+.charis-premium .btn.secondary{color:#3c227d;border-color:#d4cce8;background:#fff}
+.charis-premium .btn.secondary:hover{background:#f7f3ff;border-color:#baa6e6}
+.charis-premium .btn:focus-visible,.charis-premium button:focus-visible,.charis-premium a:focus-visible{outline:3px solid #38ef92;outline-offset:3px}
+.charis-premium .feedback-success{color:#166a45}.charis-premium .feedback-error{color:#ab2937}
+.charis-premium .charis-brand-presets{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:8px 0 22px}
+.charis-premium .charis-brand-presets button{display:inline-flex;align-items:center;gap:9px;border:1px solid #cfc7e6;background:#fff;color:#3c287b;padding:8px 12px;border-radius:10px;cursor:pointer;font:inherit;font-weight:650}
+.charis-premium .charis-brand-presets button:hover{background:#f2eefe}
+.charis-premium .charis-brand-presets button:focus-visible{outline:3px solid #38ef92;outline-offset:2px}
+.charis-premium .charis-brand-swatch{display:inline-block;height:17px;width:17px;border-radius:50%;border:1px solid rgba(15,15,35,.14)}
+.charis-premium .charis-brand-preview{display:flex;align-items:center;gap:15px;background:#fbf9ff;border:1px solid #e7e1f3;border-radius:14px;padding:15px 18px;margin:0 0 18px;flex-wrap:wrap}
+.charis-premium .charis-brand-preview-bar{width:5px;height:40px;border-radius:99px}
+.charis-premium .charis-brand-preview strong{font-family:var(--charis-font-display);font-size:16px;color:#271c59}
+.charis-premium .charis-brand-preview small{display:block;color:#655e81}
+.charis-premium .charis-brand-preview-dot{margin-left:auto;width:19px;height:19px;border-radius:50%;border:1px solid rgba(15,15,35,.1)}
+/* Avoid slow/layout-heavy animations and respect preferences */
+@media (prefers-reduced-motion:reduce){.charis-premium *,.charis-premium *::before,.charis-premium *::after{transition:none!important;animation:none!important}}
+@media(max-width:620px){
+ .charis-premium .charis-topbar h1{font-size:22px}
+ .charis-premium .charis-login-feature h1{font-size:30px}
+ .charis-premium .charis-page-content > h2{font-size:20px}
+ .charis-premium .charis-role-chip{display:none}
+ .charis-premium .charis-brand-preview-dot{margin-left:0}
+}

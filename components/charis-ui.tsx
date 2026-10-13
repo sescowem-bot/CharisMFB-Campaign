@@ -7,8 +7,12 @@ export function CharisWorkflowSteps({steps}:{steps:readonly string[]}) {
  return <nav aria-label="Campaign process" className="charis-workflow-ribbon">{steps.map((label,i)=><span key={label}>{i+1} · {label}</span>)}</nav>;
 }
 export function CharisStatus({status}:{status:string}){
- const good=['approved','sent','delivered','verified','active','accepted'].includes(status.toLowerCase());
- return <span className={`status-chip ${good?'status-granted':''}`}>{status.replaceAll('_',' ')}</span>;
+ const key=status.toLowerCase();
+ const tone=['approved','sent','delivered','verified','active','accepted','successful'].includes(key)?'success'
+  :['pending','pending_approval','draft','queued','running','scheduled','processing'].includes(key)?'warning'
+  :['rejected','failed','revoked','blocked','error'].includes(key)?'danger':'neutral';
+ const labels:Record<string,string>={pending_approval:'Awaiting approval',in_progress:'In progress',ready_to_send:'Ready to send'};
+ return <span className="charis-status" data-tone={tone} aria-label={`Status: ${labels[key]||status.replaceAll('_',' ')}`}>{labels[key]||status.replaceAll('_',' ')}</span>;
 }
 export function CharisEmptyState({title,description,href,action}:{title:string;description:string;href?:string;action?:string}){
  return <section className="panel charis-empty-state"><Inbox size={28} aria-hidden="true"/><h3>{title}</h3><p className="muted">{description}</p>{href&&action&&<Link className="btn secondary" href={href}>{action}<ArrowRight size={15}/></Link>}</section>;

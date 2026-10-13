@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {
   LayoutDashboard, UsersRound, UploadCloud, ListChecks, MailPlus,
-  Mail, ClipboardCheck, Send, BarChart3, Palette, Images,
+  Mail, ClipboardCheck, Send, BarChart3, Palette, Images, Filter,
   ContactRound, ShieldCheck, Menu, X, Settings2, FileText
 } from 'lucide-react';
 import {SignOutForm} from '@/components/signout-form';
@@ -22,10 +22,12 @@ export function CharisNavigation({org,admin,logo}:{org?:string;admin:boolean;log
       {label:'Overview',href:'/dashboard',icon:LayoutDashboard},
       {label:'Customers',href:'/dashboard/contacts',icon:UsersRound},
       {label:'Import customers',href:'/dashboard/imports',icon:UploadCloud},
-      {label:'Saved groups',href:'/dashboard/lists',icon:ListChecks}
+      {label:'Saved groups',href:'/dashboard/lists',icon:ListChecks},
+      {label:'Audience filters',href:'/dashboard/segments',icon:Filter}
     ]},
     {name:'CAMPAIGNS',items:[
       {label:'Create campaign',href:'/dashboard/campaigns',icon:MailPlus},
+      {label:'All campaigns',href:'/dashboard/campaigns',icon:Mail},
       {label:'Approvals',href:'/dashboard/approvals',icon:ClipboardCheck},
       {label:'Send & delivery',href:'/dashboard/delivery',icon:Send},
       {label:'Reports',href:'/dashboard/reports',icon:BarChart3}
@@ -55,7 +57,7 @@ export function CharisNavigation({org,admin,logo}:{org?:string;admin:boolean;log
         {groups.map(group=><section className="charis-nav-group" key={group.name} aria-label={group.name}>
           <div className="sidebar-label">{group.name}</div>
           {group.items.map(item=>{
-            const active=item.href==='/dashboard'?pathname==='/dashboard':pathname===item.href;
+            const active=item.href==='/dashboard'?pathname==='/dashboard':pathname===item.href&&item.label!=='Create campaign';
             const target=item.label==='Create campaign'?`${href(item.href)}${org?'&':'?'}create=1`:href(item.href);
             const Icon=item.icon;
             return <Link key={item.label} href={target} aria-current={active?'page':undefined} className={`charis-nav-link ${active?'is-active':''}`}><Icon size={18} strokeWidth={1.9}/><span>{item.label}</span>{active&&<span className="charis-nav-accent" aria-hidden="true"/>}</Link>;
