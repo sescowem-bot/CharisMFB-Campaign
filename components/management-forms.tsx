@@ -1,11 +1,12 @@
 'use client';
 import {useActionState,useRef,useState} from 'react';
-import {companySettingsAction,teamAction,inviteStaffAction,cancelInviteAction} from '@/app/dashboard/team/actions';
+import {companySettingsAction,teamAction,inviteStaffAction,cancelInviteAction,additionalRolesAction} from '@/app/dashboard/team/actions';
 
 type Member={id:string;email:string;role:string};
 const roleOptions=[
  {value:'company_admin',label:'Company administrator',description:'Manage staff, settings and company campaigns.'},
  {value:'manager',label:'Campaign manager',description:'Manage contacts and campaign operations.'},
+ {value:'campaign_lead',label:'Campaign lead',description:'Create, approve campaigns made by another staff member, and send approved campaigns. No team administration.'},
  {value:'designer',label:'Campaign creator',description:'Design and edit campaigns.'},
  {value:'approver',label:'Campaign approver',description:'Review campaigns independently.'},
  {value:'analyst',label:'Reporting analyst',description:'View reporting and campaign activity.'},
@@ -16,9 +17,11 @@ type Role=typeof roleOptions[number]['value'];
 const isRole=(value:string):value is Role=>roleOptions.some(option=>option.value===value);
 const roleLabel=(role:string)=>roleOptions.find(r=>r.value===role)?.label||role.replaceAll('_',' ');
 
-export function TeamForm({org,members,currentUserId}:{org:string;members:Member[];currentUserId:string}){
+export function TeamForm({org,members,currentUserId,extraRoles=[]}:{org:string;members:Member[];currentUserId:string;extraRoles?:{user_id:string;role:string}[]}){
  const [state,action,pending]=useActionState(teamAction,{});
  const [email,setEmail]=useState('');
+ const [extra,setExtra]=useState<string[]>([]);
+ const [extraState,extraAction,extraPending]=useActionState(additionalRolesAction,{});
  const [role,setRole]=useState<Role>('viewer');
  const emailRef=useRef<HTMLInputElement>(null);
  const selected=members.find(m=>m.email.toLowerCase()===email.trim().toLowerCase());
@@ -28,12 +31,14 @@ export function TeamForm({org,members,currentUserId}:{org:string;members:Member[
  const selectMember=(member:Member)=>{
   setEmail(member.email);
   setRole(isRole(member.role)?member.role:'viewer');
+  setExtra(extraRoles.filter(r=>r.user_id===member.id).map(r=>r.role));
   emailRef.current?.focus();
  };
  const changeEmail=(next:string)=>{
   setEmail(next);
   const match=members.find(m=>m.email.toLowerCase()===next.trim().toLowerCase());
   setRole(match&&isRole(match.role)?match.role:'viewer');
+  setExtra(match?extraRoles.filter(r=>r.user_id===match.id).map(r=>r.role):[]);
  };
  return <div className="admin-columns charis-team-columns">
   <form action={action} className="admin-form charis-team-form">
@@ -56,8 +61,12 @@ export function TeamForm({org,members,currentUserId}:{org:string;members:Member[
     {pending?'Saving access…':'Save role change'}
    </button>
    <div aria-live="polite">{state.error&&<p role="alert" className="feedback-error">{state.error}</p>}{state.success&&<p className="feedback-success">{state.success}</p>}</div>
-   <p className="muted charis-team-footnote">To add a colleague, use the Charis invitation form. Platform Super Admin access is managed separately and is not granted by company roles.</p>
   </form>
+   {selected&&<div className="charis-extra-roles"><h3>Additional responsibilities</h3><p className="muted">A staff member can have more than one campaign responsibility. You do not need to make them Company Administrator.</p><form action={extraAction} className="charis-extra-form"><input type="hidden" name="org" value={org}/><input type="hidden" name="user_id" value={selected.id}/><input type="hidden" name="roles" value={JSON.stringify(extra)}/>
+   <div className="charis-role-grid">{roleOptions.filter(r=>!['company_admin','remove'].includes(r.value)).map(r=><label key={r.value}><input type="checkbox" checked={extra.includes(r.value)} disabled={r.value===selected.role} onChange={e=>setExtra(old=>e.target.checked?[...old,r.value]:old.filter(v=>v!==r.value))}/>{r.label}</label>)}</div>
+   <button className="btn secondary" disabled={extraPending}>{extraPending?'Saving…':'Save additional roles'}</button>
+   {extraState.error&&<p role="alert" className="feedback-error">{extraState.error}</p>}{extraState.success&&<p role="status" className="feedback-success">{extraState.success}</p>}</form></div>}
+   <p className="muted charis-team-footnote">To add a colleague, use the invitation form above. Company Administrator remains a protected primary role.</p>
   <section className="panel charis-team-members">
    <div className="workspace-heading"><h2>Current team</h2><span className="status-chip">{members.length} {members.length===1?'member':'members'}</span></div>
    {members.length? <ul className="charis-team-member-list">{members.map(member=><li key={member.id}>

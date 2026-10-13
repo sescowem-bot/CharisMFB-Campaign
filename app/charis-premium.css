@@ -1,0 +1,190 @@
+/* Charis Campaign Centre | independent, accessible banking design tokens.
+   Only enabled for SINGLE_COMPANY_MODE; never changes legacy migration semantics. */
+body.charis-premium {
+ --charis-purple:#40208f; --charis-indigo:#30157e; --charis-teal:#27c79a;
+ --charis-green:#21b889; --charis-navy:#152648; --charis-ink:#192943;
+ --charis-muted:#63718a; --charis-bg:#f4f6fb; --charis-line:#e4e8f2;
+ --charis-shadow:0 12px 36px rgba(32,33,83,.065); --charis-radius:17px;
+ --ink:var(--charis-ink);--muted:var(--charis-muted);--navy:var(--charis-navy);
+ --blue:var(--charis-purple);--border:var(--charis-line);--canvas:var(--charis-bg);
+ font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+ color:var(--charis-ink);background:var(--charis-bg);
+}
+.charis-premium *, .charis-premium *::before, .charis-premium *::after{box-sizing:border-box}
+.charis-premium :focus-visible{outline:3px solid var(--charis-teal);outline-offset:3px}
+.charis-premium a,.charis-premium button{transition:background-color .15s ease,border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+.charis-premium .btn{min-height:43px;padding:11px 18px;border-radius:11px;font-weight:650;gap:8px;background:var(--charis-purple);border:1px solid transparent;color:white;box-shadow:none}
+.charis-premium .btn:not(.secondary):hover{background:var(--charis-indigo);box-shadow:0 8px 18px #40208f26}
+.charis-premium .btn.secondary{background:white;color:var(--charis-purple);border:1px solid #cdd5e6}
+.charis-premium .btn.secondary:hover{background:#f6f2ff;border-color:#b9a9e6}
+.charis-premium .panel,.charis-premium .contact-card,.charis-premium .feature-card,.charis-premium .studio-preview{background:white;border:1px solid var(--charis-line);border-radius:var(--charis-radius);box-shadow:var(--charis-shadow)}
+.charis-premium .panel{padding:26px}
+.charis-premium .notice{background:#fff8e9;color:#7b5411;border-color:#f1dfa9}
+.charis-premium .feedback-error{color:#b32637}.charis-premium .feedback-success{color:#147857}
+.charis-premium input:not([type=checkbox]):not([type=radio]),.charis-premium textarea,.charis-premium select{border:1px solid #cbd4e3;border-radius:10px;color:var(--charis-ink);background:#fff;min-height:43px;padding:11px 13px;max-width:100%}
+.charis-premium input:focus,.charis-premium textarea:focus,.charis-premium select:focus{border-color:var(--charis-purple);outline:3px solid #43269d20;outline-offset:0}
+.charis-premium label{font-weight:600;color:#26334e}
+.charis-premium .admin-form label{line-height:1.5}
+.charis-premium .muted{color:var(--charis-muted)}
+.charis-premium .status-chip{background:#f3edfc;color:#4c2694;border:1px solid #e3d6f8;text-transform:capitalize}
+.charis-premium .status-granted{background:#e6f8f1;color:#176b50;border-color:#b5e8d4}
+.charis-premium .table-scroll{border:1px solid var(--charis-line);border-radius:14px;background:white;overflow:auto}
+.charis-premium .admin-table{border:0;border-radius:0}
+.charis-premium .admin-table th{background:#f7f8fc;color:#526079;font-size:12px;letter-spacing:.02em;font-weight:750}
+.charis-premium .admin-table td{font-size:13px}
+.charis-premium .admin-table tr:hover td{background:#fbfaff}
+.charis-premium .admin-table td,.charis-premium .admin-table th{padding:14px 16px;border-color:#edf0f6}
+.charis-premium .workspace-links>a{border-radius:10px}
+/* Shell: fixed-width desktop rail; mobile overlay rather than 40% viewport-height sidebar. */
+.charis-premium .charis-app-shell{display:grid;grid-template-columns:272px minmax(0,1fr);min-height:100dvh}
+.charis-premium .charis-premium-side{width:272px;position:sticky;top:0;height:100dvh;padding:20px 16px 18px;background:linear-gradient(168deg,#17143d 0%,#171d47 58%,#112d47 100%);color:#c6d0e6;overflow:auto;scrollbar-width:thin;scrollbar-color:#4f5479 transparent;display:flex;flex-direction:column;gap:8px;z-index:30}
+.charis-premium .charis-sidebar-brand{padding:10px 11px 8px;margin:0;display:grid;gap:8px;align-items:center;justify-items:start}
+.charis-premium .charis-logo-tile{background:#fff;border-radius:12px;min-height:65px;width:100%;display:flex;align-items:center;justify-content:center;padding:10px 8px}
+.charis-premium .charis-logo-tile img{width:100%;height:auto;max-height:51px;object-fit:contain}
+.charis-premium .charis-app-descriptor{font-size:10px;color:#a5ddcb;letter-spacing:2.2px;font-weight:800}
+.charis-premium .charis-workspace-identity{padding:11px 12px;border:1px solid #ffffff1d;border-radius:11px;background:#ffffff0b;margin:4px 4px 7px;display:flex;align-items:center;gap:8px;font-size:11px;color:#dae5f2}
+.charis-premium .charis-live-dot{width:8px;height:8px;flex:none;border-radius:50%;background:var(--charis-teal);box-shadow:0 0 0 3px #27c79a22}
+.charis-premium .charis-premium-side nav{display:block}
+.charis-premium .charis-premium-side .sidebar-label{margin:17px 11px 8px;font-size:10px;font-weight:800;letter-spacing:1.5px;color:#889ab5}
+.charis-premium .charis-premium-side .charis-nav-link{display:flex;align-items:center;position:relative;gap:12px;color:#c7d3e9;border-radius:11px;font-size:13px;font-weight:560;min-height:43px;padding:10px 12px;margin:2px 0}
+.charis-premium .charis-premium-side .charis-nav-link svg{color:#a4b3d0;flex:none}
+.charis-premium .charis-premium-side .charis-nav-link:hover{color:white;background:#ffffff16}
+.charis-premium .charis-premium-side .charis-nav-link.is-active{color:#fff;background:linear-gradient(90deg,#5437a7,#38347c);font-weight:730}
+.charis-premium .charis-premium-side .charis-nav-link.is-active svg{color:#81f3cc}
+.charis-premium .charis-nav-accent{position:absolute;right:0;top:10px;bottom:10px;width:3px;background:#4ee5b1;border-radius:6px}
+.charis-premium .charis-side-bottom{margin-top:auto;padding:18px 4px 0}
+.charis-premium .charis-side-security{display:flex;align-items:center;gap:9px;font-size:11px;color:#b7d3c7;padding:10px}
+.charis-premium .charis-side-bottom .sidebar-signout{margin:5px 0 0}
+.charis-premium .charis-side-bottom .sidebar-signout button{background:#ffffff0b;border:1px solid #ffffff26;color:#e6eaf5;min-height:44px}
+.charis-premium .charis-side-bottom .sidebar-signout button:hover{background:#ffffff1c}
+.charis-premium .charis-main{padding:0;max-width:none;min-width:0;display:flex;flex-direction:column}
+.charis-premium .charis-topbar{position:sticky;top:0;z-index:15;min-height:99px;background:#ffffffed;backdrop-filter:blur(12px);border-bottom:1px solid var(--charis-line);padding:19px clamp(22px,3.2vw,47px);display:flex;align-items:center;justify-content:space-between;gap:20px}
+.charis-premium .charis-overline{display:block;font-size:10px;letter-spacing:1.2px;font-weight:800;color:#8273a6;margin-bottom:6px}
+.charis-premium .charis-topbar h1{font-size:clamp(21px,2.5vw,30px);letter-spacing:-.9px;line-height:1.18;font-weight:760;margin:0}
+.charis-premium .charis-topbar-actions{display:flex;align-items:center;gap:10px}
+.charis-premium .charis-role-chip{display:flex;align-items:center;gap:7px;background:#f0ecfa;border:1px solid #e5def5;color:#4b3482;border-radius:28px;font-size:11px;font-weight:700;padding:10px 13px;white-space:nowrap}
+.charis-premium .charis-topbar-icon{width:39px;height:39px;border:1px solid var(--charis-line);border-radius:11px;display:grid;place-items:center;color:#5b4b89;background:white}
+.charis-premium .charis-topbar-icon:hover{background:#f1ebff}
+.charis-premium .charis-page-content{padding:clamp(20px,3.4vw,44px);width:100%;max-width:1530px;margin:0 auto;flex:1}
+.charis-premium .charis-page-content>p:first-child{margin-top:0;line-height:1.65}
+.charis-premium .charis-main-footer{padding:16px 32px 20px;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;border-top:1px solid var(--charis-line);color:#7b879d;font-size:11px}
+.charis-premium .charis-main-footer a{display:flex;gap:5px;align-items:center;color:var(--charis-purple)}
+.charis-premium .charis-mobile-bar,.charis-premium .charis-mobile-backdrop{display:none}
+/* Dashboard and campaign workflows */
+.charis-premium .charis-dashboard-hero{background:radial-gradient(circle at 96% 7%,#64ecc043 0%,transparent 28%),linear-gradient(112deg,#24115e,#463099 58%,#173b69 110%);border:1px solid #ffffff22;border-radius:22px;box-shadow:0 18px 40px #30227720;margin:0 0 24px;padding:34px clamp(22px,3vw,44px);position:relative;overflow:hidden}
+.charis-premium .charis-dashboard-hero::after{content:'';position:absolute;width:150px;height:150px;border:1px solid #ffffff20;border-radius:50%;right:6%;bottom:-90px;pointer-events:none}
+.charis-premium .charis-dashboard-hero .btn{background:white!important;color:#342079!important;border-color:white}
+.charis-premium .charis-dashboard-hero .btn.secondary{background:#ffffff12!important;color:#fff!important;border-color:#ffffff88}
+.charis-premium .charis-dashboard-hero .charis-eyebrow{letter-spacing:1.5px;font-weight:800;font-size:11px;color:#7af0c2}
+.charis-premium .charis-dashboard-hero h2{font-size:clamp(25px,3vw,37px);max-width:660px;letter-spacing:-1px}
+.charis-premium .charis-dashboard-hero p{max-width:570px}
+.charis-premium .charis-metrics{gap:15px;margin:22px 0 32px}
+.charis-premium .charis-metrics>div{padding:23px;border-radius:16px;border:1px solid var(--charis-line);box-shadow:var(--charis-shadow);position:relative}
+.charis-premium .charis-metrics>div::before{content:'';display:block;width:32px;height:4px;background:linear-gradient(90deg,var(--charis-purple),var(--charis-teal));border-radius:4px;margin-bottom:15px}
+.charis-premium .charis-metrics strong{font-size:31px;color:#2e2266}
+.charis-premium .charis-shortcuts{grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.charis-premium .charis-shortcuts>a{border:1px solid var(--charis-line);border-radius:16px;padding:22px;box-shadow:var(--charis-shadow)}
+.charis-premium .charis-shortcuts>a:hover{border-color:#c7b4ee;transform:translateY(-2px);box-shadow:0 16px 35px #34247717}
+.charis-premium .charis-shortcuts>a>span{width:41px;height:41px;border-radius:12px;display:grid;place-items:center;background:#f1ebff;font-size:23px}
+.charis-premium .charis-shortcuts>a strong{color:#272152}
+.charis-premium .simple-step-number{background:var(--charis-purple)!important;color:#fff!important}
+.charis-premium .studio-grid{align-items:start;gap:20px}
+.charis-premium .studio-controls,.charis-premium .studio-preview{min-width:0}
+.charis-premium .recipient-picker{background:#faf9ff;border-color:#e3d9f5}
+.charis-premium .recipient-count{background:#eae4fb;color:#3d2585}
+.charis-premium .recipient-chip{color:#3d2585}
+.charis-premium .charis-workflow-ribbon{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;border:1px solid var(--charis-line);padding:15px 19px;border-radius:13px;margin-bottom:20px}
+.charis-premium .charis-workflow-ribbon span{font-size:12px;color:#585b77;font-weight:700;padding:7px 10px;border-radius:20px;background:#f5f4fa}
+.charis-premium .charis-workflow-ribbon b{font-size:12px;color:#a6a8b8}
+.charis-premium .charis-guide-card{background:#effaf6;border:1px solid #c6ecdb;padding:17px 20px;border-radius:13px;color:#235748;margin:16px 0}
+/* Public entry / staff login */
+.charis-premium .site-header{background:#fff}
+.charis-premium .site-nav .logo img{max-height:45px;max-width:207px;height:auto;width:auto}
+.charis-premium .site-footer{background:#201653}
+.charis-premium .charis-landing-hero h1 em{color:var(--charis-purple)}
+.charis-premium .charis-landing-panel-head{background:#291765}
+.charis-premium .charis-pill{background:#f0ebfc;color:#50319c;border:1px solid #e0d8f5}
+.charis-premium .charis-landing-copy .btn{background:var(--charis-purple)}
+.charis-premium .charis-login-shell{display:grid;grid-template-columns: minmax(0,.95fr) minmax(0,1.05fr);min-height:calc(100dvh - 83px);max-width:1120px;margin:0 auto;gap:32px;align-items:center;padding:44px 26px 85px}
+.charis-premium .charis-login-feature{background:linear-gradient(140deg,#2c126f,#423094 67%,#174466);padding:50px 44px;color:white;border-radius:24px;min-height:425px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 24px 58px #291c7528}
+.charis-premium .charis-login-feature>span{color:#7af0c2;font-size:11px;font-weight:800;letter-spacing:1.4px}
+.charis-premium .charis-login-feature h1{font-size:clamp(31px,3vw,43px);letter-spacing:-1.2px;line-height:1.13;margin:22px 0}
+.charis-premium .charis-login-feature p{line-height:1.7;color:#e9e8f7;font-size:15px}
+.charis-premium .charis-login-note{border-top:1px solid #ffffff30;margin-top:36px;padding-top:24px;font-size:12px;color:#cfe6e0}
+.charis-premium .charis-login-card{padding:30px 0}
+.charis-premium .charis-login-card .contact-card{margin:0;max-width:none;border:1px solid var(--charis-line);box-shadow:var(--charis-shadow);padding:34px}
+.charis-premium .charis-login-card h2{font-size:26px;margin:0 0 8px}
+.charis-premium .charis-password-field{position:relative}
+.charis-premium .charis-password-field input{width:100%;padding-right:84px!important}
+.charis-premium .charis-password-toggle{position:absolute;right:8px;top:5px;border:0;background:#f0ebfa;color:#513891;min-height:35px;padding:5px 11px;border-radius:7px;font-weight:700;font-size:12px}
+@media(max-width:1140px){.charis-premium .charis-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:900px){
+ .charis-premium .charis-app-shell{display:block;padding-top:64px}
+ .charis-premium .charis-mobile-bar{position:fixed;z-index:55;display:flex;align-items:center;justify-content:space-between;top:0;left:0;right:0;background:#fff;height:64px;border-bottom:1px solid var(--charis-line);padding:9px 17px}
+ .charis-premium .charis-mobile-bar>a{display:flex;gap:8px;align-items:center;color:#342079;font-size:13px}
+ .charis-premium .charis-mobile-bar img{object-fit:contain;width:38px;height:38px}
+ .charis-premium .charis-menu-toggle{background:#f3f0fa;border:1px solid #dfd6f4;border-radius:9px;color:#382378;min-width:42px;min-height:42px;display:grid;place-items:center}
+ .charis-premium .charis-premium-side{position:fixed;z-index:65;top:64px;bottom:0;left:0;max-height:none;height:calc(100dvh - 64px);width:min(82vw,300px);transform:translateX(-110%);box-shadow:12px 0 33px #1b183c2a;transition:transform .2s ease}
+ .charis-premium .charis-premium-side.charis-side-open{transform:translateX(0)}
+ .charis-premium .charis-premium-side nav{display:block}
+ .charis-premium .charis-mobile-backdrop{display:block;position:fixed;inset:64px 0 0;z-index:60;background:#10152c85;border:0}
+ .charis-premium .charis-topbar{position:relative;min-height:80px;padding:19px 22px}
+ .charis-premium .charis-page-content{padding:24px 19px}
+ .charis-premium .charis-login-shell{grid-template-columns:1fr;gap:0}
+ .charis-premium .charis-login-feature{min-height:290px;padding:28px}
+ .charis-premium .charis-login-card{padding:26px 0}
+}
+@media(max-width:620px){
+ .charis-premium .charis-topbar-actions .charis-role-chip{display:none}
+ .charis-premium .charis-topbar h1{font-size:22px}
+ .charis-premium .charis-shortcuts{grid-template-columns:1fr}
+ .charis-premium .charis-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .charis-premium .charis-metrics>div{padding:16px}
+ .charis-premium .charis-metrics strong{font-size:26px}
+ .charis-premium .panel{padding:19px}
+ .charis-premium .charis-main-footer{padding:18px}
+ .charis-premium .charis-workflow-ribbon{gap:6px}
+ .charis-premium .charis-workflow-ribbon span{font-size:11px;padding:6px 9px}
+ .charis-premium .charis-login-feature{min-height:auto}
+ .charis-premium .charis-login-card .contact-card{padding:24px}
+}
+@media(prefers-reduced-motion:reduce){.charis-premium *, .charis-premium *::before,.charis-premium *::after{transition:none!important;animation:none!important}}
+.charis-premium .charis-stat-name{display:flex;gap:8px;align-items:center}.charis-premium .charis-stat-name svg{color:var(--charis-purple)}
+.charis-premium .charis-dashboard-split{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,.85fr);gap:17px;align-items:start}
+.charis-premium .charis-secondary-metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0}
+.charis-premium .charis-secondary-metrics>div{background:#f8f7fd;border:1px solid #e8e1f4;border-radius:12px;padding:15px}
+.charis-premium .charis-secondary-metrics span{display:block;font-size:12px;color:#5a5e79}
+.charis-premium .charis-secondary-metrics strong{display:block;font-size:25px;color:#3b247e;margin-top:7px}
+.charis-premium .charis-recent-list{display:grid;gap:0}
+.charis-premium .charis-recent-list>a{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 0;border-top:1px solid #eef0f5}
+.charis-premium .charis-recent-list>a>span:first-child{display:flex;align-items:center;gap:9px;min-width:0;flex-wrap:wrap}
+.charis-premium .charis-recent-list strong{font-size:13px;color:#2b2951}
+.charis-premium .charis-recent-list small{font-size:11px;color:#798399}
+.charis-premium .charis-next-steps ol{list-style:none;counter-reset:charis-step;padding:0;margin:20px 0}
+.charis-premium .charis-next-steps li{counter-increment:charis-step;position:relative;padding:5px 0 19px 44px;min-height:50px;border-left:2px solid #e8e1f5;margin-left:13px}
+.charis-premium .charis-next-steps li:last-child{border-left-color:transparent}
+.charis-premium .charis-next-steps li::before{content:counter(charis-step);position:absolute;left:-17px;top:0;width:32px;height:32px;border:2px solid #e9e2fa;border-radius:50%;background:#f3effb;color:#43238a;display:grid;place-items:center;font-size:12px;font-weight:800}
+.charis-premium .charis-next-steps strong,.charis-premium .charis-next-steps small{display:block}
+.charis-premium .charis-next-steps strong{font-size:13px;color:#323054}.charis-premium .charis-next-steps small{font-size:12px;color:#6f7990;line-height:1.55;margin-top:5px}
+.charis-premium .charis-next-steps .charis-guide-card{display:flex;gap:8px;align-items:start;font-size:12px;line-height:1.5}
+.charis-premium .charis-shortcuts .charis-quick-arrow{display:flex;align-items:center;gap:6px;color:#4b298f;background:none;width:auto;height:auto;font-size:12px;font-weight:750}
+.charis-premium .charis-recent-list .status-chip{font-size:11px;white-space:nowrap}
+.charis-premium .charis-guide-card{display:flex;align-items:center;gap:9px;font-size:13px;flex-wrap:wrap}
+@media(max-width:1080px){.charis-premium .charis-dashboard-split{grid-template-columns:1fr}}
+@media(max-width:620px){.charis-premium .charis-secondary-metrics{grid-template-columns:1fr}}
+.charis-premium .charis-empty-state{text-align:center;display:flex;align-items:center;flex-direction:column;padding:35px 24px!important}
+.charis-premium .charis-empty-state>svg{color:#6141a0;background:#f2edfb;padding:12px;width:57px;height:57px;border-radius:17px;margin-bottom:8px}
+.charis-premium .charis-empty-state h3{font-size:19px;margin:8px 0 0}.charis-premium .charis-empty-state p{max-width:470px;line-height:1.6;margin-bottom:16px}
+.charis-premium .charis-section-header{margin:25px 0 15px}.charis-premium .charis-section-header h2{margin:0}.charis-premium .charis-section-header p{margin:8px 0 0}
+
+/* Charis campaign operations: usable batch selection and role assignment */
+.charis-bulk-bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:18px 0;padding:13px 15px;background:#f8f6fe;border:1px solid #dfd8f7;border-radius:14px}
+.charis-bulk-bar form{display:flex;flex-wrap:wrap;align-items:center;gap:9px}
+.charis-checklist{max-height:305px;overflow:auto;border:1px solid #e0dfeb;border-radius:14px;background:white;margin:12px 0;padding:9px}
+.charis-checklist label,.charis-role-grid label{display:flex;gap:10px;align-items:center;padding:8px 10px;cursor:pointer}
+.charis-checklist label:hover{background:#f6f3ff}
+.charis-checklist input,.charis-role-grid input{width:18px;height:18px;accent-color:#40208F;flex-shrink:0}
+.charis-extra-roles{border:1px solid #e4daf8;border-radius:16px;padding:18px;margin-top:16px}
+.charis-role-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:5px}
+.charis-eligibility-summary{display:flex;gap:18px;align-items:center;flex-wrap:wrap;padding:16px;border:1px solid #dcd4f5;border-radius:14px;margin:15px 0;background:#fbfaff}
+@media(max-width:720px){.charis-role-grid{grid-template-columns:1fr}.charis-bulk-bar{align-items:stretch}}

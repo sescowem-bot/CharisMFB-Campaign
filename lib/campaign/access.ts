@@ -1,11 +1,12 @@
 import {supabaseServer} from '@/lib/supabase/server';
 export async function companyAccess(org:string){
- const db=await supabaseServer();const {data:{user}}=await db.auth.getUser();
+ const db=await supabaseServer();
+ const {data:{user}}=await db.auth.getUser();
  if(!user)return {db,user:null,canEdit:false,canView:false};
- const [{data:member},{data:staff}]=await Promise.all([
- db.from('organization_members').select('role').eq('organization_id',org).eq('user_id',user.id).maybeSingle(),
- db.from('platform_staff').select('role').eq('user_id',user.id).maybeSingle()
+ const [{data:allowed},{data:member},{data:owner}]=await Promise.all([
+  db.rpc('can_edit_company_design',{p_org:org}),
+  db.rpc('is_organization_member',{org}),
+  db.rpc('is_platform_super_admin')
  ]);
- const owner=staff?.role==='super_admin';
- return {db,user,canEdit:owner||['company_admin','manager','designer'].includes(member?.role||''),canView:owner||!!member};
+ return {db,user,canEdit:allowed===true,canView:member===true||owner===true};
 }

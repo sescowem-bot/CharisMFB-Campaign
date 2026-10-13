@@ -10,7 +10,7 @@ export function CompanyBrandEditor({org,brand}:{org:string;brand:Brand|null}){
  <div className="form-two"><label>Primary color<input type="color" name="primary_color" defaultValue={brand?.primary_color||'#102b4e'}/></label><label>Accent color<input type="color" name="secondary_color" defaultValue={brand?.secondary_color||'#356df3'}/></label></div>
  <label>Website URL<input type="url" name="website_url" placeholder="https://company.example" defaultValue={brand?.website_url||''}/></label>
  <label>Contact email<input type="email" name="contact_email" defaultValue={brand?.contact_email||''}/></label>
- <label>Postal address<textarea name="postal_address" rows={3} defaultValue={brand?.postal_address||''}/></label>
+ <label>Official business postal address (required for campaign email)<textarea name="postal_address" rows={3} defaultValue={brand?.postal_address||''}/></label>
  <h3>Social links</h3>{(['facebook','instagram','linkedin','x'] as const).map(key=><label key={key}>{key}<input type="url" name={key} placeholder="https://" defaultValue={brand?.social_links?.[key]||''}/></label>)}
  <button className="btn" disabled={pending}>{pending?'Saving…':'Save company branding'}</button><p role="status">{state.error||state.success}</p><p className="muted">Your bank-approved logo, favicon and media library are managed below. Changes are saved securely to Supabase.</p></form>;
 }

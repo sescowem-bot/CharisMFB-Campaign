@@ -21,6 +21,7 @@ try {
  for(const path of ['/api/worker/delivery','/api/email/webhooks/brevo']){const response=await fetch(base+path,{method:'POST'});assert.equal(response.status,401,path);}
  const exportCheck=await fetch(base+'/api/reports/campaigns?org=invalid');assert.equal(exportCheck.status,400);assert.equal(exportCheck.headers.get('cache-control'),'private, no-store');
  const invalid=await fetch(base+'/api/email/unsubscribe?token=invalid',{method:'POST'});assert.equal(invalid.status,400);
- for(const path of ['/auth/signout','/api/contacts/import']){const response=await fetch(base+path,{method:'POST',headers:{Origin:'https://hostile.example'}});assert.equal(response.status,403,path);}
+ for(const path of ['/auth/signout','/api/billing/checkout','/api/billing/verify','/api/contacts/import']){const response=await fetch(base+path,{method:'POST',headers:{Origin:'https://hostile.example'}});assert.equal(response.status,403,path);}
+ const webhook=await fetch(base+'/api/billing/webhook',{method:'POST',body:'{}'});assert.equal(webhook.status,503);
  console.log(`${paths.length} public/health routes passed; 9 protected routes redirect to login without setup; 9 API rejection checks passed; response headers and per-request script nonces passed.`);
 } finally {server.kill('SIGTERM');}

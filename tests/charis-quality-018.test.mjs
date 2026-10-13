@@ -7,9 +7,9 @@ test('Charis assets are uploaded server-side with MIME signatures, role checks a
  assert.doesNotMatch(act,/NEXT_PUBLIC_.*SERVICE_ROLE/);
 });
 test('brand images and favicon are sourced from database not hardcoded env',()=>{
- const shell=src('components/workspace-shell.tsx'),meta=src('app/layout.tsx');
- assert.match(shell,/charisBrandAssets/);assert.match(meta,/assets\.favicon/);
- assert.doesNotMatch(shell+meta,/CHARIS_LOGO_URL/);
+ const site=src('lib/cms/server.ts'),meta=src('app/layout.tsx');
+ assert.match(site,/charisBrandAssets/);assert.match(meta,/assets\.favicon/);
+ assert.doesNotMatch(site,/CHARIS_LOGO_URL/);
 });
 test('customer archive protects consent and permanent delete protects delivery history',()=>{
  const sql=src('supabase/migrations/018_charis_media_and_contact_management.sql');
@@ -23,6 +23,6 @@ test('unrelated Resend domains are never automatically eligible in Charis',()=>{
  assert.match(src('app/dashboard/campaigns/page.tsx'),/sending_domains\.charis_connected/);
 });
 test('technical recovery form is hidden in single-company mode',()=>{
- assert.match(src('app/admin/providers/page.tsx'),/SINGLE_COMPANY_MODE==='true'/);
+ assert.doesNotMatch(src('app/admin/providers/page.tsx'),/Registration recovery|Provider Domain ID/);
  assert.match(src('components/contact-row-actions.tsx'),/Archive|archive/);
 });

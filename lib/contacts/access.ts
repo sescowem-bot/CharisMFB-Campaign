@@ -7,11 +7,7 @@ export async function contactsAccess(organizationId: string) {
  const db = await supabaseServer();
  const {data:{user}} = await db.auth.getUser();
  if (!user || !org.success) return {db,user,authorized:false};
- const [{data:member},{data:staff},{data:organization}] = await Promise.all([
-  db.from('organization_members').select('role').eq('organization_id',org.data).eq('user_id',user.id).maybeSingle(),
-  db.from('platform_staff').select('role').eq('user_id',user.id).maybeSingle(),
-  db.from('organizations').select('status').eq('id',org.data).maybeSingle()
- ]);
- const authorized=staff?.role==='super_admin'||(organization?.status==='active'&&['company_admin','manager'].includes(member?.role||''));
- return {db,user,authorized};
+ const {data:authorized,error}=await db.rpc('can_manage_contacts',{p_org:org.data});
+ if(error)return {db,user,authorized:false};
+ return {db,user,authorized:authorized===true};
 }

@@ -13,10 +13,10 @@ test('Charis sign-out uses the browser Supabase client and clears this device se
   assert.doesNotMatch(content, /useActionState|action="\/auth\/signout"/);
 });
 
-test('The application shell uses the shared sign-out component', () => {
-  const content = file('components/workspace-shell.tsx');
+test('Site navigation and footer share the same sign-out component', () => {
+  const content = file('components/public.tsx');
   assert.match(content, /import \{SignOutForm\}/);
-  assert.match(content, /<SignOutForm\/>/);
+  assert.match(content, /<SignOutForm variant=/);
   assert.doesNotMatch(content, /<form action="\/auth\/signout"/);
 });
 

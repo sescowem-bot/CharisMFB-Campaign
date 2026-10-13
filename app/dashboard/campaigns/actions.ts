@@ -33,8 +33,9 @@ export async function campaignAction(_:CampaignResult,form:FormData):Promise<Cam
   }
   const id=z.string().uuid().parse(form.get('campaign_id'));
   if(action==='test') {
+   const testEmail=z.string().email().max(254).parse(form.get('test_email')||user.email);
    const result=await sendSavedCampaignTest({
-    reserve:async()=>{const {data,error}=await db.rpc(process.env.SINGLE_COMPANY_MODE==='true'&&process.env.SINGLE_COMPANY_ORG_ID===org?'charis_campaign_test_reserve':'owner_campaign_test_reserve',{p_org:org,p_campaign:id,p_revision:revision});if(error)throw new Error(error.message);return data;},
+    reserve:async()=>{const charis=process.env.SINGLE_COMPANY_MODE==='true'&&process.env.SINGLE_COMPANY_ORG_ID===org;const {data,error}=await db.rpc(charis?'charis_campaign_test_reserve_to':'owner_campaign_test_reserve',charis?{p_org:org,p_campaign:id,p_revision:revision,p_email:testEmail}:{p_org:org,p_campaign:id,p_revision:revision});if(error)throw new Error(error.message);return data;},
     verify:async domain=>{const checked=await refreshDomain(org,domain);return {verified:checked.verified,domain:checked.row.domain,send:checked.adapter.sendTest};},
     record:async(attempt,status,message)=>{const {error}=await emailServiceDb().from('email_test_attempts').update({status,provider_message_id:message||null}).eq('id',attempt).eq('organization_id',org).eq('actor_id',user.id).eq('status','reserved');if(error)throw new Error('Test history could not be saved.');}
    });

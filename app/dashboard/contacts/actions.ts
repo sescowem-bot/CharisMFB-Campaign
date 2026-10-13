@@ -79,3 +79,32 @@ export async function createSegment(_:FormResult,form:FormData):Promise<FormResu
   revalidatePath('/dashboard/segments');return {success:'Dynamic segment created.'};
  }catch{return {error:'Unable to save segment'};}
 }
+
+/** Operational batch changes: Supabase validates access, membership and audit constraints. */
+export async function bulkContactsAction(_:FormResult,form:FormData):Promise<FormResult>{
+ try{
+  const org=organizationIdSchema.parse(form.get('organization_id'));
+  const ids=z.array(z.string().uuid()).min(1).max(100).parse(JSON.parse(String(form.get('contacts')||'[]')));
+  const operation=z.enum(['archive','delete']).parse(form.get('operation'));
+  const {db,authorized}=await contactsAccess(org);
+  if(!authorized)throw new Error('Customer management access required');
+  const {data,error}=await db.rpc('charis_bulk_contacts',{p_org:org,p_contacts:ids,p_action:operation});
+  if(error)throw new Error(error.message);
+  revalidatePath('/dashboard/contacts');revalidatePath('/dashboard/lists');
+  return {success:`${data||ids.length} customers ${operation==='archive'?'archived':'deleted'} successfully.`};
+ }catch(e){return {error:e instanceof Error?e.message:'Unable to manage selected customers'};}
+}
+export async function bulkListAction(_:FormResult,form:FormData):Promise<FormResult>{
+ try{
+  const org=organizationIdSchema.parse(form.get('organization_id'));
+  const list=organizationIdSchema.parse(form.get('list_id'));
+  const ids=z.array(z.string().uuid()).min(1).max(200).parse(JSON.parse(String(form.get('contacts')||'[]')));
+  const add=z.enum(['add','remove']).parse(form.get('operation'))==='add';
+  const {db,authorized}=await contactsAccess(org);
+  if(!authorized)throw new Error('List management access required');
+  const {data,error}=await db.rpc('charis_list_batch',{p_org:org,p_list:list,p_contacts:ids,p_add:add});
+  if(error)throw new Error(error.message);
+  revalidatePath('/dashboard/lists');
+  return {success:`${data||ids.length} customers ${add?'added to':'removed from'} the group.`};
+ }catch(e){return {error:e instanceof Error?e.message:'Unable to update selected list members'};}
+}

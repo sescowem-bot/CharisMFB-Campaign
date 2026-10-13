@@ -1,9 +1,10 @@
 import 'server-only';
 import {cache} from 'react';
+import {unstable_cache} from 'next/cache';
 import {createClient} from '@supabase/supabase-js';
 
 /** Public graphic URLs only; this module NEVER returns service credentials or customer data. */
-export const charisBrandAssets=cache(async()=>{
+const loadBrandAssets=unstable_cache(async()=>{
  if(process.env.SINGLE_COMPANY_MODE!=='true')return {logo:'',favicon:''};
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
  const key=process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -16,4 +17,5 @@ export const charisBrandAssets=cache(async()=>{
   const safe=(s:unknown)=>typeof s==='string'&&s.startsWith(`${url}/storage/v1/object/public/charis-brand-assets/`)?s:'';
   return {logo:safe(data.logo_path),favicon:safe(data.favicon_url)};
  }catch{return {logo:'',favicon:''};}
-});
+},['charis-brand-assets-v1'],{revalidate:300,tags:['charis-brand-assets']});
+export const charisBrandAssets=cache(loadBrandAssets);

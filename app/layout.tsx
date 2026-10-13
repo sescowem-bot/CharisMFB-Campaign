@@ -1,27 +1,10 @@
-import type {Metadata, Viewport} from 'next';
-import {brand} from '@/lib/brand';
+import type {Metadata} from 'next';
+import type {CSSProperties} from 'react';
+import {publishedSite} from '@/lib/cms/server';
 import {charisBrandAssets} from '@/lib/charis-brand-assets';
+import {contrastInk} from '@/lib/cms/content';
 import './globals.css';
-
-export const dynamic = 'force-dynamic';
-
-export async function generateMetadata(): Promise<Metadata> {
-  const assets = await charisBrandAssets();
-  const icon = assets.favicon || brand.icon;
-  return {
-    title: {default: `${brand.name} · ${brand.product}`, template: `%s | ${brand.product}`},
-    description: brand.tagline,
-    icons: {icon, shortcut: icon},
-    robots: {index: false, follow: false}
-  };
-}
-
-export const viewport: Viewport = {themeColor: brand.colors.primary, width: 'device-width', initialScale: 1};
-
-export default function RootLayout({children}: {children: React.ReactNode}) {
-  return (
-    <html lang="en">
-      <body style={{'--brand': brand.colors.primary} as React.CSSProperties}>{children}</body>
-    </html>
-  );
-}
+import './charis-premium.css';
+export const dynamic='force-dynamic';
+export async function generateMetadata():Promise<Metadata>{const [site,assets]=await Promise.all([publishedSite(),charisBrandAssets()]);const bank=process.env.SINGLE_COMPANY_MODE==='true';const name=bank?'Charis Campaign Centre':site.display_name;return {title:{default:name,template:`%s | ${name}`},description:bank?'Authorised customer communications for Charis Microfinance Bank Ltd.':site.tagline,robots:bank?{index:false,follow:false}:undefined,icons:{icon:assets.favicon||'/favicon.ico',shortcut:assets.favicon||'/favicon.ico',apple:assets.favicon||'/charis-official-mark.png'}};}
+export default async function RootLayout({children}:{children:React.ReactNode}){const site=await publishedSite();const fonts={system:'system-ui, sans-serif',arial:'Arial, Helvetica, sans-serif',georgia:'Georgia, serif'};return <html lang="en"><body className={process.env.SINGLE_COMPANY_MODE==='true'?'charis-premium':undefined} style={{'--brand':site.primary_color,'--brand-ink':contrastInk(site.primary_color),'--platform-font':fonts[site.font]} as CSSProperties}>{children}</body></html>;}

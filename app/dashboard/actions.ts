@@ -20,7 +20,7 @@ export async function saveTemplate(_:Result,form:FormData):Promise<Result>{
   const design=designSchema.parse(JSON.parse(String(form.get('design')||'')));
   const {error}=await db.rpc('save_email_template',{p_id:String(form.get('template_id')||'')||null,p_org:org,p_name:String(form.get('name')||''),p_subject:String(form.get('subject')||''),p_description:String(form.get('description')||''),p_category:String(form.get('category')||'general'),p_design:design});
   if(error)return {error:error.message};revalidatePath('/dashboard/templates');return {success:'Template saved as draft.'};
- }catch{return {error:'Invalid template design. Check content and links.'};}
+ }catch(e){return {error:e instanceof Error?e.message:'Invalid template. Check the design and links.'};}
 }
 export async function saveFooter(_:Result,form:FormData):Promise<Result>{
  try{
@@ -28,6 +28,6 @@ export async function saveFooter(_:Result,form:FormData):Promise<Result>{
   const design={company_name:String(form.get('company_name')||''),address:String(form.get('address')||''),contact_email:String(form.get('contact_email')||''),website_url:String(form.get('website_url')||''),disclaimer:String(form.get('disclaimer')||'')};
   if(Object.values(design).some(v=>v.length>1200))return {error:'Footer content too long'};
   const {error}=await db.rpc('save_email_footer',{p_id:String(form.get('footer_id')||'')||null,p_org:org,p_name:String(form.get('name')||''),p_design:design,p_default:form.get('is_default')==='on'});
-  if(error)return {error:error.message};revalidatePath('/dashboard/branding');return {success:'Footer saved.'};
+  if(error)return {error:error.message};revalidatePath('/dashboard/footers');return {success:'Footer saved.'};
  }catch{return {error:'Invalid footer details'};}
 }
