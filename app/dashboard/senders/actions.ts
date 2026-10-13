@@ -10,6 +10,9 @@ export async function senderAction(_:SenderResult,form:FormData):Promise<SenderR
     const org=uuid(form,'organization_id');
     const {db,user}=await senderAccess(org);
     const action=String(form.get('action'));
+    // Legacy multi-company actions must not create domains or override sender settings in Charis.
+    if(process.env.SINGLE_COMPANY_MODE==='true'&&org===process.env.SINGLE_COMPANY_ORG_ID&&action!=='test')
+      throw new Error('Use Charis Sender Settings to link an existing verified Resend domain and edit the sender.');
     if(action==='add_domain') {
       const domain=domainName(String(form.get('domain')||''));
       const provider=z.enum(['resend','brevo']).parse(form.get('provider'));

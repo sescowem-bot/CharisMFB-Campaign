@@ -26,6 +26,7 @@ export async function providerAction(_:ProviderResult,form:FormData):Promise<Pro
    if(error)throw new Error('Provider health could not be recorded.');
    revalidatePath('/admin/providers');return healthy?{success:'Provider API connection verified. This does not confirm delivery or sending allowance.'}:{error:'Provider connection failed. Check the server API key, account permissions and provider dashboard.'};
   } else if(form.get('action')==='reconcile') {
+   if(process.env.SINGLE_COMPANY_MODE==='true')throw new Error('Charis reuses verified Resend domains through Sender Settings. Technical domain ID recovery is disabled.');
    const id=z.string().uuid().parse(form.get('domain_id'));
    const providerId=z.string().trim().min(1).max(200).parse(form.get('provider_domain_id'));
    const service=emailServiceDb();

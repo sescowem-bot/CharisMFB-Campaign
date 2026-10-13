@@ -73,7 +73,10 @@ export async function disableCharisSender(_:CharisConnectResult,form:FormData):P
  }catch(e){return {error:e instanceof Error?e.message:'Unable to disable sender.'};}
 }
 
-/** One-time account/domain association; no provider IDs, TXT tokens or API keys in the browser. */
+/** Connect ONLY a domain already verified for sending in the configured Resend account.
+ * Never create a duplicate Resend domain or tell staff to reconfigure DNS here.
+ * If a legacy pending Charis record exists, reconcile it to the verified provider record.
+ */
 export async function setupCharisResendDomain(_:CharisConnectResult,form:FormData):Promise<CharisConnectResult>{
  try{
   const org=uuid.parse(form.get('organization_id'));checkCharis(org);
@@ -82,40 +85,45 @@ export async function setupCharisResendDomain(_:CharisConnectResult,form:FormDat
   const service=emailServiceDb();
   const {data:existing,error:read}=await service.from('sending_domains').select('id,provider,verification_status').eq('organization_id',org).eq('domain',domain).maybeSingle();
   if(read)throw new Error('Could not read sender domains.');
-  if(existing?.verification_status==='revoked')throw new Error('This domain was revoked. It must be reviewed before being reconnected.');
+  if(existing?.verification_status==='revoked')throw new Error('This domain was revoked in Charis. Request a review before reconnecting.');
   if(existing&&existing.provider!=='resend')throw new Error('Domain is already linked to another provider.');
   const {findResendDomain}=await import('@/lib/email/charis-domain-setup');
   const known=await findResendDomain(domain);
-  const provider=providerAdapter('resend',process.env.RESEND_API_KEY||'');
-  const state=known?await provider.check(domain,known.id):await provider.create(domain);
-  const values={provider:'resend',provider_domain_id:state.id,verification_status:state.verified?'verified':'pending',charis_connected:true,dns_records:state.records,ownership_method:'provider_account',last_checked_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+  if(!known)throw new Error('This domain is not visible to the RESEND_API_KEY in Vercel. Check that the key belongs to the same Resend team that already verified your domain, and has permission to read domains. No new DNS records are needed here.');
+  const state=await providerAdapter('resend',process.env.RESEND_API_KEY||'').check(domain,known.id);
+  if(!state.verified)throw new Error('Resend has not confirmed sending verification for this domain under the connected API key. Check the domain status in the Resend account for this key; Charis will not create another registration.');
+  const values={provider:'resend',provider_domain_id:state.id,verification_status:'verified',charis_connected:true,dns_records:state.records,ownership_method:'provider_account',last_checked_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   let id=existing?.id;
   if(id){const {error}=await service.from('sending_domains').update(values).eq('organization_id',org).eq('id',id);if(error)throw new Error('Failed to update Charis domain: '+error.message);}
-  else {const {data,error}=await service.from('sending_domains').insert({...values,organization_id:org,domain,created_by:user.id}).select('id').single();if(error||!data)throw new Error('Unable to record new domain: '+(error?.message||'Unknown error'));id=data.id;}
-  const {error:audit}=await service.from('audit_logs').insert({organization_id:org,actor_id:user.id,action:'charis.domain.connected',entity_type:'sending_domain',entity_id:id,details:{domain,verified:state.verified}});
-  if(audit)throw new Error('Domain saved but audit logging failed.');
-  revalidatePath('/dashboard/senders');
-  return {success:state.verified?`${domain} is verified and ready. Choose your sender below.`:`${domain} connected. Add the Resend DNS records shown below, then click Check verification. No Domain ID needed.`};
+  else {const {data,error}=await service.from('sending_domains').insert({...values,organization_id:org,domain,created_by:user.id}).select('id').single();if(error||!data)throw new Error('Unable to link existing verified domain: '+(error?.message||'Unknown error'));id=data.id;}
+  const {error:audit}=await service.from('audit_logs').insert({organization_id:org,actor_id:user.id,action:'charis.domain.connected',entity_type:'sending_domain',entity_id:id,details:{domain,verified:true,registration:'existing_resend_domain'}});
+  if(audit)throw new Error('Domain linked but audit logging failed.');
+  revalidatePath('/dashboard/senders');revalidatePath('/dashboard/campaigns');
+  return {success:`${domain} is connected and verified. Choose your sender name, mailbox and reply-to address below. No DNS changes required.`};
  }catch(e){return {error:e instanceof Error?e.message:'Could not connect domain.'};}
 }
 
+/** Refresh a legacy pending connection by retrieving the domain from the same Resend key.
+ * Do not call the provider's verify endpoint or generate replacement DNS records.
+ */
 export async function checkCharisResendDomain(_:CharisConnectResult,form:FormData):Promise<CharisConnectResult>{
  try{
   const org=uuid.parse(form.get('organization_id'));checkCharis(org);
   const {user}=await senderAccess(org);
   const id=uuid.parse(form.get('domain_id'));
   const service=emailServiceDb();
-  const {data:row,error:read}=await service.from('sending_domains').select('domain,provider,provider_domain_id,verification_status').eq('organization_id',org).eq('id',id).maybeSingle();
-  if(read||!row||row.provider!=='resend'||row.verification_status==='revoked')throw new Error('Charis sending domain not found.');
-  if(!row.provider_domain_id)throw new Error('Resend registration is missing. Use Connect Domain to reconcile automatically.');
-  const provider=providerAdapter('resend',process.env.RESEND_API_KEY||'');
-  const status=await provider.check(row.domain,row.provider_domain_id,true);
-  const {error}=await service.from('sending_domains').update({provider_domain_id:status.id,verification_status:status.verified?'verified':'pending',dns_records:status.records,ownership_method:'provider_account',last_checked_at:new Date().toISOString()}).eq('organization_id',org).eq('id',id);
-  if(error)throw new Error('Unable to save verification status.');
-  const {error:audit}=await service.from('audit_logs').insert({organization_id:org,actor_id:user.id,action:'charis.domain.checked',entity_type:'sending_domain',entity_id:id,details:{domain:row.domain,verified:status.verified}});
-  if(audit)throw new Error('Verification recorded but audit logging failed.');
-  revalidatePath('/dashboard/senders');return {success:status.verified?'Resend confirmed this domain is verified for sending.':'Still pending. Check DNS records and try again after propagation.'};
- }catch(e){return {error:e instanceof Error?e.message:'Verification check failed.'};}
+  const {data:row,error:read}=await service.from('sending_domains').select('domain,provider,verification_status,charis_connected').eq('organization_id',org).eq('id',id).maybeSingle();
+  if(read||!row||row.provider!=='resend'||row.verification_status==='revoked'||!row.charis_connected)throw new Error('Connected Charis domain not found.');
+  const {findResendDomain}=await import('@/lib/email/charis-domain-setup');
+  const known=await findResendDomain(row.domain);
+  if(!known)throw new Error('This domain is not listed for the RESEND_API_KEY in Vercel. Check the Resend team and API key, not DNS settings.');
+  const state=await providerAdapter('resend',process.env.RESEND_API_KEY||'').check(row.domain,known.id);
+  const {error}=await service.from('sending_domains').update({provider_domain_id:state.id,verification_status:state.verified?'verified':'pending',dns_records:state.records,ownership_method:'provider_account',last_checked_at:new Date().toISOString()}).eq('organization_id',org).eq('id',id);
+  if(error)throw new Error('Unable to save Resend status.');
+  const {error:audit}=await service.from('audit_logs').insert({organization_id:org,actor_id:user.id,action:'charis.domain.checked',entity_type:'sending_domain',entity_id:id,details:{domain:row.domain,verified:state.verified}});
+  if(audit)throw new Error('Resend status recorded but audit logging failed.');
+  revalidatePath('/dashboard/senders');return {success:state.verified?'Resend confirms this domain is verified for sending. You can save a sender identity now.':'Resend still reports this domain as unverified for sending under the configured key. Check that the Vercel key belongs to your existing Resend team.'};
+ }catch(e){return {error:e instanceof Error?e.message:'Domain status check failed.'};}
 }
 
 export async function removePendingCharisDomain(_:CharisConnectResult,form:FormData):Promise<CharisConnectResult>{

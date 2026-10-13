@@ -6,7 +6,6 @@ import {WorkspaceShell} from '@/components/workspace-shell';
 import {SenderForm} from '@/components/sender-form';
 import {CharisResendForm,DisableCharisSender,CharisDomainConnectForm,CharisDomainCheckForm,CharisDomainUnlinkForm,RemoveUnusedCharisSender} from '@/components/charis-resend-form';
 import {listVerifiedResendDomains} from '@/lib/email/charis-resend';
-import type {DnsRecord} from '@/lib/email/providers';
 export default async function Senders({searchParams}:{searchParams:Promise<{org?:string}>}) {
  const {org}=await searchParams;if(!org||!z.string().uuid().safeParse(org).success)redirect('/dashboard');
  const db=await supabaseServer();const {data:{user}}=await db.auth.getUser();if(!user)redirect('/login');
@@ -32,13 +31,13 @@ export default async function Senders({searchParams}:{searchParams:Promise<{org?
    <section className="panel"><h2>Sender identity and Resend connection</h2>
     <p>Charis administrators can change the sender name, address and reply-to email here. Only the Resend API key is stored in Vercel. No email identity is hardcoded in the deployment.</p>
     {domainError&&<p role="alert" className="feedback-error">{domainError}</p>}
-    {!domainError&&!connected.length&&<p role="alert" className="notice">No verified domain has been connected to Charis yet. Enter your testing domain below. Unrelated domains in the same Resend account are never selected automatically.</p>}
+    {!domainError&&!connected.length&&<p role="alert" className="notice">No verified domain has been linked to Charis yet. Connect an existing verified Resend domain below. Unrelated domains will never be selected automatically.</p>}
     {!!connected.length&&<CharisResendForm org={org} domains={connected} defaultName={String(current?.from_name||'Charis Microfinance Bank')} defaultLocal={fromEmail.split('@')[0]||'campaigns'} defaultDomain={selected} defaultReply={String(current?.reply_to||'')}/>}
    </section>
 
-   <section className="panel"><h2>Connect your testing domain</h2><p className="muted">Enter the domain you control, such as sescoconcept.name.ng. The system uses the Resend API key already in Vercel. No provider Domain ID or hardcoded sender address is needed.</p><CharisDomainConnectForm org={org}/>
+   <section className="panel"><h2>Connect an existing verified domain</h2><p className="muted">Enter a domain already verified for sending in the Resend account connected to Vercel. Charis will link that domain without creating another registration or requiring new DNS changes. Your sender address remains editable.</p><CharisDomainConnectForm org={org}/>
    {domains.data.filter(d=>d.provider==='resend'&&d.charis_connected===true&&d.verification_status!=='revoked').map(d=><div className="sender-domain" key={d.id}><h3>{d.domain} · {d.verification_status}</h3>
-    {d.verification_status!=='verified'&&<><p className="muted">Add the following DNS records at your DNS hosting provider. Keep existing email records intact.</p><div className="table-scroll"><table className="admin-table"><thead><tr><th>Type</th><th>Host</th><th>Value</th></tr></thead><tbody>{(Array.isArray(d.dns_records)?d.dns_records:[]).map((r:DnsRecord,i:number)=><tr key={i}><td>{r.type}</td><td><code>{r.name}</code></td><td><code>{r.value}</code></td></tr>)}</tbody></table></div></>}
+    {d.verification_status!=='verified'&&<><p className="muted">Charis has an earlier pending record. Recheck its status against the verified domain in your Resend account. No new DNS setup is initiated here.</p></>}
     <div className="actions"><CharisDomainCheckForm org={org} id={d.id}/>{d.verification_status!=='verified'&&<CharisDomainUnlinkForm org={org} id={d.id}/>}</div>
    </div>)}
    </section>

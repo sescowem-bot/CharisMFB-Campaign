@@ -31,15 +31,15 @@ export function CharisDomainConnectForm({org}:{org:string}){
  const [state,action,pending]=useActionState(setupCharisResendDomain,{});
  return <form action={action} className="admin-form">
   <input type="hidden" name="organization_id" value={org}/>
-  <label>Domain you control<input name="domain" required placeholder="sescoconcept.name.ng" autoCapitalize="none" autoComplete="off"/></label>
-  <button className="btn" disabled={pending}>{pending?'Checking Resend…':'Connect sending domain'}</button>
+  <label>Already verified domain<input name="domain" required placeholder="sescoconcept.name.ng" autoCapitalize="none" autoComplete="off"/></label>
+  <button className="btn" disabled={pending}>{pending?'Checking Resend…':'Use existing verified domain'}</button>
   {state.error&&<p className="feedback-error" role="alert">{state.error}</p>}{state.success&&<p className="feedback-success" role="status">{state.success}</p>}
  </form>;
 }
 export function CharisDomainCheckForm({org,id}:{org:string;id:string}){
  const [state,action,pending]=useActionState(checkCharisResendDomain,{});
  return <form action={action}><input type="hidden" name="organization_id" value={org}/><input type="hidden" name="domain_id" value={id}/>
-  <button className="btn secondary" disabled={pending}>{pending?'Checking…':'Check verification'}</button>
+  <button className="btn secondary" disabled={pending}>{pending?'Checking…':'Refresh Resend status'}</button>
   {state.error&&<p className="feedback-error" role="alert">{state.error}</p>}{state.success&&<p className="feedback-success" role="status">{state.success}</p>}
  </form>;
 }
