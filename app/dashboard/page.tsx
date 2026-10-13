@@ -3,7 +3,7 @@ import {redirect} from 'next/navigation';
 import {supabaseServer} from '@/lib/supabase/server';
 import {currentAccount} from '@/lib/auth/account';
 import {WorkspaceShell} from '@/components/workspace-shell';
-import {UsersRound,ListChecks,Mail,ClipboardCheck,Send,UploadCloud,BarChart3,ShieldCheck,ArrowUpRight} from 'lucide-react';
+import {UsersRound,ListChecks,Mail,ClipboardCheck,Send,ShieldCheck,ArrowUpRight} from 'lucide-react';
 
 export const dynamic='force-dynamic';
 export default async function Dashboard(){
@@ -19,30 +19,37 @@ export default async function Dashboard(){
  type RecentCampaign={id:string;name:string;status:string;updated_at:string};
  type DashboardOverview={name:string;status:string;contacts:number;groups:number;campaigns:number;pending:number;approved:number;queued:number;recent:RecentCampaign[]};
  const data=overview as DashboardOverview;
- const company={name:data.name,status:data.status};
- const contacts={error:null,count:data.contacts},groups={error:null,count:data.groups},campaigns={error:null,count:data.campaigns};
- const pending={error:null,count:data.pending},approved={error:null,count:data.approved},queued={error:null,count:data.queued};
- const recent={error:null,data:data.recent||[]};
- const stats=[
-  {label:'Active customers',value:contacts.error?'—':contacts.count??0,icon:UsersRound},
-  {label:'Saved groups',value:groups.error?'—':groups.count??0,icon:ListChecks},
-  {label:'All campaigns',value:campaigns.error?'—':campaigns.count??0,icon:Mail},
-  {label:'Pending approvals',value:pending.error?'—':pending.count??0,icon:ClipboardCheck},
+ const recentCampaigns=Array.isArray(data.recent)?data.recent:[];
+ const scoped=(path:string,extra='')=>`${path}?org=${encodeURIComponent(org)}${extra}`;
+ const number=(value:number)=>Number(value||0).toLocaleString('en-NG');
+ const metrics=[
+  {name:'Active customers',value:data.contacts,detail:'Customers in the address book',icon:UsersRound},
+  {name:'Saved groups',value:data.groups,detail:'Reusable customer audiences',icon:ListChecks},
+  {name:'Campaigns',value:data.campaigns,detail:'Drafts and previous sends',icon:Mail},
+  {name:'Awaiting review',value:data.pending,detail:'Campaigns pending approval',icon:ClipboardCheck}
  ];
- const links=[
-  {icon:Mail,label:'Create campaign',description:'Write your message and choose one person, selected customers or a group.',path:`/dashboard/campaigns?org=${org}&create=1`},
-  {icon:UploadCloud,label:'Import customers',description:'Upload CSV or Excel and organise contacts into a list.',path:`/dashboard/imports?org=${org}`},
-  {icon:ClipboardCheck,label:'Review approvals',description:'Inspect pending messages and record approval decisions.',path:`/dashboard/approvals?org=${org}`},
-  {icon:UsersRound,label:'Manage customers',description:'Find, edit and safely archive customer contact records.',path:`/dashboard/contacts?org=${org}`},
-  {icon:Send,label:'Send & track',description:'Dispatch approved campaigns and review provider responses.',path:`/dashboard/delivery?org=${org}`},
-  {icon:BarChart3,label:'View reports',description:'See campaign performance and delivery outcomes.',path:`/dashboard/reports?org=${org}`}
+ const shortcuts=[
+  {title:'Create a campaign',description:'Write a message for one person, a group or an eligible audience.',path:scoped('/dashboard/campaigns','&create=1'),icon:Mail},
+  {title:'Review approvals',description:'Review submitted messages and record a decision.',path:scoped('/dashboard/approvals'),icon:ShieldCheck},
+  {title:'Manage customers',description:'Search customers, organise groups and update contact records.',path:scoped('/dashboard/contacts'),icon:UsersRound},
+  {title:'Send and track',description:'Queue approved messages and see delivery outcomes.',path:scoped('/dashboard/delivery'),icon:Send}
  ];
- return <WorkspaceShell title="Communication overview" org={org}>
-  {company.status!=='active'&&<div role="alert" className="notice">The Charis workspace is {company.status}. Customer sending remains restricted until an administrator activates it.</div>}
-  <section className="charis-dashboard-hero"><span className="charis-eyebrow">CHARIS CUSTOMER COMMUNICATIONS</span><h2>Confident customer communication, all in one place.</h2><p>Create, review and deliver consistent messages with clear ownership and visibility throughout every campaign.</p><div className="actions"><Link className="btn" href={`/dashboard/campaigns?org=${org}&create=1`}>Create a campaign <ArrowUpRight size={17}/></Link><Link className="btn secondary" href={`/dashboard/approvals?org=${org}`}>View approvals</Link></div></section>
-  <section className="charis-metrics" aria-label="Workspace statistics">{stats.map(({label,value,icon:Icon})=><div key={label}><div className="charis-stat-name"><Icon size={16}/><small>{label}</small></div><strong>{typeof value==='number'?value.toLocaleString('en-NG'):value}</strong></div>)}</section>
-  <div className="charis-dashboard-split"><section className="panel"><div className="workspace-heading"><h2>Campaign activity</h2><Link className="inline-link" href={`/dashboard/campaigns?org=${org}`}>View all <ArrowUpRight size={14}/></Link></div><div className="charis-secondary-metrics"><div><span>Approved, ready to send</span><strong>{approved.error?'—':approved.count??0}</strong></div><div><span>Queued or running</span><strong>{queued.error?'—':queued.count??0}</strong></div></div>{recent.error?<p role="alert" className="feedback-error">Recent campaign activity could not be loaded.</p>:!recent.data?.length?<p className="muted">No campaigns yet. Create your first message to get started.</p>:<div className="charis-recent-list">{recent.data.map(c=><Link key={c.id} href={`/dashboard/campaigns?org=${org}&id=${c.id}`}><span><Mail size={16}/><strong>{c.name}</strong><small>{new Date(c.updated_at).toLocaleDateString('en-NG')}</small></span><span className="status-chip">{c.status.replaceAll('_',' ')}</span></Link>)}</div>}</section>
-  <section className="panel charis-next-steps"><h2>How a campaign moves</h2><p className="muted">A clear, accountable communication process for the bank.</p><ol><li><strong>Choose recipients</strong><small>Select a customer, group or eligible audience.</small></li><li><strong>Write and test</strong><small>Preview your message and email a test to yourself.</small></li><li><strong>Submit for approval</strong><small>An authorised reviewer approves or rejects the message.</small></li><li><strong>Send and monitor</strong><small>Dispatch approved messages and review outcomes.</small></li></ol><div className="charis-guide-card"><ShieldCheck size={17}/> Customer marketing messages respect consent and unsubscribe records.</div></section></div>
-  <div className="workspace-heading" style={{marginTop:32}}><h2>Quick access</h2><span className="muted">Frequently used tools</span></div><section className="charis-shortcuts" aria-label="Quick actions">{links.map(({icon:Icon,label,description,path})=><Link key={label} href={path}><span><Icon size={21}/></span><strong>{label}</strong><small>{description}</small><span className="charis-quick-arrow">Open <ArrowUpRight size={14}/></span></Link>)}</section>
+ return <WorkspaceShell org={org} title="Communication overview" subtitle="Charis Microfinance Bank · Customer communications">
+  <section className="hero-card">
+   <span className="eyebrow">CHARIS COMMUNICATION CENTRE</span>
+   <h2>Reach the right customers, with confidence.</h2>
+   <p>Create your message, select recipients, request approval and track delivery in one simple workspace.</p>
+   <div className="actions"><Link className="btn accent" href={scoped('/dashboard/campaigns','&create=1')}><Mail size={16}/> Create a campaign</Link><Link className="btn secondary" href={scoped('/dashboard/approvals')}><ClipboardCheck size={16}/> View approvals</Link></div>
+  </section>
+  {data.status!=='active'&&<div className="notice" role="alert">Charis is currently {data.status}. Live sending remains disabled until the workspace is active.</div>}
+  {data.pending>0&&<div className="notice" role="status"><strong>{number(data.pending)} campaign{data.pending===1?'':'s'} awaiting approval.</strong> <Link className="inline-link" href={scoped('/dashboard/approvals')}>Review requests</Link></div>}
+  <section className="stat-grid" aria-label="Campaign summary">
+   {metrics.map(({name,value,detail,icon:Icon})=><div className="stat" key={name}><div className="stat-label"><Icon size={17}/>{name}</div><strong className="stat-value">{number(value)}</strong><span className="stat-note">{detail}</span></div>)}
+  </section>
+  <div className="page-head" style={{marginTop:32,marginBottom:8}}><div><h2>Recent campaigns</h2><p>Your latest saved and submitted messages</p></div><Link className="btn ghost sm" href={scoped('/dashboard/campaigns')}>View all <ArrowUpRight size={15}/></Link></div>
+  {recentCampaigns.length ? <div className="table-scroll"><table className="admin-table"><thead><tr><th>Campaign</th><th>Status</th><th>Updated</th></tr></thead><tbody>{recentCampaigns.map(c=><tr key={c.id}><td><Link className="inline-link" href={scoped('/dashboard/campaigns',`&id=${encodeURIComponent(c.id)}`)}>{c.name}</Link></td><td><span className="status-chip">{c.status.replaceAll('_',' ')}</span></td><td>{new Date(c.updated_at).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'})}</td></tr>)}</tbody></table></div>:
+   <section className="empty"><Mail size={28}/><h3>No campaigns yet</h3><p>Create your first customer communication to get started.</p><Link className="btn" href={scoped('/dashboard/campaigns','&create=1')}>Create campaign</Link></section>}
+  <div className="page-head" style={{marginTop:32,marginBottom:8}}><div><h2>Quick actions</h2><p>Everything your team needs to get work done</p></div></div>
+  <div className="tile-grid">{shortcuts.map(({title,description,path,icon:Icon})=><Link className="tile" key={title} href={path}><span className="tile-icon"><Icon size={21}/></span><strong>{title}</strong><small>{description}</small><span className="tile-arrow">Open <ArrowUpRight size={14}/></span></Link>)}</div>
  </WorkspaceShell>;
 }
