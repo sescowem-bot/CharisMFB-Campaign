@@ -1,31 +1,28 @@
 import Link from 'next/link';
 import {redirect} from 'next/navigation';
 import {supabaseServer} from '@/lib/supabase/server';
+import {currentAccount} from '@/lib/auth/account';
 import {WorkspaceShell} from '@/components/workspace-shell';
 import {UsersRound,ListChecks,Mail,ClipboardCheck,Send,UploadCloud,BarChart3,ShieldCheck,ArrowUpRight} from 'lucide-react';
 
 export const dynamic='force-dynamic';
 export default async function Dashboard(){
- const db=await supabaseServer();
- const {data:{user}}=await db.auth.getUser();
- if(!user)redirect('/login');
+ const account=await currentAccount();
+ if(!account)redirect('/login');
  const org=process.env.SINGLE_COMPANY_ORG_ID;
- if(process.env.SINGLE_COMPANY_MODE!=='true'||!org)return <WorkspaceShell title="Workspace configuration"><p role="alert" className="notice">The Charis workspace is not configured. Set SINGLE_COMPANY_MODE and SINGLE_COMPANY_ORG_ID in your deployment environment.</p></WorkspaceShell>;
- const [{data:owner},{data:member},{data:company}]=await Promise.all([
-   db.rpc('is_platform_super_admin'),
-   db.from('organization_members').select('role').eq('organization_id',org).eq('user_id',user.id).maybeSingle(),
-   db.from('organizations').select('name,status').eq('id',org).maybeSingle()
- ]);
- if(!company||(!member&&!owner))return <WorkspaceShell org={org} title="Access pending"><section className="panel"><h2>Staff access is not yet assigned</h2><p>Your Charis account is signed in, but has not been granted this workspace. Ask an administrator to invite you or update your role.</p></section></WorkspaceShell>;
- const [contacts,groups,campaigns,pending,approved,queued,recent]=await Promise.all([
-  db.from('contacts').select('id',{head:true,count:'exact'}).eq('organization_id',org).is('archived_at',null),
-  db.from('contact_lists').select('id',{head:true,count:'exact'}).eq('organization_id',org),
-  db.from('campaign_drafts').select('id',{head:true,count:'exact'}).eq('organization_id',org),
-  db.from('campaign_drafts').select('id',{head:true,count:'exact'}).eq('organization_id',org).eq('status','pending_approval'),
-  db.from('campaign_drafts').select('id',{head:true,count:'exact'}).eq('organization_id',org).eq('status','approved'),
-  db.from('campaign_runs').select('id',{head:true,count:'exact'}).eq('organization_id',org).in('status',['queued','running']),
-  db.from('campaign_drafts').select('id,name,status,updated_at').eq('organization_id',org).order('updated_at',{ascending:false}).limit(5)
- ]);
+ if(process.env.SINGLE_COMPANY_MODE!=='true'||!org)return <WorkspaceShell title="Workspace configuration"><p role="alert" className="notice">The Charis workspace is not configured. Check your deployment environment.</p></WorkspaceShell>;
+ // One authorised database request provides all dashboard counts and recent activity.
+ const db=await supabaseServer();
+ const {data:overview,error:dashboardError}=await db.rpc('charis_dashboard_overview',{p_org:org});
+ if(dashboardError)return <WorkspaceShell org={org} title="Communication overview"><section className="panel"><h2>Dashboard metrics unavailable</h2><p role="alert">Charis cannot load dashboard metrics yet. Confirm that SQL migration 019 is installed. Other modules remain accessible from the menu.</p></section></WorkspaceShell>;
+ if(!overview)return <WorkspaceShell org={org} title="Access pending"><section className="panel"><h2>Staff access is not yet assigned</h2><p>Your Charis account is signed in, but has not been granted this workspace. Ask an administrator to invite you or update your role.</p></section></WorkspaceShell>;
+ type RecentCampaign={id:string;name:string;status:string;updated_at:string};
+ type DashboardOverview={name:string;status:string;contacts:number;groups:number;campaigns:number;pending:number;approved:number;queued:number;recent:RecentCampaign[]};
+ const data=overview as DashboardOverview;
+ const company={name:data.name,status:data.status};
+ const contacts={error:null,count:data.contacts},groups={error:null,count:data.groups},campaigns={error:null,count:data.campaigns};
+ const pending={error:null,count:data.pending},approved={error:null,count:data.approved},queued={error:null,count:data.queued};
+ const recent={error:null,data:data.recent||[]};
  const stats=[
   {label:'Active customers',value:contacts.error?'—':contacts.count??0,icon:UsersRound},
   {label:'Saved groups',value:groups.error?'—':groups.count??0,icon:ListChecks},

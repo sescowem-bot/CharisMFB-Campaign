@@ -1,7 +1,6 @@
 'use client';
 import {useState,type FormEvent} from 'react';
 import Link from 'next/link';
-import {useRouter} from 'next/navigation';
 import {Eye,EyeOff,LockKeyhole} from 'lucide-react';
 import {supabaseBrowser} from '@/lib/supabase/browser';
 
@@ -12,7 +11,6 @@ export function AuthForm({mode}:{mode:'login'|'register'}) {
  const [showPassword,setShowPassword]=useState(false);
  const [busy,setBusy]=useState(false);
  const [message,setMessage]=useState('');
- const router=useRouter();
  async function submit(e:FormEvent<HTMLFormElement>){
   e.preventDefault();setBusy(true);setMessage('');
   try{
@@ -24,7 +22,8 @@ export function AuthForm({mode}:{mode:'login'|'register'}) {
    } else {
     const {error}=await client.auth.signInWithPassword({email,password});
     if(error)throw error;
-    router.replace('/dashboard');router.refresh();
+    // A full navigation uses the newly written Supabase SSR cookies immediately.
+    window.location.replace('/dashboard');
    }
   }catch(err){setMessage(err instanceof Error?err.message:'Unable to sign in. Please retry.');}
   finally{setBusy(false);}

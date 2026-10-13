@@ -2,10 +2,12 @@ import 'server-only';
 import {cache} from 'react';
 import {cookies} from 'next/headers';
 import {supabaseServer} from '@/lib/supabase/server';
+import {currentVerifiedUser} from '@/lib/auth/current-user';
 export const currentAccount=cache(async()=>{
  if(!process.env.NEXT_PUBLIC_SUPABASE_URL||!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)return null;
  try{
- const db=await supabaseServer();const {data:{user},error}=await db.auth.getUser();if(error||!user)return null;
+ const user=await currentVerifiedUser();if(!user)return null;
+ const db=await supabaseServer();
  const configured=process.env.SINGLE_COMPANY_MODE==='true'?process.env.SINGLE_COMPANY_ORG_ID:undefined;
  // Single-bank deployments never load every legacy platform company on each request.
  if(configured){

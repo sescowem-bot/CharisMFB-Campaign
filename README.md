@@ -36,3 +36,11 @@ The official supplied bank logo is bundled as `public/charis-official-logo.png`.
 Source syntax and focused regressions are tested. Production build, provider integration, database migrations, background dispatch and end-to-end bank user acceptance must still be verified; see `docs/PREMIUM_RELEASE_CHECKLIST.md`. SMS is not yet implemented.
 
 The original schema and historical migration code are retained to avoid damaging existing Charis account, campaign and audit history. Legacy public billing, subscription signup and generic marketing routes have been removed from the app router. Selected historic platform admin routes remain blocked in single-company mode pending a separate compatibility review.
+
+## October 13, 2026 — Sign-in, dashboard and permissions
+
+Run **`supabase/migrations/019_charis_dashboard_and_campaign_lead.sql`** in an existing Charis Supabase project after migration 018. This migration adds a single-query dashboard summary and the **Campaign Lead** role (create, independently approve, dispatch). Self-approval remains blocked.
+
+The updated code redirects an already authenticated user away from `/login`, avoids redundant Auth requests on public middleware routes, and caches bank logo/favicon metadata for a short period. See `docs/CHARIS_LOGIN_SPEED_AND_CAMPAIGN_LEAD.md` for rollout and acceptance steps.
+
+Do not rerun the original fresh-install SQL on a live Charis database. The historical master installer is retained for reference and does not replace the incremental migration workflow.

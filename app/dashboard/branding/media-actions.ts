@@ -1,6 +1,6 @@
 'use server';
 import {randomUUID} from 'node:crypto';
-import {revalidatePath} from 'next/cache';
+import {revalidatePath,revalidateTag} from 'next/cache';
 import {z} from 'zod';
 import {supabaseServer} from '@/lib/supabase/server';
 import {emailServiceDb} from '@/lib/email/server';
@@ -60,6 +60,7 @@ export async function uploadCharisMedia(_:MediaResult,form:FormData):Promise<Med
    if(brand?.logo_path!==publicUrl&&brand?.favicon_url!==publicUrl){await service.storage.from(bucket).remove([path]);await service.from('charis_media_assets').delete().eq('object_path',path).eq('organization_id',org);}
    throw e;
   }
+  revalidateTag('charis-brand-assets');
   revalidatePath('/dashboard/branding');revalidatePath('/dashboard');revalidatePath('/');
   return {success:`${kind==='media'?'Media image':kind==='favicon'?'Browser icon':'Logo'} uploaded successfully.`};
  }catch(e){return {error:e instanceof Error?e.message:'Upload failed.'};}

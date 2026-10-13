@@ -15,9 +15,9 @@ test('single-bank navigation exposes high-value workflows, no billing or company
 });
 test('dashboard uses actual database counts and no illustrative campaign metrics',()=>{
  const s=read('app/dashboard/page.tsx');
- assert.match(s,/campaign_drafts/);
- assert.match(s,/pending_approval/);
- assert.match(s,/campaign_runs/);
+ assert.match(s,/charis_dashboard_overview/);
+ const migration=read('supabase/migrations/019_charis_dashboard_and_campaign_lead.sql');
+ for(const source of ['campaign_drafts','pending_approval','campaign_runs'])assert.ok(migration.includes(source));
  assert.doesNotMatch(s,/Math\.random\(/);
 });
 test('Resend is never consulted for routine sender page views',()=>{
