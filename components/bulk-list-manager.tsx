@@ -8,7 +8,7 @@ export function BulkListManager({org,lists,contacts}:{org:string;lists:Group[];c
  const [state,action,pending]=useActionState(bulkListAction,{});
  const matches=useMemo(()=>contacts.filter(c=>c.name.toLowerCase().includes(search.toLowerCase())).slice(0,200),[contacts,search]);
  const all=matches.length>0&&matches.every(c=>chosen.includes(c.id));
- return <section className="panel"><h2>Manage several group members</h2><p className="muted">Select one or more customers and add or remove them together. This does not change anyone's marketing consent.</p>
+ return <section className="panel"><h2>Manage several group members</h2><p className="muted">Select one or more customers and add or remove them together. This does not change anyone&apos;s marketing consent.</p>
   <input type="search" aria-label="Find customers to select" placeholder="Search loaded customers" value={search} onChange={e=>setSearch(e.target.value)}/>
   <div className="charis-bulk-bar"><strong>{chosen.length} selected</strong><button className="btn secondary" type="button" onClick={()=>setChosen(all?chosen.filter(id=>!matches.some(c=>c.id===id)):[...new Set([...chosen,...matches.map(c=>c.id)])])} disabled={!matches.length}>{all?'Deselect shown':'Select all shown'}</button><button className="btn secondary" type="button" onClick={()=>setChosen([])}>Clear</button></div>
   <div className="charis-checklist">{matches.map(c=><label key={c.id}><input type="checkbox" checked={chosen.includes(c.id)} onChange={e=>setChosen(old=>e.target.checked?[...old,c.id]:old.filter(id=>id!==c.id))}/><span>{c.name}</span></label>)}{!matches.length&&<p className="muted">No matching customers.</p>}</div>
