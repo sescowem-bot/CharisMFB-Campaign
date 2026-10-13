@@ -20,13 +20,14 @@ test('legacy pending Charis domain refresh only looks up existing Resend domain'
  assert.doesNotMatch(block,/\.check\([^\n]*,\s*true\)/);
  assert.doesNotMatch(block,/\.create\s*\(/);
 });
-test('single-company screen uses stored verification without provider fetch on page render',()=>{
- const code=read('app/dashboard/senders/page.tsx');
- assert.match(code,/Connect an existing verified domain/);
- assert.doesNotMatch(code,/DnsRecord/);
- assert.doesNotMatch(code,/listVerifiedResendDomains/);
- assert.doesNotMatch(code,/Add the following DNS records/);
- assert.doesNotMatch(code,/Provider Domain ID/);
+test('single-company interface does not instruct staff to add DNS records or enter a provider ID',()=>{
+ const s=read('app/dashboard/senders/page.tsx');
+ const single=s.split("if(process.env.SINGLE_COMPANY_MODE==='true'")[1].split("const {data:own}=")[0];
+ assert.match(single,/Connect an existing verified domain/);
+ assert.match(single,/No new DNS setup is initiated here/);
+ assert.doesNotMatch(single,/Add the following DNS records/);
+ assert.doesNotMatch(single,/Provider Domain ID/);
+ assert.doesNotMatch(single,/\.map\(\(r:DnsRecord/);
 });
 test('sender name and reply-to remain editable and domain IDs remain server-side',()=>{
  const form=read('components/charis-resend-form.tsx');

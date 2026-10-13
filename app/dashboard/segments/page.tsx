@@ -1,4 +1,6 @@
 import {redirect} from 'next/navigation';
+import {Filter} from 'lucide-react';
+import {Callout,EmptyState} from '@/components/ui';
 import {contactsAccess} from '@/lib/contacts/access';
 import {WorkspaceShell} from '@/components/workspace-shell';
 import {SegmentForm} from '@/components/contact-forms';
@@ -19,5 +21,9 @@ export default async function Segments({searchParams}:{searchParams:Promise<{org
   const {count,error:countError}=await query;
   return {...segment,count:countError?null:count};
  }));
- return <WorkspaceShell org={org} title="Dynamic segments"><p className="muted">Create automatically updating audiences using allowlisted contact filters. Multiple conditions are combined with AND.</p><div className="table-scroll"><table className="admin-table"><thead><tr><th>Segment</th><th>Conditions</th><th>Matches now</th></tr></thead><tbody>{summaries.map(s=><tr key={s.id}><td>{s.name}<p className="muted">{s.description}</p></td><td>{Object.entries(s.rules as Record<string,unknown>).map(([k,v])=>`${k.replaceAll('_',' ')}: ${String(v)}`).join(' · ')}</td><td>{s.count===null?'Unavailable':s.count}</td></tr>)}</tbody></table></div>{error&&<p role="alert">Unable to load segments.</p>}{!segments?.length&&<p className="muted">No segments yet. Add an audience rule below.</p>}<SegmentForm org={org}/></WorkspaceShell>;
+ return <WorkspaceShell org={org} title="Smart segments" subtitle="Audiences that update automatically from simple rules. Multiple conditions are combined with AND.">
+  {error&&<Callout tone="danger" alert>Unable to load segments.</Callout>}
+  {summaries.length?<div className="table-scroll"><table className="admin-table"><thead><tr><th>Segment</th><th>Rules</th><th>Matches now</th></tr></thead><tbody>{summaries.map(s=><tr key={s.id}><td><strong>{s.name}</strong><p className="muted">{s.description}</p></td><td>{Object.entries(s.rules as Record<string,unknown>).map(([k,v])=><span key={k} className="badge badge-brand" style={{marginRight:6}}>{`${k.replaceAll('_',' ')}: ${String(v)}`}</span>)}</td><td><strong>{s.count===null?'Unavailable':s.count.toLocaleString()}</strong></td></tr>)}</tbody></table></div>:!error&&<EmptyState icon={Filter} title="No segments yet" text="Add a rule below to create your first smart segment."/>}
+  <SegmentForm org={org}/>
+ </WorkspaceShell>;
 }

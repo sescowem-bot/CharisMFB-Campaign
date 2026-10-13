@@ -22,11 +22,11 @@ test('import-to-group reuses guarded idempotent importer without altering consen
  assert.match(route,/charis_import_batch_to_list/);
  assert.match(route,/contactsAccess/);
 });
-test('single company hides day-to-day company switching without removing protected routes',()=>{
+test('single company shell hides company switching without removing protected routes',()=>{
  const shell=read('components/workspace-shell.tsx');
- const navigation=read('components/charis-navigation.tsx');
- assert.match(shell,/CharisNavigation/);
- assert.doesNotMatch(navigation,/Switch company|Pricing|Billing/);
+ assert.match(shell,/SINGLE_COMPANY_MODE/);
+ assert.match(shell,/Charis navigation/);
+ assert.doesNotMatch(shell,/All workspaces|switch/i);
  assert.match(read('app/dashboard/page.tsx'),/SINGLE_COMPANY_ORG_ID/);
 });
 test('campaign composer includes individual, group and all email recipients',()=>{

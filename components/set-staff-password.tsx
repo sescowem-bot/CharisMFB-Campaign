@@ -34,9 +34,7 @@ export function SetStaffPassword(){
    router.replace('/dashboard');router.refresh();
   }catch(err){setError(err instanceof Error?err.message:'Unable to update password.');}finally{setBusy(false);}
  }
- return <section className="panel" style={{maxWidth:520,margin:'0 auto'}}><h1>Charis Campaign Centre</h1><h2>Set your staff password</h2>
- <p className="muted">Confirm your staff invitation and choose a password to finish setting up your Charis account.</p>
- <form onSubmit={submit} className="admin-form"><label>New password<input type="password" autoComplete="new-password" required minLength={12} value={password} onChange={e=>setPassword(e.target.value)}/></label>
+ return <section><form onSubmit={submit} className="auth-form" style={{marginTop:10}}><label>New password<input type="password" autoComplete="new-password" required minLength={12} value={password} onChange={e=>setPassword(e.target.value)}/></label>
  <label>Confirm password<input type="password" autoComplete="new-password" required minLength={12} value={confirm} onChange={e=>setConfirm(e.target.value)}/></label>
- <button className="btn" type="submit" disabled={busy||!ready}>{busy?'Saving password…':ready?'Complete staff setup':'Verifying invitation…'}</button>{error&&<p role="alert" className="feedback-error">{error}</p>}</form></section>;
+ <p className="faint" style={{fontSize:12.5,margin:0}}>Use at least 12 characters. A passphrase of several words works well.</p><button className="btn" type="submit" disabled={busy||!ready}>{busy?'Saving password…':ready?'Complete staff setup':'Verifying invitation…'}</button>{error&&<p role="alert" className="feedback-error">{error}</p>}</form></section>;
 }

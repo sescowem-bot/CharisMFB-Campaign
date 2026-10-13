@@ -28,6 +28,6 @@ export async function saveFooter(_:Result,form:FormData):Promise<Result>{
   const design={company_name:String(form.get('company_name')||''),address:String(form.get('address')||''),contact_email:String(form.get('contact_email')||''),website_url:String(form.get('website_url')||''),disclaimer:String(form.get('disclaimer')||'')};
   if(Object.values(design).some(v=>v.length>1200))return {error:'Footer content too long'};
   const {error}=await db.rpc('save_email_footer',{p_id:String(form.get('footer_id')||'')||null,p_org:org,p_name:String(form.get('name')||''),p_design:design,p_default:form.get('is_default')==='on'});
-  if(error)return {error:error.message};revalidatePath('/dashboard/footers');return {success:'Footer saved.'};
+  if(error)return {error:error.message};revalidatePath('/dashboard/branding');return {success:'Footer saved.'};
  }catch{return {error:'Invalid footer details'};}
 }

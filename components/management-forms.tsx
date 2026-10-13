@@ -6,7 +6,6 @@ type Member={id:string;email:string;role:string};
 const roleOptions=[
  {value:'company_admin',label:'Company administrator',description:'Manage staff, settings and company campaigns.'},
  {value:'manager',label:'Campaign manager',description:'Manage contacts and campaign operations.'},
- {value:'campaign_lead',label:'Campaign lead',description:'Create, approve campaigns made by another staff member, and send approved campaigns. No team administration.'},
  {value:'designer',label:'Campaign creator',description:'Design and edit campaigns.'},
  {value:'approver',label:'Campaign approver',description:'Review campaigns independently.'},
  {value:'analyst',label:'Reporting analyst',description:'View reporting and campaign activity.'},
