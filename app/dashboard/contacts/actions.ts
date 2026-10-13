@@ -35,7 +35,7 @@ export async function saveContact(_:FormResult,form:FormData):Promise<FormResult
  const parsed=contactSchema.safeParse(submitted);
  if(!parsed.success)return {error:parsed.error.issues[0]?.message||'Invalid contact'};
  const data=parsed.data;
- let details:Record<string,string>={};
+ const details:Record<string,string>={};
  try{
   const value=JSON.parse(String(form.get('custom_details')||'{}')) as unknown;
   if(!value||typeof value!=='object'||Array.isArray(value))return {error:'Extra customer fields are invalid.'};

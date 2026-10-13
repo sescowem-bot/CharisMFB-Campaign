@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type {ReactNode} from 'react';
-import {BarChart3,ClipboardCheck,FileText,FolderKanban,LayoutDashboard,Mail,Menu,Palette,PenSquare,ScrollText,Send,Settings2,ShieldCheck,UserCog,Users,Upload,Filter,ArrowRight} from 'lucide-react';
+import {BarChart3,ClipboardCheck,FileText,FolderKanban,LayoutDashboard,Mail,Menu,Palette,PenSquare,ScrollText,Send,Settings2,UserCog,Users,Upload,Filter,ArrowRight} from 'lucide-react';
 import {currentAccount} from '@/lib/auth/account';
 import {currentVerifiedUser} from '@/lib/auth/current-user';
 import {charisBrandAssets} from '@/lib/charis-brand-assets';
