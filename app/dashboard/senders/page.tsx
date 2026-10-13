@@ -6,6 +6,7 @@ import {WorkspaceShell} from '@/components/workspace-shell';
 import {SenderForm} from '@/components/sender-form';
 import {CharisResendForm,DisableCharisSender,CharisDomainConnectForm,CharisDomainCheckForm,CharisDomainUnlinkForm,RemoveUnusedCharisSender} from '@/components/charis-resend-form';
 import {listVerifiedResendDomains} from '@/lib/email/charis-resend';
+import type {DnsRecord} from '@/lib/email/providers';
 export default async function Senders({searchParams}:{searchParams:Promise<{org?:string}>}) {
  const {org}=await searchParams;if(!org||!z.string().uuid().safeParse(org).success)redirect('/dashboard');
  const db=await supabaseServer();const {data:{user}}=await db.auth.getUser();if(!user)redirect('/login');

@@ -23,7 +23,7 @@ test('Resend sync uses a Vercel-held API key and insists on provider verificatio
  assert.match(code,/status\.verified/);
  assert.match(code,/senderAccess\(org\)/);
  assert.doesNotMatch(code,/provider_domain_id.*form\.get/);
- const email=src('lib/email/server.ts');assert.match(email,/charisProviderAccount/);
+ const email=src('lib/email/server.ts');assert.match(email,/row\.charis_connected===true/);assert.match(email,/state\.verified&&owned/);
 });
 test('the final Send button is easy to find after approval',()=>{
  assert.match(src('components/quick-send-form.tsx'),/Send approved campaign/);

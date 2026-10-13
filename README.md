@@ -1,30 +1,23 @@
-# Charis Campaign Centre
+# Charis Microfinance Bank — Campaign Centre
 
-**A dedicated internal customer communication platform for Charis Microfinance Bank.**
+Single-company customer communications platform built with Next.js 15, Supabase and supported email providers. The source includes role-based staff access, contact management, consent controls, campaigns, independent review, sender settings, reporting and delivery audit. SMS dispatch is **not yet implemented**.
 
-This application is for one bank. The portal supports staff sign-in, individual and group recipient selection, contact imports, controlled email campaigns, sender management, reusable templates, delivery tracking, reports, role management and audit logs. The current version **does not** send SMS or WhatsApp messages.
+## Safe setup
 
-## Setup
+1. Use Node.js 24, run `npm ci`, `npm run typecheck`, `npm test`, then `npm run build`.
+2. Create a dedicated Charis Supabase project. For a new empty database follow `MD/CHARIS_NEW_SUPABASE_SETUP.md`. Existing databases use only unapplied numbered migrations in `supabase/migrations/`; do not reinstall the master SQL.
+3. Configure `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_APP_URL`, `SINGLE_COMPANY_MODE=true`, `SINGLE_COMPANY_ORG_ID`, and `RESEND_API_KEY` in Vercel. Keep server keys private.
+4. Keep `EMAIL_DELIVERY_ENABLED=false` during controlled testing. Verify approved sender and recipient consent, staff permissions, the delivery worker, and error handling before enabling real sending.
+5. Only authorised staff should handle customer data. Do not upload production customer spreadsheets to GitHub or put private customer records in public asset storage.
 
-1. Run Node.js **24.x** and `npm ci`.
-2. Create a dedicated Charis Supabase project.
-3. For a **new empty database**, execute `supabase/Charis_Complete_Fresh_Install.sql` **once**, then bootstrap the first verified bank administrator using `supabase/Charis_First_Admin_Bootstrap.sql`.
-4. For an **already installed** Charis database, use the separate `Charis_Brand_Correction_Existing_Supabase.sql` supplied with the branding release. Never rerun the fresh-install SQL on an existing database.
-5. Add Vercel environment variables from `.env.charis.example`, particularly `SINGLE_COMPANY_MODE=true` and the UUID of the `charis-mfb` organisation as `SINGLE_COMPANY_ORG_ID`.
-6. Optionally set `CHARIS_LOGO_URL` to a verified bank-provided HTTPS logo URL. Otherwise a clean monogram appears.
-7. Run `npm run typecheck`, `npm test`, and `npm run build`. Verify contacts, campaign workflows, sender identity, permissions and delivery using approved internal test addresses.
+## Test workflow
 
-## Staff navigation
+Sign in → import or add approved test contacts → create a draft → choose the recipient(s) → save → send test to your verified account → submit for review → approve by a separate authorised staff member → queue/send → check delivery report.
 
-Dashboard · Create campaign · Campaigns · Customers · Import contacts · Saved groups · Delivery · Reports · Templates · Branding · Email footers · Senders · Team access.
+The Resend API key alone does not verify a new sending domain. The Charis sender interface should reuse an already verified domain in the same Resend account, and never create a duplicate domain automatically. Do not use another business's domain as Charis's customer-facing sender.
 
-Subscription sales, billing and public self-registration are disabled in dedicated Charis mode. Generic multi-tenant database structures remain for compatibility with the existing delivery/role functions, but bank users cannot switch organisations in the supported interface.
+## Project directories
 
-## Deployment and security
+`app/`: UI, routes and server actions. `components/`: UI elements. `lib/`: auth, campaign, email and database helpers. `supabase/migrations/`: all historical migrations (retain for audit). `tests/`: regression tests. `scripts/`: worker, backup and release checks. `MD/`: only current instructions and acceptance documentation.
 
-- Set `EMAIL_DELIVERY_ENABLED=false` until a verified sender, worker schedule, approval policy, authorised contacts and delivery callback handling have been tested.
-- Do not commit Vercel secrets, Supabase service credentials or provider API keys.
-- The bank must approve actual branding, privacy/legal notices, customer communication consent and staff access arrangements before production rollout.
-- To make registration invitation-only, disable public sign-ups in the Supabase Authentication settings; hiding registration pages alone is insufficient.
-
-See [Charis branding release notes](MD/CHARIS_BRANDING_RELEASE.md) and the archived engineering documentation in `MD/`.
+See `MD/LEAN_RELEASE_REVIEW.md` for the file-cleanup scope and performance next steps. This ZIP reduces documentation clutter; it does not claim to replace performance profiling or a full Vercel production build.
