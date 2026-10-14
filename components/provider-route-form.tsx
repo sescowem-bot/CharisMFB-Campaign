@@ -24,7 +24,7 @@ export function ProviderRouteForm({provider,senders,route}:{provider:'resend'|'b
 export function MailjetSenderConnect(){
  const [state,submit,pending]=useActionState(connectVerifiedMailjetSender,{});
  return <form action={submit} className="admin-form"><h3>Connect verified Mailjet sender</h3>
-  <p className="muted">Use an address already marked Active in Mailjet. This checks that address through Mailjet's API.</p>
+  <p className="muted">Use an address already marked Active in Mailjet. This checks that address through Mailjet&apos;s API.</p>
   <label>Email address<input name="email" type="email" required placeholder="communications@yourdomain.com"/></label>
   <label>Display name<input name="name" required defaultValue="Charis Microfinance Bank"/></label>
   <label>Reply-to address<input name="reply_to" type="email" placeholder="Optional"/></label>
