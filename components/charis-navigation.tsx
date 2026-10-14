@@ -7,7 +7,7 @@ import Image from 'next/image';
 import {
   LayoutDashboard, UsersRound, UploadCloud, ListChecks, MailPlus,
   Mail, ClipboardCheck, Send, BarChart3, Palette, Images, Filter,
-  ContactRound, ShieldCheck, Menu, X, Settings2, FileText
+  ContactRound, ShieldCheck, Menu, X, Settings2, FileText, MailX
 } from 'lucide-react';
 import {SignOutForm} from '@/components/signout-form';
 
@@ -23,7 +23,8 @@ export function CharisNavigation({org,admin,logo}:{org?:string;admin:boolean;log
       {label:'Customers',href:'/dashboard/contacts',icon:UsersRound},
       {label:'Import customers',href:'/dashboard/imports',icon:UploadCloud},
       {label:'Saved groups',href:'/dashboard/lists',icon:ListChecks},
-      {label:'Audience filters',href:'/dashboard/segments',icon:Filter}
+      {label:'Audience filters',href:'/dashboard/segments',icon:Filter},
+      {label:'Communication preferences',href:'/dashboard/preferences',icon:MailX}
     ]},
     {name:'CAMPAIGNS',items:[
       {label:'Create campaign',href:'/dashboard/campaigns',icon:MailPlus},
