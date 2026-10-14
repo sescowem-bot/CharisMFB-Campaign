@@ -3,7 +3,7 @@ import {redirect} from 'next/navigation';
 import {supabaseServer} from '@/lib/supabase/server';
 import {currentAccount} from '@/lib/auth/account';
 import {WorkspaceShell} from '@/components/workspace-shell';
-import {UsersRound,ListChecks,Mail,ClipboardCheck,Send,ShieldCheck,ArrowUpRight} from 'lucide-react';
+import {UsersRound,ListChecks,Mail,ClipboardCheck,Send,ShieldCheck,ArrowUpRight,Bell} from 'lucide-react';
 
 export const dynamic='force-dynamic';
 export default async function Dashboard(){
@@ -32,7 +32,8 @@ export default async function Dashboard(){
   {title:'Create a campaign',description:'Write a message for one person, a group or an eligible audience.',path:scoped('/dashboard/campaigns','&create=1'),icon:Mail},
   {title:'Review approvals',description:'Review submitted messages and record a decision.',path:scoped('/dashboard/approvals'),icon:ShieldCheck},
   {title:'Manage customers',description:'Search customers, organise groups and update contact records.',path:scoped('/dashboard/contacts'),icon:UsersRound},
-  {title:'Send and track',description:'Queue approved messages and see delivery outcomes.',path:scoped('/dashboard/delivery'),icon:Send}
+  {title:'Send and track',description:'Queue approved messages and see delivery outcomes.',path:scoped('/dashboard/delivery'),icon:Send},
+  {title:'My reminders',description:'See follow-ups, upcoming tasks and department responsibilities.',path:scoped('/dashboard/reminders'),icon:Bell}
  ];
  return <WorkspaceShell org={org} title="Communication overview" subtitle="Charis Microfinance Bank · Customer communications">
   <section className="hero-card">

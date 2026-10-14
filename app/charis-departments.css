@@ -1,0 +1,22 @@
+/* Department workspaces, internal reminders and template visual tools. */
+.charis-dept-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:16px;margin:18px 0 26px}
+.charis-dept-card,.charis-reminder-row,.charis-upload-card{border:1px solid #e5e1f2;background:#fff;border-radius:18px;box-shadow:0 6px 22px rgba(32,20,69,.035);padding:22px}
+.charis-dept-card h2{font-size:1.1rem;line-height:1.4;margin:8px 0 5px;color:#241451}
+.charis-dept-card p{font-size:.92rem;color:#66627c;line-height:1.6}
+.charis-dept-role{display:inline-flex;padding:6px 10px;background:#f1ecff;color:#40239a;font-size:.78rem;border-radius:25px;font-weight:700}
+.charis-dept-eyebrow{text-transform:uppercase;font-size:.65rem;letter-spacing:.12em;font-weight:800;color:#7f759e}
+.charis-dept-card details{margin-top:14px;border-top:1px solid #e7e3f1;padding-top:12px;font-size:.86rem}
+.charis-member-list{max-height:160px;overflow-y:auto}
+.charis-reminder-list{display:flex;flex-direction:column;gap:12px;margin:22px 0}
+.charis-reminder-row{display:flex;gap:20px;justify-content:space-between;align-items:center}
+.charis-reminder-row h2{color:#241451;font-size:1.08rem;margin:10px 0 5px}
+.charis-reminder-row p{color:#625a7a;margin:4px 0 8px}
+.charis-reminder-row small{color:#67617e}
+.charis-reminder-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;color:#77718a;font-size:.74rem}
+.charis-priority{display:inline-flex;padding:5px 9px;border-radius:20px;background:#eff8f3;color:#176044;font-weight:700;text-transform:capitalize}
+.charis-priority.high{background:#fff1ef;color:#ad3d2e}.charis-priority.low{background:#f0eff6;color:#625c7a}
+.charis-inline-reminder{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.charis-upload-card{padding:18px;margin:0 0 14px}.charis-upload-card h3{color:#2a1670;margin-top:0}
+.charis-upload-card .admin-form{border:none;padding:0;box-shadow:none}
+.charis-shape-preview{font-weight:700;text-align:center}
+@media(max-width:740px){.charis-reminder-row{flex-direction:column;align-items:stretch}.charis-inline-reminder{justify-content:flex-start}}

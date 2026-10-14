@@ -5,6 +5,7 @@ import {supabaseServer} from '@/lib/supabase/server';
 import {sendSavedCampaignTest} from '@/lib/campaigns/test-send';
 import {emailServiceDb,refreshDomain} from '@/lib/email/server';
 import {campaignDesign,renderCampaign} from '@/lib/campaigns/render';
+import {assertApprovedEmailImages} from '@/lib/campaign/approved-media';
 export type CampaignResult={error?:string;success?:string;id?:string};
 export async function campaignAction(_:CampaignResult,form:FormData):Promise<CampaignResult> {
  try {
@@ -15,6 +16,7 @@ export async function campaignAction(_:CampaignResult,form:FormData):Promise<Cam
   if(action==='save') {
    const {data:allowed}=await db.rpc('can_edit_campaigns',{p_org:org});if(!allowed)throw new Error('Campaign editing access required.');
    const design=campaignDesign.parse(JSON.parse(String(form.get('design'))));
+   await assertApprovedEmailImages(org,design);
    const subject=z.string().trim().min(1).max(200).refine(s=>!/[\r\n]/.test(s)).parse(form.get('subject'));
    renderCampaign({design,subject,company:'Your company',address:'Preview address'});
    const type=z.enum(['all','list','segment','selected']).parse(form.get('audience_type'));
@@ -45,7 +47,9 @@ export async function campaignAction(_:CampaignResult,form:FormData):Promise<Cam
   // Validate the stored design on review too; direct database drafts cannot bypass render validation.
   if(transition==='submit'||transition==='approve'||transition==='owner_approve') {
    const {data:row,error}=await db.from('campaign_drafts').select('design,subject').eq('id',id).eq('organization_id',org).single();if(error||!row)throw new Error('Campaign unavailable.');
-   renderCampaign({design:row.design,subject:row.subject,company:'Your company',address:'Preview address'});
+   const checked=campaignDesign.parse(row.design);
+   await assertApprovedEmailImages(org,checked);
+   renderCampaign({design:checked,subject:row.subject,company:'Your company',address:'Preview address'});
   }
   const {error}=await db.rpc('campaign_transition',{p_org:org,p_id:id,p_expected:revision,p_action:transition,p_note:z.string().max(1000).parse(form.get('review_note')||'')});if(error)throw new Error(error.message);
   revalidatePath('/dashboard/campaigns');return {success:transition==='approve'?'Campaign approved. Open Delivery queue to prepare dispatch.':'Campaign status updated.'};

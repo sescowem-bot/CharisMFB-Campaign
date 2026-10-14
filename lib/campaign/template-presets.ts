@@ -13,3 +13,10 @@ export const charisTemplatePresets:TemplatePreset[]=[
  {"id": "holiday", "name": "Seasonal greetings", "category": "general", "description": "Editable Charis starter design: seasonal greetings.", "subject": "Warm wishes from Charis", "design": {"version": "1", "style": "classic", "blocks": [{"type": "heading", "text": "Best wishes from Charis"}, {"type": "paragraph", "text": "Hello {{first_name}},"}, {"type": "paragraph", "text": "We appreciate the trust you place in Charis Microfinance Bank."}, {"type": "divider", "text": ""}, {"type": "paragraph", "text": "Thank you for choosing us. We wish you a safe and pleasant season."}]}},
  {"id": "reminder", "name": "Document or account service reminder", "category": "announcement", "description": "Editable Charis starter design: document or account service reminder.", "subject": "A reminder from Charis", "design": {"version": "1", "style": "minimal", "blocks": [{"type": "heading", "text": "An update about your banking request"}, {"type": "paragraph", "text": "Hello {{first_name}},"}, {"type": "paragraph", "text": "We would like to remind you of a pending banking service request."}, {"type": "divider", "text": ""}, {"type": "paragraph", "text": "For your privacy, do not reply to this email with PINs, passwords, OTPs or complete account details."}]}},
 ];
+
+// Each editable preset begins with an email-compatible branded accent.
+const presetAccentColors=['#40239A','#2A1670','#375BA8','#0F7B4A','#563B99','#294B74','#40239A','#2A1670','#6A3FA3','#375BA8'];
+for(const [i,preset] of charisTemplatePresets.entries()){
+ preset.design.blocks.unshift({type:'shape',shape:i%3===0?'banner':i%3===1?'pill':'panel',
+  color:presetAccentColors[i],text:i%2===0?'CHARIS CUSTOMER COMMUNICATION':'A MESSAGE FROM CHARIS'});
+}

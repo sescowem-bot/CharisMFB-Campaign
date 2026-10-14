@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type {ReactNode} from 'react';
-import {BarChart3,ClipboardCheck,FileText,FolderKanban,LayoutDashboard,Mail,Menu,Palette,PenSquare,ScrollText,Send,Settings2,UserCog,Users,Upload,Filter,ArrowRight} from 'lucide-react';
+import {BarChart3,ClipboardCheck,FileText,FolderKanban,LayoutDashboard,Mail,Menu,Palette,PenSquare,ScrollText,Send,Settings2,UserCog,Users,Upload,Filter,ArrowRight,Building2,Bell} from 'lucide-react';
 import {currentAccount} from '@/lib/auth/account';
 import {currentVerifiedUser} from '@/lib/auth/current-user';
 import {charisBrandAssets} from '@/lib/charis-brand-assets';
@@ -40,6 +40,9 @@ export async function WorkspaceShell({title,subtitle,actions,org,admin:adminRequ
         <NavLink href={scoped('/dashboard/imports')}><Upload size={18}/> Import contacts</NavLink>
         <NavLink href={scoped('/dashboard/lists')}><FolderKanban size={18}/> Saved groups</NavLink>
         <NavLink href={scoped('/dashboard/segments')}><Filter size={18}/> Audience filters</NavLink>
+        <div className="sidebar-label">Team workspace</div>
+        <NavLink href={scoped('/dashboard/departments')}><Building2 size={18}/> Departments</NavLink>
+        <NavLink href={scoped('/dashboard/reminders')}><Bell size={18}/> Reminders</NavLink>
         <div className="sidebar-label">Settings</div>
         <NavLink href={scoped('/dashboard/templates')}><FileText size={18}/> Email templates</NavLink>
         <NavLink href={scoped('/dashboard/senders')}><Mail size={18}/> Sender settings</NavLink>

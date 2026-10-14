@@ -40,3 +40,8 @@ SMS pilot is implemented for controlled staff tests; live account-service broadc
 SMS pilot: see [MD/SMS_AND_SENDGRID.md](MD/SMS_AND_SENDGRID.md). Apply migration 023 after 022.
 
 Provider-aware email delivery: migration 025 is required before using the new worker. Both live sending gates default to **off**. Read [MD/EMAIL_DELIVERY_ROUTING.md](MD/EMAIL_DELIVERY_ROUTING.md) before any customer sending.
+
+
+## Department workspaces and visual templates
+
+See `MD/DEPARTMENTS_AND_REMINDERS.md` for Migration 026, internal reminders, department access and bank-approved image/shape email design.
