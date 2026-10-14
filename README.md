@@ -1,68 +1,39 @@
-# Charis Premium v3 design upgrade (13 October 2026)
-
-This complete source release adopts the Claude-style Charis logo palette and uses Century Gothic for prominent headings (with local fallback). Its data and campaign workflow remain based on the operational release through Supabase migration 020.
-
-- New: `app/charis-design-v3.css`, imported after existing premium styles.
-- New: official purple/green palette preset and preview in Charis **Brand & media**. Click the preset, then click **Save company branding** to update existing saved email colors.
-- Improved: email template previews show current bank name and saved brand color, status indicators, and navigation to All campaigns and Audience filters.
-- All existing RLS, test restrictions, approvals and migration files are retained. **No new SQL migration is required for this upgrade**.
-- Century Gothic is an installed-font preference, **not a bundled font**. If unavailable, the device uses a licensed installed fallback.
-- See `docs/CHARIS_CLAUDE_CENTURY_GOTHIC_UPGRADE.md`.
-- Test with Node 24 using `npm ci && npm run lint && npm run typecheck && npm test && npm run build` before approving the deployment.
-
----
-
-## October 2026 operational workflow repair (migration 020)
-
-This release includes multi-customer actions, bulk group membership, staff role combinations, selectable verified staff test recipients, audience shortcuts and improved approval guidance. Back up production and apply migrations 019 and 020 in sequence if they are not installed. See `docs/CHARIS_OPERATIONS_020_RELEASE.md`. Keep live customer dispatch disabled until independently tested.
-
 # Charis Campaign Centre
 
-Dedicated customer communication platform for **Charis Microfinance Bank Ltd**.
+**Internal customer-communications application for Charis Microfinance Bank Ltd.**
 
-## Product modules
+This repository contains the working Next.js application, Supabase migrations, campaign delivery code and automated tests. The bank's logo, premium purple/green styling and staff interface are included. The product is **single-company**, although some historical database structures remain for backwards compatibility.
 
-- Branded staff portal and role-based access
-- Customer records, import, consent, archive, restore and guarded deletion
-- Single, multiple and saved-group recipient selection
-- Email templates and visual campaign editing
-- Independent approval/rejection with audit history
-- Verified Resend sender management and restricted staff test emails
-- Delivery queue, background dispatch interfaces and analytics
-- Logo, favicon and safe brand media management
-- Staff invitations, permissions, reports and administrator audit
+## Start here
 
-See `docs/CHARIS_PREMIUM_PRODUCT_BLUEPRINT.md` for page structure, design tokens, components, workflow, modules and release scope.
+- [System overview](MD/SYSTEM_OVERVIEW.md) — modules and what is implemented.
+- [Architecture and workflows](MD/ARCHITECTURE_AND_WORKFLOWS.md) — the application, recipient eligibility and approval flow.
+- [Brand and UI](MD/DESIGN_SYSTEM.md) — Charis colors and interface principles.
+- [Set up and deploy](MD/SETUP_AND_DEPLOYMENT.md) — environment variables, migrations and release steps.
+- [Security and communication preferences](MD/SECURITY_AND_COMMUNICATION_PREFERENCES.md) — promotions, unsubscribes and account notices.
+- [Testing and release](MD/TESTING_AND_RELEASE.md) — quality gates and changes.
+- [Maintainer instructions](MD/AGENTS.md) — development conventions.
 
-## Install and verify
+## Run locally
 
-Node.js 24 is required.
+Node.js **24** required:
 
 ```bash
 npm ci
+cp .env.charis.example .env.local
 npm run typecheck
+npm run lint
 npm test
 npm run build
 ```
 
-Copy `.env.charis.example` to `.env.local` for local development (never commit secrets). Configure Supabase, Resend and the single company UUID. The database migration history lives in `supabase/migrations/` (001–018). **Do not rerun the initial install SQL against an existing production database**.
+Configure `.env.local` with actual non-public Supabase and email-provider credentials; never commit secrets. On Windows, copy the example file manually or run `copy .env.charis.example .env.local`.
 
-## Design and production status
+## Database and production
 
-The official supplied bank logo is bundled as `public/charis-official-logo.png`. The browser icon uses the same mark; a bank administrator can upload replacements using Brand Settings. The premium CSS has its own Charis-only namespace and requires no third-party UI framework.
+Migrations are kept in **`supabase/migrations/` (001–022)** and must be reviewed/applied sequentially on an existing database. **Do not rerun the fresh-install SQL on a database containing customers or campaigns.** This source is not a production acceptance certificate: database authorisation, staff access, approved sender, background delivery worker, suppression rules and live sending must all pass hosted tests before use.
 
-Source syntax and focused regressions are tested. Production build, provider integration, database migrations, background dispatch and end-to-end bank user acceptance must still be verified; see `docs/PREMIUM_RELEASE_CHECKLIST.md`. SMS is not yet implemented.
-
-The original schema and historical migration code are retained to avoid damaging existing Charis account, campaign and audit history. Legacy public billing, subscription signup and generic marketing routes have been removed from the app router. Selected historic platform admin routes remain blocked in single-company mode pending a separate compatibility review.
-
-## October 13, 2026 — Sign-in, dashboard and permissions
-
-Run **`supabase/migrations/019_charis_dashboard_and_campaign_lead.sql`** in an existing Charis Supabase project after migration 018. This migration adds a single-query dashboard summary and the **Campaign Lead** role (create, independently approve, dispatch). Self-approval remains blocked.
-
-The updated code redirects an already authenticated user away from `/login`, avoids redundant Auth requests on public middleware routes, and caches bank logo/favicon metadata for a short period. See `docs/CHARIS_LOGIN_SPEED_AND_CAMPAIGN_LEAD.md` for rollout and acceptance steps.
-
-Do not rerun the original fresh-install SQL on a live Charis database. The historical master installer is retained for reference and does not replace the incremental migration workflow.
+SMS and unrestricted account-service notice sending are not implemented. Promotional sending must respect documented consent, unsubscribe preferences and independent approval. See `MD/SECURITY_AND_COMMUNICATION_PREFERENCES.md`.
 
 
-## Migration 022: Customer import review
-Run `supabase/migrations/022_charis_import_exception_review.sql` once after 021 to enable row-level duplicate / invalid import reports. See `docs/CHARIS_IMPORT_REVIEW_022.md`. Older summary-only imports cannot be reconstructed.
+SMS pilot: see [MD/SMS_AND_SENDGRID.md](MD/SMS_AND_SENDGRID.md). Apply migration 023 after 022.

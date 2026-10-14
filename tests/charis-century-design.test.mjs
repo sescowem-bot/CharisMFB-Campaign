@@ -34,7 +34,8 @@ test('Brand palette preset requires an explicit save and does not edit database 
 test('Template preview is Charis-branded while existing template persistence stays intact',()=>{
  const f=read('components/template-studio.tsx');
  assert.match(f,/brandName='Charis Microfinance Bank'/);
- assert.match(f,/background:brandColor/);
+ assert.match(f,/brandColor/);
+ assert.match(f,/charis-email-\$\{style\}/);
  assert.match(f,/saveTemplate/);
  assert.match(read('app/dashboard/templates/page.tsx'),/organization_branding/);
 });
@@ -42,6 +43,6 @@ test('Template preview is Charis-branded while existing template persistence sta
 test('Operations and SQL history are preserved and campaign paths remain visible',()=>{
  const nav=read('components/charis-navigation.tsx');
  for(const label of ['All campaigns','Audience filters','Approvals','Sender settings','Team access'])assert.ok(nav.includes(label),label);
- assert.ok(existsSync(new URL('../supabase/migrations/019_charis_fast_dashboard_campaign_lead.sql',import.meta.url)) || existsSync(new URL('../supabase/migrations/019_fast_dashboard_campaign_lead.sql',import.meta.url)) || read('docs/CHARIS_CLAUDE_CENTURY_GOTHIC_UPGRADE.md').includes('001–020'));
+ assert.ok(existsSync(new URL('../supabase/migrations/019_charis_dashboard_and_campaign_lead.sql',import.meta.url)));
  assert.match(read('components/charis-ui.tsx'),/Awaiting approval/);
 });

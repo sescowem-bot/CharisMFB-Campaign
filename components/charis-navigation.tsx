@@ -31,6 +31,7 @@ export function CharisNavigation({org,admin,logo}:{org?:string;admin:boolean;log
       {label:'All campaigns',href:'/dashboard/campaigns',icon:Mail},
       {label:'Approvals',href:'/dashboard/approvals',icon:ClipboardCheck},
       {label:'Send & delivery',href:'/dashboard/delivery',icon:Send},
+      {label:'SMS communications',href:'/dashboard/sms',icon:MailPlus},
       {label:'Reports',href:'/dashboard/reports',icon:BarChart3}
     ]},
     {name:'CONFIGURATION',items:[

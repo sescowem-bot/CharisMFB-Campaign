@@ -24,7 +24,7 @@ test('preferences are visible in staff navigation and customer management',()=>{
  assert.match(src('app/dashboard/contacts/page.tsx'),/Unsubscribed & preferences/);
 });
 test('no service notice sending channel introduced, and unsubscribe policy preserved',()=>{
- const content=src('docs/CHARIS_CUSTOMER_COMMUNICATION_POLICY.md');
+ const content=src('MD/SECURITY_AND_COMMUNICATION_PREFERENCES.md');
  assert.match(content,/DOES NOT implement live account-notice/);
  assert.match(src('supabase/migrations/009_delivery_engine.sql'),/consent_status='granted'/);
 });

@@ -586,3 +586,9 @@ body.charis-premium .page .admin-columns {gap:16px}
 .charis-import-correction{padding:14px;border:1px solid #e5dff1;background:#fbfaff;border-radius:12px}
 .charis-import-review .audience-kpis{grid-template-columns:repeat(3,minmax(0,1fr));margin:14px 0}
 @media(max-width:600px){.charis-import-review .audience-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.charis-import-issue .form-two{grid-template-columns:1fr}}
+
+/* SMS pilot shares Charis styles without loading another UI framework. */
+.charis-sms-campaign{padding:20px 0;border-bottom:1px solid #e7e3f1}
+.charis-sms-campaign:last-child{border-bottom:0}
+.charis-sms-action-row{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}
+.charis-sms-compose{max-width:780px}
