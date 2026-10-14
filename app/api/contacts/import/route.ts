@@ -7,9 +7,10 @@ const schema=z.object({
  batch_key:z.string().uuid(),
  list_id:z.string().uuid().optional(),
  rows:z.array(z.object({
-  first_name:z.string().trim().max(100),last_name:z.string().trim().max(100),
-  email:z.string().trim().max(254),phone:z.string().trim().max(20),
-  attributes:z.record(z.string().regex(/^[a-z][a-z0-9_]{0,39}$/),z.string().max(500)).refine(value=>Object.keys(value).length<=12&&Object.entries(value).every(([key,entry])=>!/(password|pin|otp|bvn|nin|cvv|card_number|secret|token)/.test(key)&&(!['account_number','account_no','account_reference'].includes(key)||entry.replace(/\D/g,'').length<=4))).optional()
+  source_row:z.number().int().min(2).max(5001).optional(),
+  first_name:z.string().trim().max(300),last_name:z.string().trim().max(300),
+  email:z.string().trim().max(500),phone:z.string().trim().max(500),
+  attributes:z.record(z.string().regex(/^[a-z][a-z0-9_]{0,39}$/),z.string().max(500)).refine(value=>Object.keys(value).length<=12&&Object.entries(value).every(([key,entry])=>!/(password|passcode|pin|otp|bvn|nin|cvv|card_number|secret|token|passport|date_of_birth|dob|national_id|bank_verification|balance|debt|amount|debit|credit|outstanding|arrears|salary|income|transaction|consent|unsubscribe|suppression)/.test(key)&&(!(key.startsWith('account')||key.startsWith('acct'))||key==='account_type'||['account_number','account_no','account_reference','account_ref','account_last4','account_last_4','accountnumber','accountno','accountref','accountreference','acct_no','acct_number','acctno','acctnumber'].includes(key))&&(!['account_number','account_no','account_reference','account_ref','account_last4','account_last_4','accountnumber','accountno','accountref','accountreference','acct_no','acct_number','acctno','acctnumber'].includes(key)||entry.replace(/\D/g,'').length<=4))).optional()
  }).strict()).min(1).max(100)
 }).strict();
 export async function POST(request:Request){
@@ -28,6 +29,7 @@ export async function POST(request:Request){
    :await db.rpc('import_contact_batch',{p_org:parsed.data.organization_id,p_batch_key:parsed.data.batch_key,p_rows:parsed.data.rows});
   if(error)return NextResponse.json({error:'Contact import rejected: '+error.message},{status:422});
   const summary=Array.isArray(data)?data[0]:data;
-  return NextResponse.json({inserted:summary?.inserted??0,skipped:summary?.skipped??0,rejected:summary?.rejected??0});
+  const {data:batch}=await db.from('contact_import_batches').select('id').eq('organization_id',parsed.data.organization_id).eq('batch_key',parsed.data.batch_key).maybeSingle();
+  return NextResponse.json({inserted:summary?.inserted??0,skipped:summary?.skipped??0,rejected:summary?.rejected??0,batch_id:batch?.id||null},{headers:{'Cache-Control':'private, no-store'}});
  }catch(e){const rejected=bodyErrorResponse(e);if(rejected)return rejected;return NextResponse.json({error:'Import request could not be processed'},{status:400});}
 }

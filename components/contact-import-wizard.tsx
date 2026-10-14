@@ -1,94 +1,220 @@
 'use client';
+
 import {useMemo,useRef,useState} from 'react';
 import Link from 'next/link';
 import {parseCsv,normalizePhone} from '@/lib/contacts/parse-csv.mjs';
-const fieldOptions=[{key:'first_name',label:'First name'},{key:'last_name',label:'Last name'},{key:'email',label:'Email'},{key:'phone',label:'Phone'}] as const;
-type Field=typeof fieldOptions[number]['key'];
+import {importColumnValue,normalizeColumnKey,previewColumnValue,restrictedColumn,suggestedColumn} from '@/lib/contacts/import-mapping.mjs';
+
+const mainFields=[
+ {key:'first_name',label:'First name'},
+ {key:'last_name',label:'Last name'},
+ {key:'email',label:'Email address'},
+ {key:'phone',label:'Phone number'}
+] as const;
+type MainField=typeof mainFields[number]['key'];
+type ExtraColumn={include:boolean;name:string};
 type Counts={inserted:number;skipped:number;rejected:number};
 type Preview={headers:string[];rows:string[][];filename:string};
-const MAX_FILE_BYTES=5*1024*1024,MAX_RECORDS=5000;
-function headingMatch(field:Field,header:string){const normalized=header.trim().toLowerCase().replace(/[^a-z0-9]/g,'');const aliases:Record<Field,string[]>={first_name:['firstname','first','givenname','customerfirstname'],last_name:['lastname','surname','familyname','customerlastname'],email:['email','emailaddress','mail','customeremail'],phone:['phone','phonenumber','mobile','mobilenumber','telephone','whatsapp']};return aliases[field].includes(normalized);}
+const MAX_FILE_BYTES=5*1024*1024;
+const MAX_RECORDS=5000;
+const MAX_COLUMNS=60;
+const MAX_EXTRA=12;
+const headings:Record<MainField,string[]>={
+ first_name:['firstname','first','givenname','customerfirstname','forename'],
+ last_name:['lastname','surname','familyname','customerlastname'],
+ email:['email','emailaddress','mail','customeremail'],
+ phone:['phone','phonenumber','mobile','mobilenumber','telephone','whatsapp','contactnumber']
+};
+const emptyCounts=()=>({inserted:0,skipped:0,rejected:0});
+function autoMap(field:MainField,header:string){
+ const normalized=header.trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+ return headings[field].includes(normalized);
+}
+
+/**
+ * The four core fields map directly to the contacts table. Up to 12 explicitly
+ * chosen extra columns are saved to contacts.attributes and can be used in
+ * campaign personalization. No marketing consent is imported from spreadsheets.
+ */
 export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;name:string}[]}){
  const [preview,setPreview]=useState<Preview|null>(null);
- const [mapping,setMapping]=useState<Record<Field,number>>({first_name:-1,last_name:-1,email:-1,phone:-1});
+ const [mapping,setMapping]=useState<Record<MainField,number>>({first_name:-1,last_name:-1,email:-1,phone:-1});
+ const [extraColumns,setExtraColumns]=useState<Record<number,ExtraColumn>>({});
  const [country,setCountry]=useState<'none'|'NG'>('none');
- const [customColumns,setCustomColumns]=useState(false);
- const [counts,setCounts]=useState<Counts>({inserted:0,skipped:0,rejected:0});
+ const [counts,setCounts]=useState<Counts>(emptyCounts);
  const [processed,setProcessed]=useState(0);
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
  const [complete,setComplete]=useState(false);
+ const [reviewBatch,setReviewBatch]=useState('');
+ const [issueBatchCount,setIssueBatchCount]=useState(0);
  const batches=useRef<string[]>([]);
  const [listTarget,setListTarget]=useState('new');
  const [newListName,setNewListName]=useState('');
  const listRef=useRef<string|null>(null);
+
+ function invalidate(){
+  setError('');setComplete(false);setCounts(emptyCounts());setProcessed(0);batches.current=[];setReviewBatch('');setIssueBatchCount(0);
+ }
+ const mainIndexes=useMemo(()=>new Set(Object.values(mapping).filter(index=>index>=0)),[mapping]);
+ const selectedExtras=useMemo(()=>{
+  if(!preview)return [];
+  return preview.headers.flatMap((header,index)=>{
+   const option=extraColumns[index];
+   if(mainIndexes.has(index)||!option?.include)return [];
+   return [{index,header,key:option.name.trim()}];
+  });
+ },[preview,extraColumns,mainIndexes]);
  const prepared=useMemo(()=>{
   if(!preview)return [];
-  const cell=(row:string[],key:Field)=>{const index=mapping[key];return index>=0?String(row[index]||'').trim():''};
+  const read=(row:string[],field:MainField)=>mapping[field]>=0?String(row[mapping[field]]??'').trim():'';
   return preview.rows.map(row=>{
    const attributes:Record<string,string>={};
-   if(customColumns){
-    const mapped=new Set(Object.values(mapping).filter(i=>i>=0));
-    const blocked=new Set(['id','organization_id','__proto__','constructor','prototype']);
-    preview.headers.forEach((header,i)=>{
-     if(mapped.has(i)||Object.keys(attributes).length>=12)return;
-     const key=header.trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,40);
-     let value=String(row[i]||'').slice(0,500);
-     if(/(password|pin|otp|bvn|nin|cvv|card_number|secret|token)/.test(key))return;
-     if(['account_number','account_no','account_reference'].includes(key))value=value.replace(/\D/g,'').slice(-4);
-     if(/^[a-z][a-z0-9_]{0,39}$/.test(key)&&!blocked.has(key)&&value&&!Object.hasOwn(attributes,key))attributes[key]=value;
-    });
+   for(const item of selectedExtras){
+    // Only values from deliberately selected, valid fields are sent to the server.
+    if(!/^[a-z][a-z0-9_]{0,39}$/.test(item.key)||restrictedColumn(item.key))continue;
+    const value=importColumnValue(item.key,row[item.index]??'');
+    if(value)attributes[item.key]=value;
    }
-   return {first_name:cell(row,'first_name'),last_name:cell(row,'last_name'),email:cell(row,'email').toLowerCase(),phone:normalizePhone(cell(row,'phone'),country),attributes};
+   return {
+    first_name:read(row,'first_name'),last_name:read(row,'last_name'),
+    email:read(row,'email').toLowerCase(),phone:normalizePhone(read(row,'phone'),country),attributes
+   };
   });
- },[preview,mapping,country,customColumns]);
+ },[preview,mapping,country,selectedExtras]);
+
  async function fileSelected(file?:File){
-  setError('');setComplete(false);setCounts({inserted:0,skipped:0,rejected:0});setProcessed(0);setPreview(null);batches.current=[];listRef.current=null;
+  invalidate();setPreview(null);setExtraColumns({});listRef.current=null;
   if(!file)return;
-  if(file.size>MAX_FILE_BYTES){setError('File is too large. Maximum file size is 5 MB.');return;}
-  if(!/\.(csv|xlsx)$/i.test(file.name)){setError('Upload a .csv or .xlsx file.');return;}
+  if(file.size>MAX_FILE_BYTES){setError('This file is too large. Maximum size is 5 MB.');return;}
+  if(!/\.(csv|xlsx)$/i.test(file.name)){setError('Choose a CSV or Excel (.xlsx) file.');return;}
   try{
    let matrix:string[][];
-   if(/\.csv$/i.test(file.name)){matrix=parseCsv(await file.text(),{maxRows:MAX_RECORDS+1,maxColumns:60});}
-   else{const {readSheet}=await import('read-excel-file/browser');const values=await readSheet(file);matrix=values.map(row=>row.map(cell=>cell==null?'':String(cell)));}
-   if(matrix.length<2)throw Error('The file needs a header row and at least one contact.');
-   if(matrix.length>MAX_RECORDS+1)throw Error('Maximum import size is 5,000 contacts.');
-   if(matrix[0].length>60)throw Error('Maximum allowed columns: 60.');
-   const headers=matrix[0].map((cell,i)=>String(cell||`Column ${i+1}`).trim());
-   const guessed=Object.fromEntries(fieldOptions.map(({key})=>[key,headers.findIndex(h=>headingMatch(key,h))])) as Record<Field,number>;
-   setMapping(guessed);setPreview({headers,rows:matrix.slice(1),filename:file.name});
-  }catch(e){setError(e instanceof Error?e.message:'Unable to read file. Use a CSV or XLSX workbook.');}
+   if(/\.csv$/i.test(file.name))matrix=parseCsv(await file.text(),{maxRows:MAX_RECORDS+1,maxColumns:MAX_COLUMNS});
+   else {
+    const {readSheet}=await import('read-excel-file/browser');
+    const values=await readSheet(file);
+    matrix=values.map(row=>row.map(cell=>cell==null?'':String(cell)));
+   }
+   if(matrix.length<2)throw new Error('The file must have column headings and at least one customer.');
+   if(matrix.length>MAX_RECORDS+1)throw new Error('You can import at most 5,000 contacts at a time.');
+   if(matrix[0].length>MAX_COLUMNS)throw new Error('You can upload a file with at most 60 columns.');
+   const headers=matrix[0].map((item,index)=>String(item||`Column ${index+1}`).trim());
+   const defaults=Object.fromEntries(mainFields.map(({key})=>[key,headers.findIndex(h=>autoMap(key,h))])) as Record<MainField,number>;
+   setMapping(defaults);
+   setExtraColumns(Object.fromEntries(headers.map((header,index)=>[index,{include:false,name:normalizeColumnKey(header)}])));
+   setPreview({headers,rows:matrix.slice(1),filename:file.name});
+  }catch(e){setError(e instanceof Error?e.message:'The spreadsheet could not be read.');}
+ }
+ function changeExtra(index:number,partial:Partial<ExtraColumn>){
+  invalidate();setExtraColumns(current=>({...current,[index]:{...current[index],...partial}}));
+ }
+ function selectSuggested(){
+  invalidate();
+  if(!preview)return;
+  setExtraColumns(current=>{
+   const next={...current};
+   let total=0;
+   for(let i=0;i<preview.headers.length;i++){
+    const key=next[i]?.name||normalizeColumnKey(preview.headers[i]);
+    if(mainIndexes.has(i)||restrictedColumn(key))continue;
+    if(next[i]?.include)total++;
+   }
+   for(let i=0;i<preview.headers.length&&total<MAX_EXTRA;i++){
+    const key=next[i]?.name||normalizeColumnKey(preview.headers[i]);
+    if(mainIndexes.has(i)||restrictedColumn(key)||next[i]?.include||!suggestedColumn(key))continue;
+    next[i]={include:true,name:key};total++;
+   }
+   return next;
+  });
+ }
+ function checkMapping(){
+  if(mapping.email<0&&mapping.phone<0)return 'Choose at least an Email or Phone column.';
+  const mapped=Object.values(mapping).filter(value=>value>=0);
+  if(new Set(mapped).size!==mapped.length)return 'One spreadsheet column cannot be used as two main contact fields.';
+  if(selectedExtras.length>MAX_EXTRA)return `You can select at most ${MAX_EXTRA} additional details.`;
+  const names=new Set<string>();
+  for(const entry of selectedExtras){
+   if(!/^[a-z][a-z0-9_]{0,39}$/.test(entry.key))return `Check the field name for ${entry.header}. Use letters, numbers and underscores, starting with a letter.`;
+   if(restrictedColumn(entry.key))return `${entry.header} is a restricted or reserved field and cannot be imported as a campaign detail.`;
+   if(names.has(entry.key))return `You have used the field name "${entry.key}" twice. Give each extra field a different name.`;
+   names.add(entry.key);
+  }
+  if(listTarget==='new'&&!newListName.trim())return 'Enter a name for your new customer group.';
+  return '';
  }
  async function importRows(){
-  if(!preview||busy)return;
-  if(mapping.email<0&&mapping.phone<0){setError('Map an email or phone column before importing.');return;}
-  const mapped=fieldOptions.map(f=>mapping[f.key]).filter(x=>x>=0);
-  if(new Set(mapped).size!==mapped.length){setError('Do not map the same source column to multiple fields.');return;}
-  if(listTarget==='new'&&!newListName.trim()){setError('Name the new group to make it easy to select after import.');return;}
-  setBusy(true);setError('');setComplete(false);
-  const totalBatches=Math.ceil(prepared.length/100);
+  if(!preview||busy||complete)return;
+  const issue=checkMapping();if(issue){setError(issue);return;}
+  // Preserve batch keys when retrying a partial network failure.
+  setError('');setComplete(false);setCounts(emptyCounts());setProcessed(0);setReviewBatch('');setIssueBatchCount(0);setBusy(true);
+  // Extra values can make requests large. Keep below the server's 95 KB body limit.
+  const batchSize=selectedExtras.length?25:100;
+  const totalBatches=Math.ceil(prepared.length/batchSize);
   if(batches.current.length!==totalBatches)batches.current=Array.from({length:totalBatches},()=>crypto.randomUUID());
   let inserted=0,skipped=0,rejected=0;
+  let firstIssueBatch='',issueBatches=0;
   try{
    let listId=listTarget==='none'?null:listTarget==='new'?listRef.current:listTarget;
    if(listTarget==='new'&&!listId){
     const response=await fetch('/api/contacts/lists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({organization_id:org,name:newListName.trim()})});
-    const result=await response.json();if(!response.ok)throw Error(result.error||'Unable to create contact group');
+    const result=await response.json();
+    if(!response.ok)throw new Error(result.error||'Could not create the group.');
     listId=result.id;listRef.current=listId;
    }
    for(let i=0;i<totalBatches;i++){
-    const rows=prepared.slice(i*100,(i+1)*100);
+    const rows=prepared.slice(i*batchSize,(i+1)*batchSize).map((row,j)=>({...row,source_row:i*batchSize+j+2}));
     const response=await fetch('/api/contacts/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({organization_id:org,batch_key:batches.current[i],rows,...(listId?{list_id:listId}:{})})});
     const result=await response.json();
-    if(!response.ok)throw Error(`Batch ${i+1}: ${result.error||'Unable to import contacts'}`);
+    if(!response.ok)throw new Error(`Batch ${i+1}: ${result.error||'The import could not be completed.'}`);
     inserted+=result.inserted;skipped+=result.skipped;rejected+=result.rejected;
-    setCounts({inserted,skipped,rejected});setProcessed(Math.min((i+1)*100,prepared.length));
+    if(result.skipped+result.rejected>0){issueBatches++;if(!firstIssueBatch&&result.batch_id)firstIssueBatch=result.batch_id;}
+    setCounts({inserted,skipped,rejected});setProcessed(Math.min((i+1)*batchSize,prepared.length));
    }
-   setComplete(true);
-  }catch(e){setError(e instanceof Error?e.message:'Import failed.');}
+   setComplete(true);setReviewBatch(firstIssueBatch);setIssueBatchCount(issueBatches);
+  }catch(e){setError(e instanceof Error?e.message:'Could not import contacts.');}
   finally{setBusy(false);}
  }
- return <div className="import-flow"><div className="admin-form"><h2>Step 1 · Upload audience</h2><label>Contact file (.csv or .xlsx)<input type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={busy} onChange={e=>fileSelected(e.target.files?.[0])}/></label><p className="muted">Up to 5 MB / 5,000 rows. The spreadsheet is read in your browser; mapped contacts are sent to your company workspace. <a className="inline-link" href="/samples/contacts-import.csv" download>Download CSV sample</a> · <a className="inline-link" href="/samples/contacts-extra-fields.csv" download>Sample with extra columns</a></p><label>Phone numbers without country codes<select value={country} disabled={busy} onChange={e=>{setCountry(e.target.value as 'none'|'NG');batches.current=[];setProcessed(0);setCounts({inserted:0,skipped:0,rejected:0});setComplete(false);}}><option value="none">Do not modify numbers</option><option value="NG">Convert Nigerian 080… numbers to +234…</option></select></label></div>
- {preview&&<><div className="admin-form"><h2>Step 2 · Map columns</h2><p className="muted">{preview.filename} · {preview.rows.length.toLocaleString()} data rows. Confirm each mapping before import.</p><div className="mapping-grid">{fieldOptions.map(item=><label key={item.key}>{item.label}<select disabled={busy} value={mapping[item.key]} onChange={e=>{setMapping(old=>({...old,[item.key]:Number(e.target.value)}));setComplete(false);batches.current=[];setProcessed(0);setCounts({inserted:0,skipped:0,rejected:0});}}><option value={-1}>Not mapped</option>{preview.headers.map((h,i)=><option value={i} key={i}>{h} (column {i+1})</option>)}</select></label>)}</div><p className="muted">Imported contacts start with <strong>Unknown</strong> marketing consent. This prevents importing opt-in claims without supporting evidence.</p><label className="import-extra-option"><input type="checkbox" checked={customColumns} disabled={busy} onChange={e=>{setCustomColumns(e.target.checked);batches.current=[];setProcessed(0);setCounts({inserted:0,skipped:0,rejected:0});setComplete(false);}}/> Also import up to 12 unmapped columns as custom fields</label><p className="muted">Use this for useful details such as branch, account reference or product. Full account numbers are reduced to their last four digits; passwords, BVN and other credentials must not be imported.</p></div><div className="admin-form"><h2>Step 3 · Save as a recipient group</h2><p className="muted">Customers are added to the selected group automatically, so you can choose the entire imported list in Campaign Studio.</p><label>Where should these contacts go?<select value={listTarget} disabled={busy||complete} onChange={e=>{setListTarget(e.target.value);listRef.current=null;}}><option value="new">Create a new group</option>{lists.map(l=><option value={l.id} key={l.id}>{l.name}</option>)}<option value="none">Do not create a group</option></select></label>{listTarget==='new'&&<label>Group name<input value={newListName} onChange={e=>{setNewListName(e.target.value);listRef.current=null;}} disabled={busy||complete} maxLength={100} placeholder="October customer updates"/></label>}</div><div className="admin-form"><h2>Step 4 · Verify and import</h2><div className="table-scroll"><table className="admin-table"><thead><tr><th>First name</th><th>Last name</th><th>Email</th><th>Phone</th></tr></thead><tbody>{prepared.slice(0,5).map((r,i)=><tr key={i}><td>{r.first_name}</td><td>{r.last_name}</td><td>{r.email}</td><td>{r.phone}</td></tr>)}</tbody></table></div><button className="btn" type="button" disabled={busy||complete} onClick={importRows}>{busy?'Importing…':complete?'Import complete':'Import contacts'}</button>{(busy||processed>0)&&<><progress max={prepared.length} value={processed} className="import-progress"/><p className="muted">Processed {processed} / {prepared.length} · Added {counts.inserted} · Duplicates {counts.skipped} · Invalid {counts.rejected}</p></>}{complete&&<p role="status" className="feedback-success">Import completed. Your contact group is ready to choose in Campaign Studio. Imported contacts still need documented email consent before marketing emails can be sent. <Link href={`/dashboard/campaigns?org=${org}&create=1`}>Create a campaign →</Link></p>}{error&&<p role="alert" className="feedback-error">{error}</p>}</div></>}
- {!preview&&error&&<p role="alert" className="feedback-error">{error}</p>}</div>;
+ return <div className="import-flow">
+  <div className="admin-form">
+   <h2>Step 1 · Upload your customer file</h2>
+   <label>Choose CSV or Excel (.xlsx)<input type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={busy} onChange={e=>fileSelected(e.target.files?.[0])}/></label>
+   <p className="muted">Maximum 5 MB, 5,000 rows and 60 spreadsheet columns. <a className="inline-link" href="/samples/contacts-import.csv" download>Basic example</a> · <a className="inline-link" href="/samples/contacts-extra-fields.csv" download>Example with extra details</a></p>
+   <label>Phone numbers without country codes<select value={country} disabled={busy||complete} onChange={e=>{setCountry(e.target.value as 'none'|'NG');invalidate();}}><option value="none">Keep numbers as they are</option><option value="NG">Convert Nigerian 080… numbers to +234…</option></select></label>
+  </div>
+  {preview&&<>
+   <div className="admin-form">
+    <h2>Step 2 · Choose what each column means</h2>
+    <p className="muted"><strong>{preview.filename}</strong> · {preview.rows.length.toLocaleString()} customer rows · {preview.headers.length} columns found.</p>
+    <h3>Main customer information</h3>
+    <div className="mapping-grid">{mainFields.map(field=><label key={field.key}>{field.label}<select value={mapping[field.key]} disabled={busy||complete} onChange={e=>{setMapping(old=>({...old,[field.key]:Number(e.target.value)}));invalidate();}}><option value={-1}>Not included</option>{preview.headers.map((header,index)=><option value={index} key={index}>{header} (column {index+1})</option>)}</select></label>)}</div>
+    <p className="muted">You need at least Email or Phone. Names are optional. This import does not assume that anyone has agreed to marketing emails.</p>
+    <div className="workspace-heading"><div><h3>Other spreadsheet columns</h3><p className="muted">Choose additional details you want to keep for your campaigns. Rename them if needed.</p></div><button className="btn secondary" type="button" onClick={selectSuggested} disabled={busy||complete}>Select suggested fields</button></div>
+    <p className="muted"><strong>{selectedExtras.length} of {MAX_EXTRA} extra fields selected.</strong> Other spreadsheet columns are ignored. Sensitive columns such as BVN, balances and PINs are not imported.</p>
+    <div className="table-scroll"><table className="admin-table"><thead><tr><th>Spreadsheet column</th><th>What to do</th><th>Save this detail as</th></tr></thead><tbody>{preview.headers.map((header,index)=>{
+     const used=mainFields.find(field=>mapping[field.key]===index);
+     const extra=extraColumns[index]||{include:false,name:normalizeColumnKey(header)};
+     const blocked=restrictedColumn(normalizeColumnKey(header));
+     return <tr key={index}><td><strong>{header}</strong><div className="muted">Column {index+1}</div></td><td>{used?<span className="muted">Used for {used.label}</span>:blocked?<span className="muted">Restricted field</span>:<label><input type="checkbox" checked={extra.include} disabled={busy||complete} onChange={e=>changeExtra(index,{include:e.target.checked})}/> Include in campaigns</label>}</td><td>{!used&&!blocked&&extra.include?<label><span className="sr-only">Saved field name for {header}</span><input aria-label={`Saved field name for ${header}`} value={extra.name} disabled={busy||complete} maxLength={40} onChange={e=>changeExtra(index,{name:e.target.value.toLowerCase().trim()})}/></label>:<span className="muted">{used?'Mapped above':blocked?'Not imported':'Not included'}</span>}</td></tr>;
+    })}</tbody></table></div>
+    <p className="muted">Account references are stored as their last four digits only. Full account numbers, passwords, BVNs and account balances should not be uploaded as campaign details.</p>
+   </div>
+   <div className="admin-form">
+    <h2>Step 3 · Save customers to a group</h2>
+    <p className="muted">Group customers together so you can easily choose them when creating a campaign.</p>
+    <label>Choose a group<select value={listTarget} disabled={busy||complete} onChange={e=>{setListTarget(e.target.value);listRef.current=null;invalidate();}}><option value="new">Create a new group</option>{lists.map(list=><option value={list.id} key={list.id}>{list.name}</option>)}<option value="none">Do not use a group</option></select></label>
+    {listTarget==='new'&&<label>New group name<input value={newListName} disabled={busy||complete} maxLength={100} onChange={e=>{setNewListName(e.target.value);listRef.current=null;invalidate();}} placeholder="October account updates"/></label>}
+   </div>
+   <div className="admin-form">
+    <h2>Step 4 · Review and import</h2>
+    <p className="muted">Previewing the first five rows. Check the mapped columns before importing.</p>
+    <div className="table-scroll"><table className="admin-table"><thead><tr><th>First name</th><th>Last name</th><th>Email</th><th>Phone</th>{selectedExtras.map(item=><th key={item.index}>{item.header}</th>)}</tr></thead><tbody>{prepared.slice(0,5).map((row,index)=><tr key={index}><td>{row.first_name||'—'}</td><td>{row.last_name||'—'}</td><td>{row.email||'—'}</td><td>{row.phone||'—'}</td>{selectedExtras.map(item=><td key={item.index}>{previewColumnValue(item.key,preview.rows[index]?.[item.index]||'')||'—'}</td>)}</tr>)}</tbody></table></div>
+    <button className="btn" type="button" onClick={importRows} disabled={busy||complete}>{busy?'Importing customers…':complete?'Import complete':'Import customers'}</button>
+    {(busy||processed>0)&&<><progress max={prepared.length} value={processed} className="import-progress"/><p className="muted">Processed {processed} of {prepared.length} · Added {counts.inserted} · Duplicates {counts.skipped} · Invalid {counts.rejected}</p></>}
+    {complete&&<div role="status" className="feedback-success"><p>Import complete. Existing consent and opt-outs were preserved.</p>{issueBatchCount>0&&<p><strong>{issueBatchCount} batch(es) contain duplicates or invalid rows.</strong> <Link href={`/dashboard/imports?org=${org}&review=${reviewBatch}#import-review`}>Review those rows →</Link> Select other batches from the review dropdown if needed.</p>}<Link href={`/dashboard/campaigns?org=${org}&create=1`}>Create a campaign →</Link></div>}
+    {error&&<p role="alert" className="feedback-error">{error}</p>}
+   </div>
+  </>}
+  {!preview&&error&&<p role="alert" className="feedback-error">{error}</p>}
+ </div>;
 }

@@ -62,3 +62,7 @@ Run **`supabase/migrations/019_charis_dashboard_and_campaign_lead.sql`** in an e
 The updated code redirects an already authenticated user away from `/login`, avoids redundant Auth requests on public middleware routes, and caches bank logo/favicon metadata for a short period. See `docs/CHARIS_LOGIN_SPEED_AND_CAMPAIGN_LEAD.md` for rollout and acceptance steps.
 
 Do not rerun the original fresh-install SQL on a live Charis database. The historical master installer is retained for reference and does not replace the incremental migration workflow.
+
+
+## Migration 022: Customer import review
+Run `supabase/migrations/022_charis_import_exception_review.sql` once after 021 to enable row-level duplicate / invalid import reports. See `docs/CHARIS_IMPORT_REVIEW_022.md`. Older summary-only imports cannot be reconstructed.
