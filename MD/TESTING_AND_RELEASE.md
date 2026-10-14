@@ -34,3 +34,10 @@ The history above is a compact operational changelog, not separate Markdown for 
 
 ## Release decision
 Keep `EMAIL_DELIVERY_ENABLED=false` unless the bank has confirmed the target provider quota, sender verification, approved recipient purpose, independent approval policy, the worker scheduler and monitoring. No deployment, database mutation, production send or automatic Git push is performed by a source ZIP alone.
+
+## Batch 1 (Migration 027) — development checks
+- Source-of-truth: latest available 026 package corresponding to GitHub main at the time of preparation. This package does **not** update GitHub or Supabase.
+- Built the single-bank app shell, a guarded `SINGLE_COMPANY_ORG_ID` resolver, the bank-only Administration Centre, dynamic department creation/archive, custom access roles, and audited individual permission controls.
+- Preserved the existing SMS pilot, marketing consent, independent campaign approval, current email providers, template editor and migrations 001–026.
+- 44 focused source/regression checks passed in the available Node 22 environment; 180 JS/TS source files parsed with no syntax errors or unresolved local imports. Full Node 24 `npm ci`, lint, typecheck, and production build not verified here because the dependency tarballs are unavailable offline; **do not enable production delivery based on these source checks**.
+- Before production: apply Migration 027 to a staging Supabase clone; verify Super Admin vs delegated Admin, cross-department RLS, self-elevation denial, user invitation acceptance, sender settings, auth/cookies and the full four-gate Node 24 pipeline.

@@ -10,17 +10,17 @@ export default async function Dashboard(){
  const account=await currentAccount();
  if(!account)redirect('/login');
  const org=process.env.SINGLE_COMPANY_ORG_ID;
- if(process.env.SINGLE_COMPANY_MODE!=='true'||!org)return <WorkspaceShell title="Workspace configuration"><p role="alert" className="notice">The Charis workspace is not configured. Check your deployment environment.</p></WorkspaceShell>;
+ if(!org)redirect('/setup-required');
  // One authorised database request provides all dashboard counts and recent activity.
  const db=await supabaseServer();
  const {data:overview,error:dashboardError}=await db.rpc('charis_dashboard_overview',{p_org:org});
- if(dashboardError)return <WorkspaceShell org={org} title="Communication overview"><section className="panel"><h2>Dashboard metrics unavailable</h2><p role="alert">Charis cannot load dashboard metrics yet. Confirm that SQL migration 019 is installed. Other modules remain accessible from the menu.</p></section></WorkspaceShell>;
+ if(dashboardError)return <WorkspaceShell org={org} title="Communication overview"><section className="panel"><h2>Dashboard metrics unavailable</h2><p role="alert">Charis cannot load dashboard metrics yet. Please contact the system administrator. Other modules remain available from the menu.</p></section></WorkspaceShell>;
  if(!overview)return <WorkspaceShell org={org} title="Access pending"><section className="panel"><h2>Staff access is not yet assigned</h2><p>Your Charis account is signed in, but has not been granted this workspace. Ask an administrator to invite you or update your role.</p></section></WorkspaceShell>;
  type RecentCampaign={id:string;name:string;status:string;updated_at:string};
  type DashboardOverview={name:string;status:string;contacts:number;groups:number;campaigns:number;pending:number;approved:number;queued:number;recent:RecentCampaign[]};
  const data=overview as DashboardOverview;
  const recentCampaigns=Array.isArray(data.recent)?data.recent:[];
- const scoped=(path:string,extra='')=>`${path}?org=${encodeURIComponent(org)}${extra}`;
+ const scoped=(path:string,extra='')=>extra?`${path}?${extra.replace(/^&/,'')}`:path;
  const number=(value:number)=>Number(value||0).toLocaleString('en-NG');
  const metrics=[
   {name:'Active customers',value:data.contacts,detail:'Customers in the address book',icon:UsersRound},

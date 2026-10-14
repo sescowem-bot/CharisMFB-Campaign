@@ -37,7 +37,7 @@ export async function refreshDomain(org:string,id:string,trigger=false) {
   const {error:invalidate}=await db.from('sending_domains').update({verification_status:'pending'}).eq('id',id).neq('verification_status','revoked');
   if(invalidate) throw new Error('Cannot refresh domain verification.');
   const state=await adapter.check(row.domain,row.provider_domain_id,trigger);
-  const charis=process.env.SINGLE_COMPANY_MODE==='true' && process.env.SINGLE_COMPANY_ORG_ID===org;
+  const charis=process.env.SINGLE_COMPANY_ORG_ID===org;
   // The bank's sender must be explicitly linked to Charis, and Resend must verify
   // the exact provider domain using the current server-side API key above.
   // Old SESCO owner-workspace membership is not relevant to the Charis application.

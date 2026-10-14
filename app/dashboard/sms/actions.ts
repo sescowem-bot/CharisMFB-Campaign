@@ -8,7 +8,7 @@ export type SmsResult={error?:string;success?:string;id?:string};
 export async function smsAction(_:SmsResult,form:FormData):Promise<SmsResult>{
  try{
   const org=z.string().uuid().parse(form.get('org'));
-  if(process.env.SINGLE_COMPANY_MODE==='true'&&org!==process.env.SINGLE_COMPANY_ORG_ID)throw Error('Invalid Charis workspace.');
+  if(org!==process.env.SINGLE_COMPANY_ORG_ID)throw Error('Invalid Charis workspace.');
   const db=await supabaseServer();const {data:{user}}=await db.auth.getUser();
   if(!user?.email_confirmed_at)throw Error('Sign in with a verified staff account.');
   const action=z.enum(['save','submit','approve','reject','withdraw','test']).parse(form.get('action'));

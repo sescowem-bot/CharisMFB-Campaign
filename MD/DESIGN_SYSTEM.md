@@ -29,3 +29,6 @@ Prefer Century Gothic for main display headings when installed, with safe system
 
 ## Assets
 Approved logo: `public/charis-official-logo.png`. Approved brand mark and favicon assets are in `public/`; admins can replace allowed assets using Brand & media.
+
+## Approved design requirement: full visual campaign canvas (future Batch 2)
+The user requests a genuine drag-and-drop email design experience, **not merely coloured content blocks**. The eventual canvas must support inserting rectangles, circles, pill badges, banners and shapes; typing and editing text inside the shapes; foreground/background colour, opacity, borders, size, padding, alignment, movement, layer order, undo/redo, reusable groups and responsive preview. Implement email-safe export (table-backed/rasterized-safe fallbacks as required), with sanitization and approved bank-hosted images. Never promise arbitrary browser/CSS effects will render identically in Gmail, Outlook and mobile email clients. This capability is NOT part of Migration 027 and should not be marked shipped in Batch 1.

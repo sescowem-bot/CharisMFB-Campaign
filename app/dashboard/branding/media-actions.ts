@@ -17,7 +17,7 @@ function mediaType(bytes:Uint8Array):{mime:string;ext:string}|null{
  return null;
 }
 async function allowedEditor(org:string){
- if(process.env.SINGLE_COMPANY_MODE!=='true'||org!==process.env.SINGLE_COMPANY_ORG_ID)throw new Error('This action is restricted to the Charis workspace.');
+ if(org!==process.env.SINGLE_COMPANY_ORG_ID)throw new Error('This action is restricted to the Charis workspace.');
  const db=await supabaseServer();
  const {data:{user}}=await db.auth.getUser();if(!user?.email_confirmed_at)throw new Error('Verified staff sign-in required.');
  const [{data:canEdit,error},{data:workspace}]=await Promise.all([

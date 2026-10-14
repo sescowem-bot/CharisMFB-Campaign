@@ -1,30 +1,20 @@
 import 'server-only';
 import {cache} from 'react';
-import {cookies} from 'next/headers';
 import {supabaseServer} from '@/lib/supabase/server';
 import {currentVerifiedUser} from '@/lib/auth/current-user';
+import {charisOrgId} from '@/lib/bank';
 export const currentAccount=cache(async()=>{
- if(!process.env.NEXT_PUBLIC_SUPABASE_URL||!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)return null;
+ const org=charisOrgId();if(!org||!process.env.NEXT_PUBLIC_SUPABASE_URL||!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)return null;
  try{
- const user=await currentVerifiedUser();if(!user)return null;
- const db=await supabaseServer();
- const configured=process.env.SINGLE_COMPANY_MODE==='true'?process.env.SINGLE_COMPANY_ORG_ID:undefined;
- // Single-bank deployments never load every legacy platform company on each request.
- if(configured){
-  const [{data:owner},{data:workspace},{data:canManageSenders}]=await Promise.all([
-   db.rpc('is_platform_super_admin'),
-   db.from('organizations').select('id,name,status').eq('id',configured).maybeSingle(),
-   db.rpc('can_manage_senders',{p_org:configured})
+  const user=await currentVerifiedUser();if(!user)return null;
+  const db=await supabaseServer();
+  const [{data:owner},{data:workspace},{data:teamAdmin},{data:providerAdmin},{data:accessAdmin},{data:auditAdmin},{data:permissions}]=await Promise.all([
+   db.rpc('is_platform_super_admin'),db.from('organizations').select('id,name,status,slug').eq('id',org).eq('slug','charis-mfb').maybeSingle(),
+   db.rpc('can_manage_team',{p_org:org}),db.rpc('can_manage_senders',{p_org:org}),
+   db.rpc('charis_has_permission',{p_org:org,p_key:'access.manage'}),db.rpc('charis_has_permission',{p_org:org,p_key:'audit.view'}),db.rpc('charis_permission_list',{p_org:org})
   ]);
-  return {id:user.id,admin:owner===true,providerAdmin:owner===true||canManageSenders===true,workspace:workspace??null,ownerWorkspace:null};
- }
- const {data:owner}=await db.rpc('is_platform_super_admin');
- const {data:companies}=await db.from('organizations').select('id,name,status').order('name');
- const {data:own}=owner===true?await db.from('platform_workspace').select('organization_id').maybeSingle():{data:null};
- const ownerWorkspace=companies?.find(c=>c.id===own?.organization_id)??null;
- const preferred=process.env.SINGLE_COMPANY_MODE==='true'?(process.env.SINGLE_COMPANY_ORG_ID||''):(await cookies()).get('charis-workspace')?.value;
- // Organizations are fetched through the signed-in user's RLS-scoped client.
- const workspace=companies?.find(c=>c.id===preferred)??ownerWorkspace??companies?.find(c=>c.status==='active')??companies?.[0]??null;
- return {id:user.id,admin:owner===true,providerAdmin:owner===true,workspace,ownerWorkspace};
+  if(!workspace||workspace.status!=='active')return null;
+  const isOwner=owner===true;
+  return {id:user.id,admin:isOwner||teamAdmin===true||accessAdmin===true,owner:isOwner,providerAdmin:isOwner||providerAdmin===true,auditAdmin:isOwner||auditAdmin===true,accessAdmin:isOwner||accessAdmin===true,workspace,ownerWorkspace:null,permissions:Array.isArray(permissions)?permissions as string[]:[]};
  }catch{return null;}
 });

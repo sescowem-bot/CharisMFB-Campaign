@@ -1,2 +1,2 @@
-import {CmsPage} from '@/components/cms-page';
-export default function Page(){return <CmsPage slug='faq'/>;}
+import {redirect} from 'next/navigation';
+export default function FAQ(){redirect('/dashboard/help');}

@@ -10,7 +10,6 @@ type State={error?:string;success?:string};
 const providerSchema=z.enum(['resend','brevo','mailjet']);
 async function access(){
  const org=z.string().uuid().parse(process.env.SINGLE_COMPANY_ORG_ID);
- if(process.env.SINGLE_COMPANY_MODE!=='true')throw new Error('Charis single-company setup required.');
  const db=await supabaseServer();const {data:{user}}=await db.auth.getUser();
  if(!user?.email_confirmed_at)throw new Error('Sign in with a verified email.');
  const {data:admin}=await db.rpc('can_manage_senders',{p_org:org});

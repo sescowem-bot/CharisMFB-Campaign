@@ -26,3 +26,8 @@ Existing marketing opt-in, unsubscribe suppression, anti-duplicate delivery, ind
 ## Release verification
 
 Check the 026 migration with a staging bank copy, run `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` on Node 24, and test real staff access. Do not enable customer broadcasting as part of installing this release.
+
+## Migration 027: bank-managed department directory
+The eleven rows inserted by historical Migration 026 are not hardcoded in the new UI or recreated by Migration 027. Existing records and assignments remain unchanged. An administrator with `departments.manage` can create, edit, rename, archive or reactivate departments; archiving refuses when there are open staff reminders. The bank can keep only the departments it needs. Department names never determine access by themselves.
+
+The new Administration Centre `/admin/access` permits custom permission roles and per-user allow/deny overrides. Permission grants are audited and limited to capabilities the grantor already holds. Platform Super Admin ownership is sealed and distinct. Existing company administrators remain broadly privileged; use individual denials or custom roles for least-privilege staff. Branch data isolation is still future work.

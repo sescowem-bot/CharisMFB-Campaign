@@ -19,7 +19,7 @@ export async function inviteStaffAction(_:ManagementResult,form:FormData):Promis
   const {data:{user}}=await db.auth.getUser();
   if(!user?.email_confirmed_at)throw new Error('Please sign in with a verified account.');
   const org=z.string().uuid().parse(form.get('org'));
-  if(process.env.SINGLE_COMPANY_MODE==='true'&&org!==process.env.SINGLE_COMPANY_ORG_ID)throw new Error('Invalid Charis workspace.');
+  if(org!==process.env.SINGLE_COMPANY_ORG_ID)throw new Error('Invalid Charis workspace.');
   const email=z.string().email().max(254).parse(form.get('email')).trim().toLowerCase();
   const role=z.enum(['company_admin','manager','campaign_lead','designer','approver','analyst','viewer']).parse(form.get('role'));
   const {data:authorized,error:accessError}=await db.rpc('can_manage_team',{p_org:org});

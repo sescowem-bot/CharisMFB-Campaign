@@ -9,7 +9,7 @@ import {domainName,mailbox,senderName} from '@/lib/email/validation';
 export type CharisConnectResult={success?:string;error?:string};
 const uuid=z.string().uuid();
 function checkCharis(org:string){
- if(process.env.SINGLE_COMPANY_MODE!=='true'||org!==process.env.SINGLE_COMPANY_ORG_ID)
+ if(org!==process.env.SINGLE_COMPANY_ORG_ID)
   throw new Error('Sender settings are only available to the configured Charis workspace.');
 }
 /** No sender email/name stored in Vercel. Admin chooses a mailbox on a currently verified Resend domain. */

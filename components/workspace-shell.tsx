@@ -14,8 +14,9 @@ export async function WorkspaceShell({title,subtitle,actions,org,admin:adminRequ
 }) {
   const [account,assets,verifiedUser]=await Promise.all([currentAccount(),charisBrandAssets(),currentVerifiedUser()]);
   const admin=account?.admin===true;
+  const permitted=(key:string)=>account?.permissions?.includes(key)===true;
   const workspace=org||account?.workspace?.id;
-  const scoped=(path:string,extra='')=>workspace?`${path}?org=${encodeURIComponent(workspace)}${extra}`:path;
+  const scoped=(path:string,extra='')=>extra?`${path}?${extra.replace(/^&/,'')}`:path;
   const liveSending=process.env.EMAIL_DELIVERY_ENABLED==='true';
   const email=verifiedUser?.email||'';
   const initials=(email.split('@')[0]||'C').replace(/[^a-z0-9]/gi,'').slice(0,2).toUpperCase()||'C';
@@ -30,26 +31,28 @@ export async function WorkspaceShell({title,subtitle,actions,org,admin:adminRequ
       <nav aria-label="Charis workspace navigation">
         <NavLink href="/dashboard"><LayoutDashboard size={18}/> Overview</NavLink>
         <div className="sidebar-label">Campaigns</div>
-        <NavLink href={scoped('/dashboard/campaigns','&create=1')} match="/dashboard/campaigns/new"><PenSquare size={18}/> Create campaign</NavLink>
-        <NavLink href={scoped('/dashboard/campaigns')}><Mail size={18}/> All campaigns</NavLink>
-        <NavLink href={scoped('/dashboard/approvals')}><ClipboardCheck size={18}/> Approvals</NavLink>
-        <NavLink href={scoped('/dashboard/delivery')}><Send size={18}/> Send &amp; delivery</NavLink>
-        <NavLink href={scoped('/dashboard/reports')}><BarChart3 size={18}/> Reports</NavLink>
+        {permitted('campaigns.create')&&<NavLink href={scoped('/dashboard/campaigns','&create=1')} match="/dashboard/campaigns/new"><PenSquare size={18}/> Create campaign</NavLink>}
+        {permitted('campaigns.view')&&<NavLink href={scoped('/dashboard/campaigns')}><Mail size={18}/> All communications</NavLink>}
+        {permitted('campaigns.approve')&&<NavLink href={scoped('/dashboard/approvals')}><ClipboardCheck size={18}/> Approvals</NavLink>}
+        {permitted('campaigns.send')&&<NavLink href={scoped('/dashboard/delivery')}><Send size={18}/> Send &amp; delivery</NavLink>}
+        {permitted('campaigns.create')&&<NavLink href={scoped('/dashboard/sms')}><Mail size={18}/> SMS communications</NavLink>}
+        {permitted('reports.view')&&<NavLink href={scoped('/dashboard/reports')}><BarChart3 size={18}/> Reports</NavLink>}
         <div className="sidebar-label">Customers</div>
-        <NavLink href={scoped('/dashboard/contacts')}><Users size={18}/> Manage customers</NavLink>
-        <NavLink href={scoped('/dashboard/imports')}><Upload size={18}/> Import contacts</NavLink>
-        <NavLink href={scoped('/dashboard/lists')}><FolderKanban size={18}/> Saved groups</NavLink>
-        <NavLink href={scoped('/dashboard/segments')}><Filter size={18}/> Audience filters</NavLink>
+        {permitted('customers.manage')&&<NavLink href={scoped('/dashboard/contacts')}><Users size={18}/> Manage customers</NavLink>}
+        {permitted('customers.manage')&&<NavLink href={scoped('/dashboard/imports')}><Upload size={18}/> Import contacts</NavLink>}
+        {permitted('customers.manage')&&<NavLink href={scoped('/dashboard/lists')}><FolderKanban size={18}/> Saved groups</NavLink>}
+        {permitted('customers.manage')&&<NavLink href={scoped('/dashboard/segments')}><Filter size={18}/> Audience filters</NavLink>}
         <div className="sidebar-label">Team workspace</div>
         <NavLink href={scoped('/dashboard/departments')}><Building2 size={18}/> Departments</NavLink>
-        <NavLink href={scoped('/dashboard/reminders')}><Bell size={18}/> Reminders</NavLink>
+        {(permitted('reminders.view')||permitted('reminders.manage'))&&<NavLink href={scoped('/dashboard/reminders')}><Bell size={18}/> Team reminders</NavLink>}
+        <NavLink href="/dashboard/help"><FileText size={18}/> Help &amp; workflows</NavLink>
         <div className="sidebar-label">Settings</div>
-        <NavLink href={scoped('/dashboard/templates')}><FileText size={18}/> Email templates</NavLink>
-        <NavLink href={scoped('/dashboard/senders')}><Mail size={18}/> Sender settings</NavLink>
-        <NavLink href={scoped('/dashboard/branding')}><Palette size={18}/> Brand &amp; media</NavLink>
-        <NavLink href={scoped('/dashboard/footers')}><FileText size={18}/> Email footers</NavLink>
-        <NavLink href={scoped('/dashboard/team')}><UserCog size={18}/> Team access</NavLink>
-        {(admin||account?.providerAdmin===true)&&<><div className="sidebar-label">Administration</div><NavLink href="/admin/providers"><Settings2 size={18}/> Email providers</NavLink>{admin&&<NavLink href="/admin/audit"><ScrollText size={18}/> Audit log</NavLink>}</>}
+        {permitted('templates.manage')&&<NavLink href={scoped('/dashboard/templates')}><FileText size={18}/> Email templates</NavLink>}
+        {permitted('providers.manage')&&<NavLink href={scoped('/dashboard/senders')}><Mail size={18}/> Sender settings</NavLink>}
+        {permitted('templates.manage')&&<NavLink href={scoped('/dashboard/branding')}><Palette size={18}/> Brand &amp; media</NavLink>}
+
+        {permitted('staff.manage')&&<NavLink href={scoped('/dashboard/team')}><UserCog size={18}/> Team access</NavLink>}
+        {(admin||account?.providerAdmin===true||account?.auditAdmin===true)&&<><div className="sidebar-label">Administration</div><NavLink href="/admin"><Settings2 size={18}/> Admin Centre</NavLink>{account?.accessAdmin===true&&<NavLink href="/admin/access"><UserCog size={18}/> Roles &amp; permissions</NavLink>}{account?.providerAdmin===true&&<NavLink href="/admin/providers"><Settings2 size={18}/> Email providers</NavLink>}{account?.auditAdmin===true&&<NavLink href="/admin/audit"><ScrollText size={18}/> Audit log</NavLink>}</>}
       </nav>
       <div className="sidebar-foot">
         <div className="user-card"><span className="avatar" aria-hidden="true">{initials}</span><div style={{minWidth:0}}><strong style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{email||'Charis staff'}</strong><small>{admin?'Administrator':'Authorised staff'}</small></div></div>

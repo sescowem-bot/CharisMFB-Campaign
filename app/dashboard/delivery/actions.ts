@@ -11,7 +11,7 @@ export async function queueAction(_:QueueResult,form:FormData):Promise<QueueResu
   const {data:allowed}=await db.rpc('can_dispatch_campaigns',{p_org:org});if(!allowed)throw new Error('Company Admin or Manager access required.');
   const action=z.enum(['enqueue','pause','resume','cancel','dispatch_one']).parse(form.get('action'));
   if(action==='dispatch_one'){
-   const {data:own,error:ownerError}=await db.rpc('is_owner_workspace',{p_org:org});if(ownerError||!(own===true||(process.env.SINGLE_COMPANY_MODE==='true'&&process.env.SINGLE_COMPANY_ORG_ID===org)))throw new Error('This controlled test action is unavailable for this workspace.');
+   const {data:own,error:ownerError}=await db.rpc('is_owner_workspace',{p_org:org});if(ownerError||!(own===true||(process.env.SINGLE_COMPANY_ORG_ID===org)))throw new Error('This controlled test action is unavailable for this workspace.');
    const result=await processDelivery({org,run:z.string().uuid().parse(form.get('run_id'))});
    revalidatePath('/dashboard/delivery');revalidatePath('/dashboard/reports');
    return {success:result.result==='accepted'?'One email was accepted by the provider. Check reports for delivery updates.':result.result==='idle'?'No pending recipient is currently due in this run.':`Dispatch result: ${result.result}. Check the run status before continuing.`};
@@ -25,7 +25,7 @@ export async function queueAction(_:QueueResult,form:FormData):Promise<QueueResu
    const {data:run,error}=await db.rpc('campaign_enqueue',{p_org:org,p_campaign:id,p_revision:z.coerce.number().int().positive().parse(form.get('revision'))});if(error)throw new Error(error.message);
    // The same explicit Send action dispatches ONE due recipient immediately in Charis mode.
    // Remaining recipients stay safely queued for the scheduled worker (or controlled dispatch).
-   if(process.env.SINGLE_COMPANY_MODE==='true'&&org===process.env.SINGLE_COMPANY_ORG_ID&&!row.requested_send_at&&run){
+   if(org===process.env.SINGLE_COMPANY_ORG_ID&&!row.requested_send_at&&run){
     try{
      const outcome=await processDelivery({org,run:String(run)});
      revalidatePath('/dashboard/delivery');revalidatePath('/dashboard/campaigns');

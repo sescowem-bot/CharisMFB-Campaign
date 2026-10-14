@@ -9,7 +9,7 @@ import {ProviderRouteForm,MailjetSenderConnect,BrevoSenderConnect,MonthlyEmailBu
 export default async function Providers() {
  const db=await supabaseServer();
  const {data:{user}}=await db.auth.getUser();if(!user)redirect('/login');
- const {data:admin}=await db.rpc('is_platform_super_admin');const org=process.env.SINGLE_COMPANY_MODE==='true'?process.env.SINGLE_COMPANY_ORG_ID:'';
+ const {data:admin}=await db.rpc('is_platform_super_admin');const org=process.env.SINGLE_COMPANY_ORG_ID||'';
  const {data:charisAdmin}=org?await db.rpc('can_manage_senders',{p_org:org}):{data:false};
  if(!admin&&!charisAdmin)redirect('/dashboard');
  const [{data,error},{data:routes},{data:senders},{data:domains},{data:budget}]=await Promise.all([

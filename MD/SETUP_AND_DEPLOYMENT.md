@@ -10,7 +10,6 @@
 Use `.env.charis.example` for the exact names. Principal settings:
 
 ```dotenv
-SINGLE_COMPANY_MODE=true
 SINGLE_COMPANY_ORG_ID=YOUR_CHARIS_ORG_UUID
 NEXT_PUBLIC_APP_URL=https://your-charis-site.example
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
@@ -24,7 +23,7 @@ EMAIL_DELIVERY_ENABLED=false
 The Supabase URL and publishable key are intentionally browser-accessible; service-role and Resend keys must never have `NEXT_PUBLIC_` prefixes. The sender email is configured inside Charis against an already verified and connected domain; don't hardcode sender identity in the deployment. Never share live keys or save `.env.local` to Git.
 
 ## Database
-SQL history lives in `supabase/migrations/` and includes **001–022**. Back up the existing Supabase project, verify applied migrations and run **only missing migrations in ascending order**, followed by a check of permissions, Auth and customer tables. Previous fresh-install SQL is not a live upgrade method. Optional diagnostic SQL is in `supabase/diagnostics/`.
+SQL history lives in `supabase/migrations/` and includes **001–027** in the Batch 1 source. Back up the existing Supabase project, verify applied migrations and run **only missing migrations in ascending order**, followed by a check of permissions, Auth and customer tables. Previous fresh-install SQL is not a live upgrade method. Optional diagnostic SQL is in `supabase/diagnostics/`.
 
 ## Build and release
 ```bash
@@ -54,3 +53,29 @@ Keep the previous working Git commit, a timestamped database backup, evidence of
 - Existing Charis campaign runs still use one verified provider per campaign. Multi-provider recipient splitting is a separate release requiring atomic per-recipient provider assignment and reconciliation; do not claim it is active after 024.
 
 - SMS is not routed through these email providers. It continues as a separate controlled Termii pilot in Migration 023.
+
+## Batch 1 source upgrade (Migration 027)
+- **Do not apply Migration 027 to production immediately.** Back up and execute it against staging with the latest 026 schema, then verify RPCs and policies with real bank staff roles.
+- `SINGLE_COMPANY_ORG_ID` is required and must point to the existing active organisation whose slug is `charis-mfb`. The old `SINGLE_COMPANY_MODE` flag is no longer used.
+- Departments are created at **Departments** and advanced role delegation is managed under **Administration → Roles & permissions**. No production department is automatically added by 027; previous 026 records can be archived by the authorised administrator.
+- Admin permission delegation is not an alternative to MFA or production data-access review. Do not enable bulk email/SMS or modify existing provider settings as part of the foundation upgrade.
+- Rollback: revert the application to the previous commit, keep sending OFF, and do not drop permission/audit tables without a reviewed migration and backup. Permission function overrides require a corresponding reviewed rollback if reverting the database; simply reverting Next.js source is not a complete database rollback.
+
+### When installing only the Batch 1 PATCH
+Patch copies do not automatically delete old source routes. After copying and reviewing changes, remove these retired source files if they still exist (never remove the old SQL migrations):
+- `app/about/page.tsx`
+- `app/admin/cms/actions.ts`
+- `app/admin/cms/page.tsx`
+- `app/admin/companies/page.tsx`
+- `app/admin/plans/page.tsx`
+- `app/admin/workspace/actions.ts`
+- `app/admin/workspace/page.tsx`
+- `components/admin-forms.tsx`
+- `components/charis-navigation.tsx`
+- `components/cms-editor.tsx`
+- `components/owner-sender-form.tsx`
+- `components/platform-brand-form.tsx`
+- `lib/admin-operations.ts`
+- `lib/charis-departments.ts`
+- `lib/payments/paystack.ts`
+- `lib/payments/signature.ts`

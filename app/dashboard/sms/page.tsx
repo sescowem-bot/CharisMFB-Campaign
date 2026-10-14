@@ -9,7 +9,7 @@ export default async function SmsPage({searchParams}:{searchParams:Promise<{org?
  const {org}=await searchParams;
  if(!z.string().uuid().safeParse(org).success)redirect('/dashboard');
  const company=org!;
- if(process.env.SINGLE_COMPANY_MODE==='true'&&company!==process.env.SINGLE_COMPANY_ORG_ID)redirect('/dashboard');
+ if(company!==process.env.SINGLE_COMPANY_ORG_ID)redirect('/dashboard');
  const db=await supabaseServer();const {data:{user}}=await db.auth.getUser();if(!user)redirect('/login');
  const [{data:member},{data:admin},{data:canEdit},{data:canApprove}]=await Promise.all([
   db.rpc('is_organization_member',{org:company}),db.rpc('is_platform_super_admin'),db.rpc('can_edit_campaigns',{p_org:company}),db.rpc('can_approve_campaigns',{p_org:company})]);

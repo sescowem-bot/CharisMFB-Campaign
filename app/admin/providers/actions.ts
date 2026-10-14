@@ -9,7 +9,7 @@ export async function providerAction(_:ProviderResult,form:FormData):Promise<Pro
  try {
   const db=await supabaseServer();const {data:{user}}=await db.auth.getUser();if(!user?.email_confirmed_at)throw new Error('Verified sign-in required.');
   const {data:owner}=await db.rpc('is_platform_super_admin');
-  const org=process.env.SINGLE_COMPANY_MODE==='true'?process.env.SINGLE_COMPANY_ORG_ID:'';
+  const org=process.env.SINGLE_COMPANY_ORG_ID||'';
   const {data:charisAdmin}=org?await db.rpc('can_manage_senders',{p_org:org}):{data:false};
   if(!owner&&!charisAdmin)throw new Error('Charis administrator access required.');
   const provider=z.enum(['resend','brevo','mailjet']).parse(form.get('provider'));
@@ -29,20 +29,6 @@ export async function providerAction(_:ProviderResult,form:FormData):Promise<Pro
    const {error}=await service.from('email_provider_settings').update({health_status:healthy?'healthy':'error',checked_at:new Date().toISOString()}).eq('provider',provider);
    if(error)throw new Error('Provider health could not be recorded.');
    revalidatePath('/admin/providers');return healthy?{success:'Provider API connection verified. This does not confirm delivery or sending allowance.'}:{error:'Provider connection failed. Check the server API key, account permissions and provider dashboard.'};
-  } else if(form.get('action')==='reconcile') {
-   if(process.env.SINGLE_COMPANY_MODE==='true')throw new Error('Charis reuses verified Resend domains through Sender Settings. Technical domain ID recovery is disabled.');
-   const id=z.string().uuid().parse(form.get('domain_id'));
-   const providerId=z.string().trim().min(1).max(200).parse(form.get('provider_domain_id'));
-   const service=emailServiceDb();
-   const {data:domain,error:read}=await service.from('sending_domains').select('domain,provider,provider_domain_id,verification_status').eq('id',id).single();
-   if(read||!domain||domain.provider!==provider||domain.provider_domain_id||domain.verification_status==='revoked')throw new Error('Unresolved domain not found for this provider.');
-   const key=process.env[provider==='resend'?'RESEND_API_KEY':provider==='brevo'?'BREVO_API_KEY':'MAILJET_API_KEY']||'';
-   const result=await providerAdapter(provider,key).check(domain.domain,providerId);
-   const {error:save}=await service.rpc('email_domain_sync',{p_id:id,p_provider_id:result.id,p_records:result.records,p_verified:false});
-   if(save)throw new Error('Reconciliation could not be saved.');
-   const {error:audit}=await service.from('audit_logs').insert({actor_id:user.id,action:'domain.reconciled',entity_type:'sending_domain',entity_id:id});
-   if(audit)return {error:'Domain was linked, but audit write failed. Review database logging before continuing.'};
-   revalidatePath('/dashboard/senders');
   } else throw new Error('Unknown operation.');
   revalidatePath('/admin/providers');return {success:'Provider settings saved.'};
  }catch(e){return {error:e instanceof Error?e.message:'Provider request failed.'};}

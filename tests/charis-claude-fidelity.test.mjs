@@ -32,6 +32,6 @@ test('staff login follows two-panel Claude design while keeping Supabase login',
 test('bank layout does not call the legacy CMS site function during ordinary render', () => {
  const root=read('app/layout.tsx');
  assert.ok(root.includes("import './charis-claude-faithful.css'"));
- assert.match(root,/if\(bank\)return <html/);
- assert.ok(root.indexOf('if(bank)return') < root.lastIndexOf('const site=await publishedSite()'));
+ assert.match(root,/className="charis-premium"/);
+ assert.doesNotMatch(root,/publishedSite/);
 });

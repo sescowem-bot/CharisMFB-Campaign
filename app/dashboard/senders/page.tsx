@@ -11,7 +11,7 @@ import {CheckCircle2,MailCheck,ShieldCheck} from 'lucide-react';
 export default async function Senders({searchParams}:{searchParams:Promise<{org?:string}>}) {
  const {org}=await searchParams;
  if(!org||!z.string().uuid().safeParse(org).success)redirect('/dashboard');
- if(process.env.SINGLE_COMPANY_MODE!=='true'||org!==process.env.SINGLE_COMPANY_ORG_ID)redirect('/dashboard');
+ if(org!==process.env.SINGLE_COMPANY_ORG_ID)redirect('/dashboard');
  const db=await supabaseServer();
  const {data:{user}}=await db.auth.getUser();
  if(!user)redirect('/login');

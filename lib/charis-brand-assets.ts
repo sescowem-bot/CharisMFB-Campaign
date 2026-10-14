@@ -5,7 +5,6 @@ import {createClient} from '@supabase/supabase-js';
 
 /** Public graphic URLs only; this module NEVER returns service credentials or customer data. */
 const loadBrandAssets=unstable_cache(async()=>{
- if(process.env.SINGLE_COMPANY_MODE!=='true')return {logo:'',favicon:''};
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
  const key=process.env.SUPABASE_SERVICE_ROLE_KEY;
  const org=process.env.SINGLE_COMPANY_ORG_ID;

@@ -24,8 +24,8 @@ test('sms tests only use a server configured number and key',()=>{
  assert.match(src,/AbortSignal\.timeout/);
 });
 test('SMS navigation is added once and documentation lives in MD',()=>{
- const nav=read('components/charis-navigation.tsx');
- assert.equal((nav.match(/label:'SMS communications'/g)||[]).length,1);
+ const nav=read('components/workspace-shell.tsx');
+ assert.equal((nav.match(/SMS communications/g)||[]).length,1);
  const doc=read('MD/SMS_AND_SENDGRID.md');
  assert.match(doc,/no ability to send SMS to customers/i);
 });

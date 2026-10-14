@@ -20,7 +20,7 @@ test('unsubscribe remains purpose-specific, not account closure',()=>{
  assert.match(content,/Stop promotional emails/);
 });
 test('preferences are visible in staff navigation and customer management',()=>{
- assert.match(src('components/charis-navigation.tsx'),/Communication preferences/);
+ assert.match(src('app/dashboard/contacts/page.tsx'),/Unsubscribed & preferences/);
  assert.match(src('app/dashboard/contacts/page.tsx'),/Unsubscribed & preferences/);
 });
 test('no service notice sending channel introduced, and unsubscribe policy preserved',()=>{
