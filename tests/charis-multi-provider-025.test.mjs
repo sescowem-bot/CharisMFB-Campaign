@@ -24,7 +24,12 @@ test('Provider idempotency and rate handling',async()=>{
   assert.equal(opts.headers['Idempotency-Key'],'campaign-delivery/'+email.id);
   return Response.json({id:'resend-id'});
  });assert.equal(resend.status,'accepted');
- const rate=await sendQueuedEmail({...email,provider:'brevo'},async()=>Response.json({},{status:429}));assert.equal(rate.status,'retry');
+ const rate=await sendQueuedEmail({...email,provider:'brevo'},async(url,opts)=>{
+  assert.equal(opts.headers['api-key'],email.key);
+  assert.equal(opts.headers.Authorization,undefined);
+  assert.equal(opts.headers['Content-Type'],'application/json');
+  return Response.json({},{status:429});
+ });assert.equal(rate.status,'retry');
  const unknown=await sendQueuedEmail({...email,provider:'brevo'},async()=>{throw new Error('Network timeout');});assert.equal(unknown.status,'unknown');
 });
 test('Routing SQL locks quotas, suppresses unsubscribes and distinguishes marketing APIs',()=>{

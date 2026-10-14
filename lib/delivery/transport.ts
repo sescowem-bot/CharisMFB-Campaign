@@ -19,9 +19,19 @@ export async function sendQueuedEmail(input:{provider:Provider;key:string;mailje
   CustomCampaign:'Charis-'+(input.campaignId||input.id).slice(0,24),DeduplicateCampaign:true,Headers:listHeaders}]};
  if(input.provider==='mailjet'&&!input.mailjetSecret)throw new Error('Mailjet secret is missing');
  const endpoint=input.provider==='resend'?'https://api.resend.com/emails':input.provider==='brevo'?'https://api.brevo.com/v3/smtp/email':'https://api.mailjet.com/v3.1/send';
- const auth=input.provider==='resend'?{Authorization:`Bearer ${input.key}`,'Idempotency-Key':`campaign-delivery/${input.id}`}:input.provider==='brevo'?{'api-key':input.key}:{Authorization:`Basic ${Buffer.from(input.key+':'+input.mailjetSecret).toString('base64')}`};
+ // A single concrete string dictionary is assignable to fetch HeadersInit.
+ // Provider-specific object unions can infer optional undefined keys and fail strict type checks.
+ const headers:Record<string,string>={'Content-Type':'application/json'};
+ if(input.provider==='resend'){
+  headers.Authorization=`Bearer ${input.key}`;
+  headers['Idempotency-Key']=`campaign-delivery/${input.id}`;
+ }else if(input.provider==='brevo'){
+  headers['api-key']=input.key;
+ }else{
+  headers.Authorization=`Basic ${Buffer.from(`${input.key}:${input.mailjetSecret}`).toString('base64')}`;
+ }
  let response:Response;
- try {response=await transport(endpoint,{method:'POST',headers:{'Content-Type':'application/json',...auth},body:JSON.stringify(body),signal:AbortSignal.timeout(15000),cache:'no-store'});}catch{return {status:'unknown',reason:'network_outcome_unconfirmed'};}
+ try {response=await transport(endpoint,{method:'POST',headers,body:JSON.stringify(body),signal:AbortSignal.timeout(15000),cache:'no-store'});}catch{return {status:'unknown',reason:'network_outcome_unconfirmed'};}
  if(response.status===429)return {status:'retry',reason:'provider_rate_limit'};
  if(!response.ok)return {status:response.status>=500||response.status===408?'unknown':'failed',reason:`provider_http_${response.status}`};
  const result=await response.json().catch(()=>null);

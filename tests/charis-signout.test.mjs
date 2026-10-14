@@ -25,6 +25,6 @@ test('Contact page always passes the validated organisation ID', () => {
   assert.match(content, /const org=params\.org;\s*if\(!org\)redirect\('\/dashboard'\)/);
   assert.match(content, /contactsAccess\(org\)/);
   assert.doesNotMatch(content, /contactsAccess\(params\.org\)/);
-  assert.match(content, /<ContactRowActions org=\{org\}/);
+  assert.match(content, /<CustomerTable org=\{org\}/);
   assert.equal(content.match(/params\.org/g)?.length, 1);
 });
