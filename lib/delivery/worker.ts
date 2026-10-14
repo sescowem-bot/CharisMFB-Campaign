@@ -3,29 +3,84 @@ import {emailServiceDb,refreshDomain} from '@/lib/email/server';
 import {renderCampaign,type PreviewContact} from '@/lib/campaigns/render';
 import {sendQueuedEmail} from './transport';
 import {z} from 'zod';
-const claimSchema=z.object({delivery:z.object({id:z.string().uuid(),organization_id:z.string().uuid(),lease_token:z.string().uuid(),recipient_email:z.string(),recipient:z.custom<PreviewContact>(),unsubscribe_token:z.string().uuid()}),run:z.object({id:z.string().uuid(),provider:z.enum(['resend','brevo']),snapshot:z.object({campaign:z.object({design:z.unknown(),subject:z.string(),preheader:z.string()}),sender:z.object({id:z.string().uuid(),domain_id:z.string().uuid(),from_name:z.string(),from_email:z.string(),reply_to:z.string()}),brand:z.object({display_name:z.string(),postal_address:z.string(),primary_color:z.string()})})})});
+import {mailbox} from '@/lib/email/validation';
+import {providerAdapter} from '@/lib/email/providers';
+
+const claimSchema=z.object({delivery:z.object({id:z.string().uuid(),organization_id:z.string().uuid(),lease_token:z.string().uuid()})});
+const dispatchContext=z.object({
+ delivery:z.object({id:z.string().uuid(),organization_id:z.string().uuid(),lease_token:z.string().uuid(),recipient_email:z.string().email(),recipient:z.custom<PreviewContact>(),unsubscribe_token:z.string().uuid(),provider:z.enum(['resend','brevo','mailjet'])}),
+ run:z.object({id:z.string().uuid(),snapshot:z.object({campaign:z.object({design:z.unknown(),subject:z.string(),preheader:z.string().nullable().optional()}),brand:z.object({display_name:z.string(),postal_address:z.string(),primary_color:z.string()})})}),
+ sender:z.object({id:z.string().uuid(),domain_id:z.string().uuid(),from_name:z.string(),from_email:z.string(),reply_to:z.string()}),
+ domain:z.object({id:z.string().uuid(),provider:z.enum(['resend','brevo','mailjet'])})
+});
+
+/** One worker request reserves and sends at most one contact. Do not auto-retry unknown submissions. */
 export async function processDelivery(scope?:{org:string;run:string}) {
- if(process.env.EMAIL_DELIVERY_ENABLED!=='true')return {result:'disabled'};
+ if(process.env.EMAIL_DELIVERY_ENABLED!=='true'||process.env.CHARIS_MULTI_PROVIDER_ENABLED!=='true')return {result:'disabled'};
  const url=process.env.NEXT_PUBLIC_APP_URL;if(!url)throw new Error('Public application URL is missing');
  const origin=new URL(url);if(origin.protocol!=='https:'||origin.username||origin.password||origin.pathname!=='/'||origin.search||origin.hash)throw new Error('Public application URL must be an HTTPS origin');
- const db=emailServiceDb();if(!scope){const {error:recovery}=await db.rpc('delivery_recover');if(recovery)throw new Error('Lease recovery failed');}
- const {data:claim,error}=scope?await db.rpc('owner_delivery_claim',{p_org:z.string().uuid().parse(scope.org),p_run:z.string().uuid().parse(scope.run)}):await db.rpc('delivery_claim');if(error)throw new Error('Queue claim failed');if(!claim)return {result:'idle'};
- const parsed=claimSchema.safeParse(claim);if(!parsed.success)throw new Error('Invalid queue snapshot');
- const {delivery:d,run:r}=parsed.data;
- const unsubscribe=new URL('/api/email/unsubscribe',origin);unsubscribe.searchParams.set('token',d.unsubscribe_token);
- let domain:string,html:string,subject:string,key:string;
- try {
-  key=process.env[r.provider==='resend'?'RESEND_API_KEY':'BREVO_API_KEY']||'';if(!key)throw new Error('Provider key missing');
-  const fresh=await refreshDomain(d.organization_id,r.snapshot.sender.domain_id);if(!fresh.verified)throw new Error('Fresh domain ownership or authentication failed');domain=fresh.row.domain;
-  const rendered=renderCampaign({design:r.snapshot.campaign.design,subject:r.snapshot.campaign.subject,preheader:r.snapshot.campaign.preheader,company:r.snapshot.brand.display_name,address:r.snapshot.brand.postal_address,color:r.snapshot.brand.primary_color,contact:d.recipient,unsubscribeUrl:unsubscribe.href});html=rendered.html;subject=rendered.subject;
+ const db=emailServiceDb();
+ if(!scope){const {error:recovery}=await db.rpc('delivery_recover');if(recovery)throw new Error('Lease recovery failed');}
+ const {data:claim,error:claimed}=scope?
+  await db.rpc('owner_delivery_claim',{p_org:z.string().uuid().parse(scope.org),p_run:z.string().uuid().parse(scope.run)}):
+  await db.rpc('delivery_claim');
+ if(claimed)throw new Error('Queue claim failed');if(!claim)return {result:'idle'};
+ const parsed=claimSchema.safeParse(claim);if(!parsed.success)throw new Error('Invalid queue lease');
+ const d=parsed.data.delivery;
+ const {data:decision,error:begin}=await db.rpc('delivery_begin',{p_id:d.id,p_lease:d.lease_token});
+ if(begin)throw new Error('Delivery reservation failed');if(decision!=='dispatch')return {result:String(decision)};
+ let ctx:z.infer<typeof dispatchContext>;
+ try{
+  const {data,error}=await db.rpc('charis_delivery_context',{p_id:d.id,p_lease:d.lease_token});
+  if(error)throw error;
+  ctx=dispatchContext.parse(data);
+  if(ctx.delivery.provider!==ctx.domain.provider)throw new Error('Provider sender mismatch');
  }catch{
-  const {error}=await db.rpc('delivery_hold',{p_id:d.id,p_lease:d.lease_token,p_reason:'Preparation failed: verify domain, credentials and campaign content'});if(error)throw new Error('Queue hold failed');return {result:'paused'};
+  const {error}=await db.rpc('delivery_finish',{p_id:d.id,p_lease:d.lease_token,p_status:'failed',p_message:null,p_reason:'dispatch_context_invalid'});
+  if(error)throw new Error('Delivery context could not be reconciled');
+  return {result:'paused'};
  }
- const {data:decision,error:begin}=await db.rpc('delivery_begin',{p_id:d.id,p_lease:d.lease_token});if(begin)throw new Error('Dispatch reservation failed');if(decision!=='dispatch')return {result:String(decision)};
+ const {delivery,run,sender,domain}=ctx;
+ let subject:string,html:string;
+ let key:string;
+ try{
+  const envKey=delivery.provider==='resend'?'RESEND_API_KEY':delivery.provider==='brevo'?'BREVO_API_KEY':'MAILJET_API_KEY';
+  key=process.env[envKey]||'';
+  if(!key||(delivery.provider==='mailjet'&&!process.env.MAILJET_SECRET_KEY))throw new Error('Provider credentials unavailable');
+  const checked=await refreshDomain(delivery.organization_id,domain.id);
+  if(!checked.verified)throw new Error('Sender verification failed');
+  if(delivery.provider==='mailjet')await providerAdapter('mailjet',key).findVerifiedMailjetSender(sender.from_email);
+  if(delivery.provider==='brevo')await providerAdapter('brevo',key).findVerifiedBrevoSender(sender.from_email);
+  const unsubscribe=new URL('/api/email/unsubscribe',origin);unsubscribe.searchParams.set('token',delivery.unsubscribe_token);
+  const rendered=renderCampaign({design:run.snapshot.campaign.design,subject:run.snapshot.campaign.subject,preheader:run.snapshot.campaign.preheader||'',company:run.snapshot.brand.display_name,address:run.snapshot.brand.postal_address,color:run.snapshot.brand.primary_color,contact:delivery.recipient,unsubscribeUrl:unsubscribe.href});
+  subject=rendered.subject;html=rendered.html;
+ }catch{
+  const {error:finish}=await db.rpc('delivery_finish',{p_id:d.id,p_lease:d.lease_token,p_status:'failed',p_message:null,p_reason:'pre_dispatch_configuration_failed'});
+  if(finish)throw new Error('Preparation failure could not be recorded');
+  await db.from('campaign_runs').update({status:'paused',last_error:'Sender or provider preparation failed. Review before resuming.'}).eq('id',run.id).in('status',['queued','running']);
+  return {result:'paused'};
+ }
+ const unsubscribe=new URL('/api/email/unsubscribe',origin);unsubscribe.searchParams.set('token',delivery.unsubscribe_token);
  let result;
- try{result=await sendQueuedEmail({provider:r.provider,key,id:d.id,name:r.snapshot.sender.from_name,from:r.snapshot.sender.from_email,replyTo:r.snapshot.sender.reply_to,domain,to:d.recipient_email,subject,html,unsubscribe:unsubscribe.href});}catch{result={status:'failed' as const,reason:'invalid_dispatch_content'};}
+ try{
+  result=await sendQueuedEmail({provider:delivery.provider,key,mailjetSecret:process.env.MAILJET_SECRET_KEY,campaignId:run.id,id:d.id,name:sender.from_name,from:sender.from_email,replyTo:sender.reply_to,domain:mailbox(sender.from_email).split('@')[1],to:delivery.recipient_email,subject,html,unsubscribe:unsubscribe.href});
+ }catch {result={status:'failed' as const,reason:'invalid_dispatch_content'};}
  const {error:finish}=await db.rpc('delivery_finish',{p_id:d.id,p_lease:d.lease_token,p_status:result.status,p_message:result.message||null,p_reason:result.reason});
- if(finish)throw new Error('Delivery outcome could not be saved. Do not manually resend; inspect the provider.');
- if(result.status==='unknown'||['provider_http_401','provider_http_403'].includes(result.reason))await db.from('campaign_runs').update({status:'paused',last_error:result.reason}).eq('id',r.id).in('status',['queued','running']);
- return {result:result.status};
+ if(finish)throw new Error('Delivery outcome could not be saved. Do not resend; reconcile with the provider dashboard.');
+ if(result.status==='unknown'||['provider_http_401','provider_http_403','provider_http_402'].includes(result.reason))
+  await db.from('campaign_runs').update({status:'paused',last_error:'Provider delivery requires manual review: '+result.reason}).eq('id',run.id).in('status',['queued','running']);
+ return {result:result.status,provider:delivery.provider};
+}
+
+/** The scheduled worker drains a bounded number of ready jobs without sending concurrent copies. */
+export async function processDeliveryBatch(limit=3){
+ const max=Math.max(1,Math.min(20,Math.floor(limit)));
+ const outcomes:Record<string,number>={};let processed=0;
+ for(let i=0;i<max;i++){
+  const result=await processDelivery();
+  outcomes[result.result]=(outcomes[result.result]||0)+1;
+  if(['idle','disabled','provider_limit','routes_not_configured','company_limit','not_ready'].includes(result.result))break;
+  processed++;
+ }
+ return {processed,outcomes};
 }

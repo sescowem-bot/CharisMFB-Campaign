@@ -35,10 +35,41 @@ export function providerAdapter(provider:Provider,key:string,transport:typeof fe
   }
   const path=(domain:string,id:string)=>provider==='resend'?`/domains/${encodeURIComponent(id)}`:`/senders/domains/${encodeURIComponent(domainName(domain))}`;
   return {
+    /** Brevo sender must be active and its domain independently verified. */
+    async findVerifiedBrevoSender(email:string) {
+      if(provider!=='brevo')throw new Error('Only Brevo supports this sender check.');
+      const value=mailbox(email);
+      const list=await request('/senders');
+      const rows=Array.isArray(list.senders)?list.senders:[];
+      const sender=rows.map(obj).find(item=>String(item.email||'').toLowerCase()===value && item.active===true);
+      if(!sender)throw new Error('This address is not an active Brevo sender. Verify it in your Brevo account.');
+      const domain=value.split('@')[1];
+      const state=normalizeDomain('brevo',await request(`/senders/domains/${encodeURIComponent(domain)}`),domain,domain);
+      if(!state.verified)throw new Error('Brevo domain authentication is incomplete.');
+      return {email:value,domain:state.domain,id:state.id};
+    },
+    /** Mailjet must have already validated a sending mailbox. */
+    async findVerifiedMailjetSender(email:string) {
+      if(provider!=='mailjet')throw new Error('Only Mailjet supports this sender check.');
+      const value=mailbox(email);
+      const list=await request('/v3/REST/sender?Limit=100');
+      const rows=Array.isArray(list.Data)?list.Data:[];
+      const sender=rows.map(obj).find(item=>String(item.Email||'').toLowerCase()===value&&String(item.Status||'').toLowerCase()==='active');
+      if(!sender||!sender.ID)throw new Error('This email is not an active, verified Mailjet sender. Check Mailjet sender validation.');
+      return {id:String(sender.ID),email:value};
+    },
     async create(domain:string) { if(provider==='mailjet')throw new Error('Verify this domain in Mailjet first; Charis does not automatically register Mailjet DNS.'); const name=domainName(domain); const data=await request(provider==='resend'?'/domains':'/senders/domains','POST',{name}); return normalizeDomain(provider,data,name); },
     async check(domain:string,id:string,trigger=false) {
-      if(provider==='mailjet')throw new Error('Verify the Mailjet domain in the provider account before connecting it.');
       if(!id) throw new Error('Provider domain registration needs administrator reconciliation.');
+      if(provider==='mailjet'){
+        const details=await request(`/v3/REST/sender/${encodeURIComponent(id)}`);
+        const senders=Array.isArray(details.Data)?details.Data:[];
+        const sender=obj(senders[0]);
+        const email=String(sender.Email||'').toLowerCase();
+        const active=String(sender.Status||'').toLowerCase()==='active';
+        if(!active||!email.endsWith('@'+domainName(domain)))throw new Error('Mailjet sender is not verified for the expected domain.');
+        return {id:String(sender.ID||id),domain:domainName(domain),verified:true,records:[]};
+      }
       if(trigger) await request(path(domain,id)+(provider==='resend'?'/verify':'/authenticate'),provider==='resend'?'POST':'PUT');
       return normalizeDomain(provider,await request(path(domain,id)),domain,id);
     },

@@ -23,8 +23,10 @@ export default async function Senders({searchParams}:{searchParams:Promise<{org?
   db.from('email_test_attempts').select('id,status,created_at').eq('organization_id',org).order('created_at',{ascending:false}).limit(5)
  ]);
  if(domains.error||senders.error||history.error)return <WorkspaceShell org={org} title="Email sender settings"><p role="alert" className="feedback-error">Sender settings could not be loaded. Confirm Charis migration 018 is installed.</p></WorkspaceShell>;
- const connected=(domains.data||[]).filter(d=>d.verification_status==='verified'&&d.charis_connected===true&&Boolean(d.provider_domain_id)).map(d=>d.domain);
- const current=(senders.data||[]).find(s=>s.is_active&&connected.includes(String(s.from_email).split('@')[1]));
+ const activeDomains=(domains.data||[]).filter(d=>d.verification_status==='verified'&&d.charis_connected===true&&Boolean(d.provider_domain_id));
+ const connected=activeDomains.map(d=>d.domain);
+ const resendDomainIds=new Set(activeDomains.map(d=>d.id));
+ const current=(senders.data||[]).find(s=>s.is_active&&resendDomainIds.has(s.domain_id));
  const email=current?.from_email||'';
  const selected=connected.includes(email.split('@')[1])?email.split('@')[1]:connected[0]||'';
  const pending=(domains.data||[]).filter(d=>d.verification_status!=='verified'&&d.verification_status!=='revoked'&&d.charis_connected===true);
@@ -40,7 +42,7 @@ export default async function Senders({searchParams}:{searchParams:Promise<{org?
   </section>
   <section className="panel"><div className="workspace-heading"><div><h2>3. Send a test</h2><p className="muted">Test delivery to your verified staff email before starting a customer campaign.</p></div><MailCheck size={23}/></div>
    {!senders.data?.length&&<p className="muted">No saved sender yet. Complete steps 1 and 2 first.</p>}
-   {(senders.data||[]).map(s=>{const ready=s.is_active&&connected.includes(String(s.from_email).split('@')[1]);return <div className="sender-domain" key={s.id}><div className="workspace-heading"><div><strong>{s.from_name}</strong><p className="muted">{s.from_email} · Reply-to: {s.reply_to}</p></div><span className={`status-chip ${ready?'status-granted':''}`}>{ready?'Ready to test':s.is_active?'Needs verification':'Disabled'}</span></div>
+   {(senders.data||[]).map(s=>{const ready=s.is_active&&resendDomainIds.has(s.domain_id);return <div className="sender-domain" key={s.id}><div className="workspace-heading"><div><strong>{s.from_name}</strong><p className="muted">{s.from_email} · Reply-to: {s.reply_to}</p></div><span className={`status-chip ${ready?'status-granted':''}`}>{ready?'Ready to test':s.is_active?'Needs verification':'Disabled'}</span></div>
     {ready&&<SenderForm org={org} action="test" label="Send test to my email"><input type="hidden" name="sender_id" value={s.id}/></SenderForm>}
     {s.is_active?<DisableCharisSender org={org} id={s.id}/>:<RemoveUnusedCharisSender org={org} id={s.id}/>}
    </div>})}

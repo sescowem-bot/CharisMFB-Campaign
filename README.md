@@ -12,6 +12,7 @@ This repository contains the working Next.js application, Supabase migrations, c
 - [Set up and deploy](MD/SETUP_AND_DEPLOYMENT.md) — environment variables, migrations and release steps.
 - [Security and communication preferences](MD/SECURITY_AND_COMMUNICATION_PREFERENCES.md) — promotions, unsubscribes and account notices.
 - [Testing and release](MD/TESTING_AND_RELEASE.md) — quality gates and changes.
+- [Email provider routing](MD/EMAIL_DELIVERY_ROUTING.md) — migration 025, credentials, provider policy, queue and webhooks.
 - [Maintainer instructions](MD/AGENTS.md) — development conventions.
 
 ## Run locally
@@ -31,9 +32,11 @@ Configure `.env.local` with actual non-public Supabase and email-provider creden
 
 ## Database and production
 
-Migrations are kept in **`supabase/migrations/` (001–022)** and must be reviewed/applied sequentially on an existing database. **Do not rerun the fresh-install SQL on a database containing customers or campaigns.** This source is not a production acceptance certificate: database authorisation, staff access, approved sender, background delivery worker, suppression rules and live sending must all pass hosted tests before use.
+Migrations are kept in **`supabase/migrations/` (001–025)** and must be reviewed/applied sequentially on an existing database. **Do not rerun the fresh-install SQL on a database containing customers or campaigns.** This source is not a production acceptance certificate: database authorisation, staff access, approved sender, background delivery worker, suppression rules and live sending must all pass hosted tests before use.
 
-SMS and unrestricted account-service notice sending are not implemented. Promotional sending must respect documented consent, unsubscribe preferences and independent approval. See `MD/SECURITY_AND_COMMUNICATION_PREFERENCES.md`.
+SMS pilot is implemented for controlled staff tests; live account-service broadcasts are not implemented. Promotional sending must respect documented consent, unsubscribe preferences and independent approval. See `MD/SECURITY_AND_COMMUNICATION_PREFERENCES.md`.
 
 
 SMS pilot: see [MD/SMS_AND_SENDGRID.md](MD/SMS_AND_SENDGRID.md). Apply migration 023 after 022.
+
+Provider-aware email delivery: migration 025 is required before using the new worker. Both live sending gates default to **off**. Read [MD/EMAIL_DELIVERY_ROUTING.md](MD/EMAIL_DELIVERY_ROUTING.md) before any customer sending.

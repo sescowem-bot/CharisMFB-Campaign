@@ -14,7 +14,7 @@ export async function providerAction(_:ProviderResult,form:FormData):Promise<Pro
   if(!owner&&!charisAdmin)throw new Error('Charis administrator access required.');
   const provider=z.enum(['resend','brevo','mailjet']).parse(form.get('provider'));
   if(form.get('action')==='save') {
-   if(provider==='mailjet' && form.get('enabled')==='on')throw new Error('Mailjet customer dispatch is not enabled in this pilot. Use Check connection first; verified sender and secure delivery reporting are required before activation.');
+   if(provider==='mailjet' && form.get('enabled')==='on' && (!process.env.MAILJET_API_KEY||!process.env.MAILJET_SECRET_KEY||!(process.env.MAILJET_WEBHOOK_SECRET||'').length || (process.env.MAILJET_WEBHOOK_SECRET||'').length<32))throw new Error('Mailjet requires API credentials and a secure delivery webhook secret before enabling.');
    const {error}=charisAdmin&&org?await db.rpc('charis_provider_configure',{p_org:org,p_provider:provider,p_enabled:form.get('enabled')==='on'}):await db.rpc('admin_email_provider_save',{p_provider:provider,p_enabled:form.get('enabled')==='on'});if(error)throw new Error(error.message);
   } else if(form.get('action')==='limits') {
    const daily=z.coerce.number().int().min(1).max(100000).parse(form.get('daily_limit'));

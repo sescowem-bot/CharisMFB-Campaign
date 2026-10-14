@@ -23,3 +23,17 @@ export function brevoEvent(raw:string):DeliveryEvent|null {
  const message=data['message-id'].replace(/^<|>$/g,'');
  return {key:createHash('sha256').update(JSON.stringify([message,data.event,seconds])).digest('hex'),message,type:map[data.event],time};
 }
+
+/** Mailjet Event API: accept signed access to this endpoint only at the route layer. */
+export function mailjetEvent(raw:string):DeliveryEvent|null {
+ const data=z.object({event:z.string(),MessageID:z.union([z.string(),z.number()]),time:z.number().finite(),
+  CustomID:z.string().uuid().optional(),hard_bounce:z.boolean().optional()}).passthrough().parse(JSON.parse(raw));
+ const map:Record<string,string>={sent:'accepted',bounce:data.hard_bounce===false?'delayed':'bounce',spam:'complaint',
+  blocked:'blocked',unsub:'unsubscribe',open:'opened',click:'clicked'};
+ if(!map[data.event])return null;
+ const message=String(data.MessageID);
+ const time=new Date(data.time*1000).toISOString();
+ if(time==='Invalid Date')throw new Error('Invalid Mailjet event time');
+ return {key:createHash('sha256').update(JSON.stringify([message,data.event,data.time,data.CustomID||''])).digest('hex'),
+  message,type:map[data.event],time};
+}

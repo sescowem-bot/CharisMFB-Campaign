@@ -1,0 +1,24 @@
+name: Charis delivery worker
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  process:
+    # Off by default. The repo owner must explicitly enable this variable after acceptance testing.
+    if: ${{ vars.CHARIS_EMAIL_WORKER_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Dispatch up to three eligible recipients
+        env:
+          APP_URL: ${{ vars.CHARIS_APP_URL }}
+          WORKER_KEY: ${{ secrets.EMAIL_WORKER_SECRET }}
+        run: |
+          test -n "$WORKER_KEY" && test -n "$APP_URL"
+          curl --fail --silent --show-error --max-time 115 \
+            -X POST "$APP_URL/api/worker/delivery" \
+            -H "Authorization: Bearer $WORKER_KEY" \
+            -H 'Content-Type: application/json'

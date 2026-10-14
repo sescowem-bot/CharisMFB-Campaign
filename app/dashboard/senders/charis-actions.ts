@@ -31,7 +31,7 @@ export async function connectCharisResend(_:CharisConnectResult,form:FormData):P
   const status=await providerAdapter('resend',apiKey).check(domain,match.providerId);
   if(!status.verified)throw new Error('Resend has not confirmed that this domain is verified for sending.');
   const service=emailServiceDb();
-  const {data:existing,error:findErr}=await service.from('sending_domains').select('id,verification_status,provider,charis_connected').eq('organization_id',org).eq('domain',domain).maybeSingle();
+  const {data:existing,error:findErr}=await service.from('sending_domains').select('id,verification_status,provider,charis_connected').eq('organization_id',org).eq('domain',domain).eq('provider','resend').maybeSingle();
   if(findErr)throw new Error('Cannot read the Charis sender configuration.');
   if(!existing?.charis_connected)throw new Error('This domain is not authorised for Charis. Use Connect Domain above first.');
   if(existing.verification_status==='revoked')throw new Error('This domain has been revoked in Charis. Ask an administrator to review the revocation.');
@@ -46,7 +46,7 @@ export async function connectCharisResend(_:CharisConnectResult,form:FormData):P
    if(error||!data)throw new Error(`Cannot save the sender domain: ${error?.message||'Database response missing'}`);
    domainId=data.id;
   }
-  const {error:senderError}=await service.from('sender_identities').upsert({organization_id:org,domain_id:domainId,from_name:name,from_email:from,reply_to:reply,is_active:true},{onConflict:'organization_id,from_email'});
+  const {error:senderError}=await service.from('sender_identities').upsert({organization_id:org,domain_id:domainId,from_name:name,from_email:from,reply_to:reply,is_active:true},{onConflict:'organization_id,domain_id,from_email'});
   if(senderError)throw new Error(`Could not save the sender identity: ${senderError.message}`);
   const {error:providerError}=await service.from('email_provider_settings').update({enabled:true,health_status:'healthy',checked_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('provider','resend');
   if(providerError)throw new Error('Sender saved, but Resend could not be enabled for the workspace.');
@@ -83,7 +83,7 @@ export async function setupCharisResendDomain(_:CharisConnectResult,form:FormDat
   const {user}=await senderAccess(org);
   const domain=domainName(String(form.get('domain')||''));
   const service=emailServiceDb();
-  const {data:existing,error:read}=await service.from('sending_domains').select('id,provider,verification_status').eq('organization_id',org).eq('domain',domain).maybeSingle();
+  const {data:existing,error:read}=await service.from('sending_domains').select('id,provider,verification_status').eq('organization_id',org).eq('domain',domain).eq('provider','resend').maybeSingle();
   if(read)throw new Error('Could not read sender domains.');
   if(existing?.verification_status==='revoked')throw new Error('This domain was revoked in Charis. Request a review before reconnecting.');
   if(existing&&existing.provider!=='resend')throw new Error('Domain is already linked to another provider.');
