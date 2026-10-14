@@ -21,7 +21,7 @@ export async function providerFor(provider:Provider) {
   const db=emailServiceDb();
   const {data,error}=await db.from('email_provider_settings').select('enabled').eq('provider',provider).single();
   if(error||!data?.enabled) throw new Error('This provider is disabled. Contact the platform administrator.');
-  const key=process.env[provider==='resend'?'RESEND_API_KEY':'BREVO_API_KEY'];
+  const key=process.env[provider==='resend'?'RESEND_API_KEY':provider==='brevo'?'BREVO_API_KEY':'MAILJET_API_KEY'];
   return providerAdapter(provider,key||'');
 }
 export async function ownershipVerified(domain:string,token:string):Promise<boolean> {

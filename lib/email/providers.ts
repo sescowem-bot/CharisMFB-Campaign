@@ -23,25 +23,28 @@ export function normalizeDomain(provider:Provider, raw:unknown, expected:string,
 /** Fixed endpoints, no arbitrary URLs, no automatic retries of external mutations. */
 export function providerAdapter(provider:Provider,key:string,transport:typeof fetch=fetch) {
   if(!key) throw new Error('Provider credentials are not configured.');
-  const base=provider==='resend'?'https://api.resend.com':'https://api.brevo.com/v3';
+  const base=provider==='resend'?'https://api.resend.com':provider==='brevo'?'https://api.brevo.com/v3':'https://api.mailjet.com';
+  const mailjetSecret=process.env.MAILJET_SECRET_KEY||'';
+  if(provider==='mailjet'&&!mailjetSecret)throw new Error('Mailjet secret key is not configured.');
   async function request(path:string,method='GET',body?:unknown):Promise<Json> {
     let response:Response;
-    try { response=await transport(base+path,{method,headers:{'Content-Type':'application/json',...(provider==='resend'?{Authorization:`Bearer ${key}`}:{'api-key':key})},...(body===undefined?{}:{body:JSON.stringify(body)}),cache:'no-store',signal:AbortSignal.timeout(15000)}); }
+    try { response=await transport(base+path,{method,headers:{'Content-Type':'application/json',...(provider==='resend'?{Authorization:`Bearer ${key}`}:provider==='brevo'?{'api-key':key}:{Authorization:`Basic ${Buffer.from(key+':'+mailjetSecret).toString('base64')}`})},...(body===undefined?{}:{body:JSON.stringify(body)}),cache:'no-store',signal:AbortSignal.timeout(15000)}); }
     catch { throw new Error('Provider connection failed. The operation may have completed; check its status before retrying.'); }
     if(!response.ok) throw new Error(response.status===429?'Provider rate limit reached. Try again later.':`Provider request failed (${response.status}). Check the provider dashboard.`);
     return obj(await response.json().catch(()=>({})));
   }
   const path=(domain:string,id:string)=>provider==='resend'?`/domains/${encodeURIComponent(id)}`:`/senders/domains/${encodeURIComponent(domainName(domain))}`;
   return {
-    async create(domain:string) { const name=domainName(domain); const data=await request(provider==='resend'?'/domains':'/senders/domains','POST',{name}); return normalizeDomain(provider,data,name); },
+    async create(domain:string) { if(provider==='mailjet')throw new Error('Verify this domain in Mailjet first; Charis does not automatically register Mailjet DNS.'); const name=domainName(domain); const data=await request(provider==='resend'?'/domains':'/senders/domains','POST',{name}); return normalizeDomain(provider,data,name); },
     async check(domain:string,id:string,trigger=false) {
+      if(provider==='mailjet')throw new Error('Verify the Mailjet domain in the provider account before connecting it.');
       if(!id) throw new Error('Provider domain registration needs administrator reconciliation.');
       if(trigger) await request(path(domain,id)+(provider==='resend'?'/verify':'/authenticate'),provider==='resend'?'POST':'PUT');
       return normalizeDomain(provider,await request(path(domain,id)),domain,id);
     },
-    async health() { await request(provider==='resend'?'/domains?limit=1':'/account'); },
+    async health() { await request(provider==='resend'?'/domains?limit=1':provider==='brevo'?'/account':'/v3/REST/sender?Limit=1'); },
     async registerSender(name:string,email:string) {
-      if(provider==='resend') return;
+      if(provider==='resend'||provider==='mailjet') return;
       await request('/senders','POST',{name:senderName(name),email:mailbox(email)});
     },
     async sendTest(input:{name:string;email:string;replyTo:string;to:string;domain:string;html:string;attempt:string;subject?:string}) {
@@ -49,9 +52,10 @@ export function providerAdapter(provider:Provider,key:string,transport:typeof fe
       const name=senderName(input.name),email=mailbox(input.email),to=mailbox(input.to),replyTo=mailbox(input.replyTo);
       const subject=input.subject??'Sender configuration test';
       if(!subject.trim()||subject.length>207||/[\r\n]/.test(subject))throw new Error('Invalid test email subject.');
-      const body=provider==='resend'?{from:`${name} <${email}>`,to:[to],reply_to:replyTo,subject,html:input.html}:{sender:{name,email},to:[{email:to}],replyTo:{email:replyTo},subject,htmlContent:input.html,headers:{'X-Charis-Test-ID':input.attempt}};
-      const result=await request(provider==='resend'?'/emails':'/smtp/email','POST',body);
-      const id=String(result.id??result.messageId??'');
+      const body=provider==='resend'?{from:`${name} <${email}>`,to:[to],reply_to:replyTo,subject,html:input.html}:provider==='brevo'?{sender:{name,email},to:[{email:to}],replyTo:{email:replyTo},subject,htmlContent:input.html,headers:{'X-Charis-Test-ID':input.attempt}}:{Messages:[{From:{Email:email,Name:name},To:[{Email:to}],ReplyTo:{Email:replyTo},Subject:subject,HTMLPart:input.html,CustomID:input.attempt}]};
+      const result=await request(provider==='resend'?'/emails':provider==='brevo'?'/smtp/email':'/v3.1/send','POST',body);
+      const replies=Array.isArray(result.Messages)?result.Messages as {Status?:string;To?:{MessageID?:number|string}[]}[]:[];
+      const id=provider==='mailjet'?String(replies[0]?.Status==='success'?replies[0]?.To?.[0]?.MessageID??'':''):String(result.id??result.messageId??'');
       if(!id) throw new Error('Provider acknowledgement missing. Check its dashboard before retrying.');
       return id;
     }

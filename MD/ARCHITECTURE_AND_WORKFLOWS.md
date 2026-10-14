@@ -1,7 +1,7 @@
 # Architecture and operating workflows
 
 ## Stack
-Next.js App Router (TypeScript/React), Supabase Auth and Postgres with RLS, and provider-backed email delivery (Resend; parts of the older code also support Brevo). The application's single-company mode is configured through environment variables. Sensitive provider credentials remain server-only.
+Next.js App Router (TypeScript/React), Supabase Auth and Postgres with RLS, and provider-backed email delivery (Resend and Brevo; Mailjet API connection checks added in Migration 024, with customer dispatch disabled until full channel verification). The application's single-company mode is configured through environment variables. Sensitive provider credentials remain server-only.
 
 ## Main workflow
 1. Sign in as an authorised Charis staff member.

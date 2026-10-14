@@ -32,3 +32,6 @@ Charis Campaign Centre is a dedicated internal customer-communications workspace
 - `tests/` — automated regression checks.
 - `MD/` — approved system documentation and developer instructions.
 - `public/` — approved static logo, favicon and import samples.
+
+### Campaign template gallery and additional email services
+Ten editable template blueprints are supplied directly in the email Template Library. Mailjet is included as an additional API connectivity option; Resend and Brevo integrations remain. The 024 database migration does not turn on cross-provider splitting or live Mailjet bulk sending.

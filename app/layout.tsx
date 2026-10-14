@@ -1,3 +1,4 @@
+import './charis-template-presets.css';
 import type {Metadata} from 'next';
 import type {CSSProperties} from 'react';
 import {publishedSite} from '@/lib/cms/server';

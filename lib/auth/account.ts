@@ -11,11 +11,12 @@ export const currentAccount=cache(async()=>{
  const configured=process.env.SINGLE_COMPANY_MODE==='true'?process.env.SINGLE_COMPANY_ORG_ID:undefined;
  // Single-bank deployments never load every legacy platform company on each request.
  if(configured){
-  const [{data:owner},{data:workspace}]=await Promise.all([
+  const [{data:owner},{data:workspace},{data:canManageSenders}]=await Promise.all([
    db.rpc('is_platform_super_admin'),
-   db.from('organizations').select('id,name,status').eq('id',configured).maybeSingle()
+   db.from('organizations').select('id,name,status').eq('id',configured).maybeSingle(),
+   db.rpc('can_manage_senders',{p_org:configured})
   ]);
-  return {id:user.id,admin:owner===true,workspace:workspace??null,ownerWorkspace:null};
+  return {id:user.id,admin:owner===true,providerAdmin:owner===true||canManageSenders===true,workspace:workspace??null,ownerWorkspace:null};
  }
  const {data:owner}=await db.rpc('is_platform_super_admin');
  const {data:companies}=await db.from('organizations').select('id,name,status').order('name');
@@ -24,6 +25,6 @@ export const currentAccount=cache(async()=>{
  const preferred=process.env.SINGLE_COMPANY_MODE==='true'?(process.env.SINGLE_COMPANY_ORG_ID||''):(await cookies()).get('charis-workspace')?.value;
  // Organizations are fetched through the signed-in user's RLS-scoped client.
  const workspace=companies?.find(c=>c.id===preferred)??ownerWorkspace??companies?.find(c=>c.status==='active')??companies?.[0]??null;
- return {id:user.id,admin:owner===true,workspace,ownerWorkspace};
+ return {id:user.id,admin:owner===true,providerAdmin:owner===true,workspace,ownerWorkspace};
  }catch{return null;}
 });

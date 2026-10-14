@@ -46,7 +46,7 @@ export async function WorkspaceShell({title,subtitle,actions,org,admin:adminRequ
         <NavLink href={scoped('/dashboard/branding')}><Palette size={18}/> Brand &amp; media</NavLink>
         <NavLink href={scoped('/dashboard/footers')}><FileText size={18}/> Email footers</NavLink>
         <NavLink href={scoped('/dashboard/team')}><UserCog size={18}/> Team access</NavLink>
-        {admin&&<><div className="sidebar-label">Administration</div><NavLink href="/admin/providers"><Settings2 size={18}/> Email providers</NavLink><NavLink href="/admin/audit"><ScrollText size={18}/> Audit log</NavLink></>}
+        {(admin||account?.providerAdmin===true)&&<><div className="sidebar-label">Administration</div><NavLink href="/admin/providers"><Settings2 size={18}/> Email providers</NavLink>{admin&&<NavLink href="/admin/audit"><ScrollText size={18}/> Audit log</NavLink>}</>}
       </nav>
       <div className="sidebar-foot">
         <div className="user-card"><span className="avatar" aria-hidden="true">{initials}</span><div style={{minWidth:0}}><strong style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{email||'Charis staff'}</strong><small>{admin?'Administrator':'Authorised staff'}</small></div></div>

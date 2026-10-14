@@ -42,3 +42,15 @@ Use an already verified sending domain accessible to the Resend key; do not crea
 
 ## Rollback and backups
 Keep the previous working Git commit, a timestamped database backup, evidence of applied migrations and the deployment ID. Database migrations are not assumed to be reversible. Never drop the database or overwrite bank customer records to fix a page-layout issue.
+
+## Provider connection: Resend, Brevo and Mailjet (Migration 024)
+- Run Migration 024 after 023. It registers Mailjet **disabled**, adds a Charis-only provider administration RPC and does not change existing campaign delivery.
+- In Vercel add `RESEND_API_KEY`, `BREVO_API_KEY` and for Mailjet `MAILJET_API_KEY` and `MAILJET_SECRET_KEY`. Store each only as server secrets. Do **not** expose them with `NEXT_PUBLIC_`.
+- Brevo: the API key comes from **SMTP & API → API keys & MCP**, not the SMTP key. The SMTP IP restriction does not apply to the HTTP API integration, although Brevo API access and sender/account checks still apply.
+- Mailjet: generate both API key and Secret Key in Mailjet. Verify an authorised sender/domain within Mailjet.
+- Visit **Admin → Email providers** to check the connection; green health is only proof that credentials can reach the provider, not permission for marketing or evidence of delivery.
+- Customer broadcasting stays OFF until provider-specific marketing approval, sender verification, global unsubscribe/suppression, secure webhooks, quota reconciliation and scheduled worker acceptance are verified. Never redistribute a rejected or uncertain message to bypass an account restriction.
+- The email Template Library offers 10 editable starter designs. Select one, review wording, change any example information and save a draft. Verify product information before sending.
+- Existing Charis campaign runs still use one verified provider per campaign. Multi-provider recipient splitting is a separate release requiring atomic per-recipient provider assignment and reconciliation; do not claim it is active after 024.
+
+- SMS is not routed through these email providers. It continues as a separate controlled Termii pilot in Migration 023.

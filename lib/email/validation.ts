@@ -1,5 +1,5 @@
 /** Pure input validation shared by provider tests and the server. */
-export type Provider = 'resend' | 'brevo';
+export type Provider = 'resend' | 'brevo' | 'mailjet';
 export function domainName(value: string): string {
   const name = value.trim().toLowerCase();
   if (name.length > 253 || !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(name)) {
