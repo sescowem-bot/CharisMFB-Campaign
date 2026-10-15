@@ -4,10 +4,10 @@ import {saveDeliveryRoute,connectVerifiedMailjetSender,connectVerifiedBrevoSende
 export type RouteSender={id:string;email:string;name:string};
 export function ProviderRouteForm({provider,senders,route}:{provider:'resend'|'brevo'|'mailjet';senders:RouteSender[];route?:{sender_id:string;enabled:boolean;permission_confirmed:boolean;allowed_kind:string}}){
  const [state,submit,pending]=useActionState(saveDeliveryRoute,{});
- const canMarketing=provider==='mailjet';
+ const canMarketing=provider==='mailjet'||provider==='resend';
  return <form action={submit} className="admin-form">
   <h3>Recipient routing</h3><input type="hidden" name="provider" value={provider}/>
-  <p className="muted">Choose a sender verified by {provider}. Routing does not replace account approval, permission or suppression checks.</p>
+  <p className="muted">Choose an approved sender. Resend marketing uses Broadcasts and the bank's opted-in campaign audience, not transactional email.</p>
   <label>Sender address<select name="sender_id" required defaultValue={route?.sender_id||''} disabled={pending}>
    <option value="">Choose verified sender</option>{senders.map(s=><option key={s.id} value={s.id}>{s.name} · {s.email}</option>)}
   </select></label>

@@ -9,7 +9,7 @@ import {providerAdapter} from '@/lib/email/providers';
 const claimSchema=z.object({delivery:z.object({id:z.string().uuid(),organization_id:z.string().uuid(),lease_token:z.string().uuid()})});
 const dispatchContext=z.object({
  delivery:z.object({id:z.string().uuid(),organization_id:z.string().uuid(),lease_token:z.string().uuid(),recipient_email:z.string().email(),recipient:z.custom<PreviewContact>(),unsubscribe_token:z.string().uuid(),provider:z.enum(['resend','brevo','mailjet'])}),
- run:z.object({id:z.string().uuid(),snapshot:z.object({campaign:z.object({design:z.unknown(),subject:z.string(),preheader:z.string().nullable().optional()}),brand:z.object({display_name:z.string(),postal_address:z.string(),primary_color:z.string()})})}),
+ run:z.object({id:z.string().uuid(),message_kind:z.enum(['marketing','service']).optional(),snapshot:z.object({campaign:z.object({design:z.unknown(),subject:z.string(),preheader:z.string().nullable().optional()}),brand:z.object({display_name:z.string(),postal_address:z.string(),primary_color:z.string()})})}),
  sender:z.object({id:z.string().uuid(),domain_id:z.string().uuid(),from_name:z.string(),from_email:z.string(),reply_to:z.string()}),
  domain:z.object({id:z.string().uuid(),provider:z.enum(['resend','brevo','mailjet'])})
 });
@@ -35,6 +35,8 @@ export async function processDelivery(scope?:{org:string;run:string}) {
   if(error)throw error;
   ctx=dispatchContext.parse(data);
   if(ctx.delivery.provider!==ctx.domain.provider)throw new Error('Provider sender mismatch');
+  // Resend promotional traffic must use its Broadcast API, never /emails.
+  if(ctx.delivery.provider==='resend'&&ctx.run.message_kind!=='service')throw new Error('Resend marketing requires Broadcasts, not transactional delivery');
  }catch{
   const {error}=await db.rpc('delivery_finish',{p_id:d.id,p_lease:d.lease_token,p_status:'failed',p_message:null,p_reason:'dispatch_context_invalid'});
   if(error)throw new Error('Delivery context could not be reconciled');

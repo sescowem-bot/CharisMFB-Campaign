@@ -25,7 +25,7 @@ export async function saveDeliveryRoute(_:State,form:FormData):Promise<State>{
   const kind=z.enum(['service','marketing']).parse(form.get('kind'));
   const enabled=form.get('enabled')==='on';
   const confirmed=form.get('confirmed')==='on';
-  if(enabled&&kind==='marketing'&&provider!=='mailjet')throw new Error('Resend and Brevo transactional APIs cannot be routed as marketing campaigns.');
+  if(enabled&&kind==='marketing'&&provider==='brevo')throw new Error('Brevo transactional API cannot be used for promotional broadcasts. Resend marketing uses the separate Broadcasts adapter.');
   const {error}=await db.rpc('charis_email_route_save',{p_org:org,p_provider:provider,p_sender:sender,p_enabled:enabled,p_confirmed:confirmed,p_kind:kind});
   if(error)throw new Error(error.message);
   revalidatePath('/admin/providers');return {success:'Delivery route updated. This does not enable live customer sending.'};
