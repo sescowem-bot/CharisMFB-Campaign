@@ -11,7 +11,7 @@ test('multi-role access form sends selected custom role ids',()=>{
 });
 test('staff invitation link keeps active Charis organization context',()=>{
  const page=text('app/admin/access/page.tsx');
- assert.match(page,/href=\{`\/dashboard\/team\?org=\$\{org\.data\}`\}/);
+ assert.match(page,/href=\{`\/dashboard\/team\?org=\$\{org\}`\}/);
 });
 test('multi-role writes are atomic and permission checked',()=>{
  const actions=text('app/admin/access/actions.ts');

@@ -10,7 +10,9 @@ test('premium Charis brand assets and responsive design are bundled',()=>{
 });
 test('single-bank navigation exposes high-value workflows, no billing or company switching',()=>{
  const s=read('components/workspace-shell.tsx');
- for(const v of ['Manage customers','Import contacts','Saved groups','Approvals','Send &','Reports','Team access'])assert.ok(s.includes(v),v);
+ for(const v of ['Communications','Approvals','Delivery status','Reports','Customers','Administration'])assert.ok(s.includes(v),v);
+ assert.match(read('app/dashboard/contacts/page.tsx'),/Import CSV \/ Excel/);
+ assert.match(read('app/admin/page.tsx'),/People & access/);
  assert.doesNotMatch(s,/Pricing|Billing|Switch company/);
 });
 test('dashboard uses actual database counts and no illustrative campaign metrics',()=>{

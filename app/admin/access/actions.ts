@@ -62,3 +62,45 @@ export async function changeStaffPermission(_:Outcome,form:FormData):Promise<Out
   if(error)throw Error(error.message);revalidatePath('/admin/access');return {success:'Individual access updated.'};
  }catch(e){return fail(e);}
 }
+
+// One save handles all selected module actions for a custom role.
+export async function saveRoleCapabilityMatrix(_:Outcome,form:FormData):Promise<Outcome>{
+ try{
+  const {db,org}=await bankAccess();
+  const role=z.string().uuid().parse(form.get('role_id'));
+  const keys=z.array(z.string().min(3).max(70)).max(150).parse(form.getAll('permission_key'));
+  if(new Set(keys).size!==keys.length)throw Error('Duplicate permissions.');
+  const {error}=await db.rpc('charis_role_permissions_replace',{p_org:org,p_role:role,p_keys:keys});
+  if(error)throw Error(error.message);
+  revalidatePath('/admin/access');revalidatePath('/dashboard');
+  return {success:'Role capabilities updated.'};
+ }catch(e){return fail(e);}
+}
+
+// Apply primary, supplementary and custom roles alongside individual actions
+// in a single audited SQL transaction. Never accept an org ID from the form.
+export async function saveStaffAccessMatrix(_:Outcome,form:FormData):Promise<Outcome>{
+ try{
+  const {db,org}=await bankAccess();
+  const staff=z.string().uuid().parse(form.get('user_id'));
+  const primary=z.enum(['company_admin','manager','campaign_lead','designer','approver','analyst','viewer']).parse(form.get('primary_role'));
+  const additional=z.array(z.enum(['manager','campaign_lead','designer','approver','analyst','viewer'])).max(6).parse(form.getAll('additional_role'));
+  const custom=z.array(z.string().uuid()).max(30).parse(form.getAll('custom_role'));
+  if(new Set(additional).size!==additional.length||new Set(custom).size!==custom.length)throw Error('Duplicate role selection.');
+  const overrides:Record<string,string>={};
+  for(const [name,value] of form.entries()){
+   if(!name.startsWith('override:'))continue;
+   const key=name.slice(9);
+   if(!/^[a-z][a-z0-9_.]{2,70}$/.test(key)||typeof value!=='string'||!['allow','deny','inherit'].includes(value))throw Error('Invalid module permission');
+   if(Object.prototype.hasOwnProperty.call(overrides,key))throw Error('Duplicate permission selection');
+   overrides[key]=value;
+  }
+  if(Object.keys(overrides).length>150)throw Error('Too many permission changes');
+  const {error}=await db.rpc('charis_staff_access_matrix_save',{
+   p_org:org,p_user:staff,p_primary:primary,p_additional:additional,p_custom:custom,p_overrides:overrides
+  });
+  if(error)throw Error(error.message);
+  revalidatePath('/admin/access');revalidatePath('/dashboard/team');revalidatePath('/dashboard');
+  return {success:'Staff access saved. Their assigned roles and actions are now updated.'};
+ }catch(e){return fail(e);}
+}

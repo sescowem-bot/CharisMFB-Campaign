@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type {ReactNode} from 'react';
-import {BarChart3,ClipboardCheck,FileText,FolderKanban,LayoutDashboard,Mail,MessageSquareText,Menu,Palette,PenSquare,ScrollText,Send,Settings2,UserCog,Users,Upload,Filter,ArrowRight,Building2,Bell,MapPinned,Landmark,FileCheck2,CalendarClock,Activity} from 'lucide-react';
+import {Activity,ArrowRight,Bell,CalendarClock,ClipboardCheck,FileText,Landmark,LayoutDashboard,Mail,Menu,Settings2,ShieldCheck,Users} from 'lucide-react';
 import {currentAccount} from '@/lib/auth/account';
 import {currentVerifiedUser} from '@/lib/auth/current-user';
 import {charisBrandAssets} from '@/lib/charis-brand-assets';
@@ -9,13 +9,18 @@ import {SignOutForm} from '@/components/signout-form';
 import {NavLink} from '@/components/nav-link';
 
 /** Claude-reference Charis shell. Functional modules and access checks remain unchanged. */
-export async function WorkspaceShell({title,subtitle,actions,admin:adminRequested=false,children}:{
+export async function WorkspaceShell({title,subtitle,actions,children}:{
   title:string;subtitle?:string;actions?:ReactNode;org?:string;admin?:boolean;children:ReactNode;
 }) {
   const [account,assets,verifiedUser]=await Promise.all([currentAccount(),charisBrandAssets(),currentVerifiedUser()]);
   const admin=account?.admin===true;
   const permitted=(key:string)=>account?.permissions?.includes(key)===true;
-  const scoped=(path:string,extra='')=>extra?`${path}?${extra.replace(/^&/,'')}`:path;
+  const canAny=(...keys:string[])=>keys.some(permitted);
+  const canAdmin=Boolean(account?.owner||canAny('staff.manage','access.manage','departments.manage','branches.manage','providers.manage','settings.manage','audit.view'));
+  const org=account?.workspace?.id||'';
+  const forBank=(path:string)=>`${path}?org=${encodeURIComponent(org)}`;
+  const canCommunicate=canAny('templates.manage','campaigns.view','campaigns.create','service_notices.view','service_notices.create','service_notices.approve','credit_reminders.view','credit_reminders.create');
+  const canCredit=canAny('loans.view','loans.manage','loans.repayments','credit_reminders.view','credit_reminders.create','credit_reminders.approve','credit_reminders.queue','credit_followups.view','credit_followups.create','credit_followups.manage');
   const liveSending=process.env.EMAIL_DELIVERY_ENABLED==='true';
   const email=verifiedUser?.email||'';
   const initials=(email.split('@')[0]||'C').replace(/[^a-z0-9]/gi,'').slice(0,2).toUpperCase()||'C';
@@ -29,39 +34,29 @@ export async function WorkspaceShell({title,subtitle,actions,admin:adminRequeste
       </Link>
       <nav aria-label="Charis workspace navigation">
         <NavLink href="/dashboard"><LayoutDashboard size={18}/> Overview</NavLink>
-        <div className="sidebar-label">Campaigns</div>
-        {permitted('campaigns.create')&&<NavLink href={scoped('/dashboard/campaigns','&create=1')} match="/dashboard/campaigns/new"><PenSquare size={18}/> Create campaign</NavLink>}
-        {permitted('campaigns.view')&&<NavLink href={scoped('/dashboard/communications')}><Mail size={18}/> Communications</NavLink>}
-        {permitted('campaigns.view')&&<NavLink href={scoped('/dashboard/campaigns')}><Mail size={18}/> Email campaigns</NavLink>}
-        {permitted('campaigns.approve')&&<NavLink href={scoped('/dashboard/approvals')}><ClipboardCheck size={18}/> Approvals</NavLink>}
-        {permitted('campaigns.send')&&<NavLink href={scoped('/dashboard/delivery')}><Send size={18}/> Send &amp; delivery</NavLink>}
-        {permitted('campaigns.view')&&<NavLink href={scoped('/dashboard/sms')}><MessageSquareText size={18}/> SMS communications</NavLink>}
-        {permitted('reports.view')&&<NavLink href={scoped('/dashboard/reports')}><BarChart3 size={18}/> Reports</NavLink>}
-        {(permitted('operations.view')||permitted('reports.view'))&&<NavLink href="/dashboard/insights"><Activity size={18}/> Operations insights</NavLink>}
-        <div className="sidebar-label">Credit &amp; account service</div>
-        {(permitted('loans.view')||permitted('loans.manage')||permitted('loans.repayments'))&&<NavLink href={scoped('/dashboard/loans')}><Landmark size={18}/> Loan register</NavLink>}
-        {(['credit_reminders.view','credit_reminders.create','credit_reminders.approve','credit_reminders.queue'].some(permitted))&&<NavLink href={scoped('/dashboard/credit-reminders')}><CalendarClock size={18}/> Credit reminders</NavLink>}
-        {(permitted('service_notices.view')||permitted('service_notices.create')||permitted('service_notices.approve'))&&<NavLink href={scoped('/dashboard/communications/service')}><FileCheck2 size={18}/> Account notices</NavLink>}
-        <div className="sidebar-label">Customers</div>
-        {permitted('customers.manage')&&<NavLink href={scoped('/dashboard/contacts')}><Users size={18}/> Manage customers</NavLink>}
-        {permitted('customers.manage')&&<NavLink href={scoped('/dashboard/imports')}><Upload size={18}/> Import contacts</NavLink>}
-        {permitted('customers.manage')&&<NavLink href={scoped('/dashboard/lists')}><FolderKanban size={18}/> Saved groups</NavLink>}
-        {permitted('customers.manage')&&<NavLink href={scoped('/dashboard/segments')}><Filter size={18}/> Audience filters</NavLink>}
-        <div className="sidebar-label">Team workspace</div>
-        {permitted('credit_followups.view')||permitted('credit_followups.create')||permitted('credit_followups.manage')?<NavLink href="/dashboard/credit-followups"><CalendarClock size={18}/> Credit follow-ups</NavLink>:null}
-        <NavLink href="/dashboard/notifications"><Bell size={18}/> My notifications</NavLink>
-        <NavLink href={scoped('/dashboard/departments')}><Building2 size={18}/> Departments</NavLink>
-        {(permitted('branches.manage')||permitted('departments.manage')||permitted('customers.view'))&&<NavLink href={scoped('/dashboard/branches')}><MapPinned size={18}/> Branches</NavLink>}
-        {(permitted('customers.view')||permitted('customers.manage'))&&<NavLink href={scoped('/dashboard/customers')}><Users size={18}/> Customer workspace</NavLink>}
-        {(permitted('reminders.view')||permitted('reminders.manage'))&&<NavLink href={scoped('/dashboard/reminders')}><Bell size={18}/> Team reminders</NavLink>}
-        <NavLink href="/dashboard/help"><FileText size={18}/> Help &amp; workflows</NavLink>
-        <div className="sidebar-label">Settings</div>
-        {permitted('templates.manage')&&<NavLink href={scoped('/dashboard/templates')}><FileText size={18}/> Email templates</NavLink>}
-        {permitted('providers.manage')&&<NavLink href={scoped('/dashboard/senders')}><Mail size={18}/> Sender settings</NavLink>}
-        {permitted('templates.manage')&&<NavLink href={scoped('/dashboard/branding')}><Palette size={18}/> Brand &amp; media</NavLink>}
-
-        {permitted('staff.manage')&&<NavLink href={scoped('/dashboard/team')}><UserCog size={18}/> Team access</NavLink>}
-        {(admin||account?.providerAdmin===true||account?.auditAdmin===true)&&<><div className="sidebar-label">Administration</div><NavLink href="/admin"><Settings2 size={18}/> Admin Centre</NavLink>{account?.accessAdmin===true&&<NavLink href="/admin/access"><UserCog size={18}/> Roles &amp; permissions</NavLink>}{account?.providerAdmin===true&&<NavLink href="/admin/providers"><Settings2 size={18}/> Email providers</NavLink>}{account?.providerAdmin===true&&<NavLink href="/admin/sendgrid"><Mail size={18}/> SendGrid setup</NavLink>}{account?.auditAdmin===true&&<NavLink href="/admin/audit"><ScrollText size={18}/> Audit log</NavLink>}</>}
+        {canCommunicate&&<>
+          <div className="sidebar-label">Communications</div>
+          <NavLink href="/dashboard/communications"><Mail size={18}/> Communications</NavLink>
+          {permitted('campaigns.approve')&&<NavLink href={forBank('/dashboard/approvals')}><ClipboardCheck size={18}/> Approvals</NavLink>}
+          {permitted('campaigns.send')&&<NavLink href={forBank('/dashboard/delivery')}><Activity size={18}/> Delivery status</NavLink>}
+          {permitted('templates.manage')&&<NavLink href={forBank('/dashboard/templates')}><FileText size={18}/> Design studio</NavLink>}
+        </>}
+        {canAny('customers.view','customers.manage')&&<>
+          <div className="sidebar-label">Customers</div>
+          <NavLink href={permitted('customers.manage')?forBank('/dashboard/contacts'):'/dashboard/customers'}><Users size={18}/> Customers</NavLink>
+        </>}
+        {canCredit&&<>
+          <div className="sidebar-label">Credit operations</div>
+          {canAny('loans.view','loans.manage','loans.repayments')&&<NavLink href="/dashboard/loans"><Landmark size={18}/> Loan register</NavLink>}
+          {canAny('credit_reminders.view','credit_reminders.create','credit_reminders.approve','credit_reminders.queue')&&<NavLink href="/dashboard/credit-reminders"><CalendarClock size={18}/> Credit reminders</NavLink>}
+          {canAny('credit_followups.view','credit_followups.create','credit_followups.manage')&&<NavLink href="/dashboard/credit-followups"><ClipboardCheck size={18}/> Follow-ups</NavLink>}
+        </>}
+        {canAny('reports.view','operations.view')&&<NavLink href={permitted('operations.view')?'/dashboard/insights':forBank('/dashboard/reports')}><Activity size={18}/> Reports</NavLink>}
+        <NavLink href="/dashboard/notifications"><Bell size={18}/> Notifications</NavLink>
+        {canAdmin&&<>
+          <div className="sidebar-label">Management</div>
+          <NavLink href="/admin"><Settings2 size={18}/> Administration</NavLink>
+        </>}
       </nav>
       <div className="sidebar-foot">
         <div className="user-card"><span className="avatar" aria-hidden="true">{initials}</span><div style={{minWidth:0}}><strong style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{email||'Charis staff'}</strong><small>{admin?'Administrator':'Authorised staff'}</small></div></div>
@@ -72,12 +67,12 @@ export async function WorkspaceShell({title,subtitle,actions,admin:adminRequeste
       <header className="topbar">
         <label htmlFor="nav-toggle" className="menu-btn" aria-label="Open navigation"><Menu size={20}/></label>
         <div className="crumbs"><Link href="/dashboard">Charis</Link><ArrowRight size={13} aria-hidden="true"/><span className="topbar-title">{title}</span></div>
-        <div className="topbar-spacer"/>
+        <div className="topbar-spacer"/><Link className="charis-top-help" href="/dashboard/help"><ShieldCheck size={15}/> Help &amp; workflows</Link>
         <span className="topbar-env" title={liveSending?'The application delivery flag is enabled. Sender eligibility, approvals, provider configuration and worker status must still be verified.':'Customer campaign dispatch is disabled; permitted staff tests can be run separately.'}><span className={liveSending?'dot':'dot off'}/>{liveSending?'Delivery gate enabled':'Customer sending off'}</span>
       </header>
       <main className="page" id="main">
         <div className="page-head"><div><h1>{title}</h1>{subtitle&&<p>{subtitle}</p>}</div>{actions&&<div className="actions" style={{marginTop:0}}>{actions}</div>}</div>
-        {adminRequested&&!admin&&<div className="notice">Some administrator functions require additional access.</div>}
+
         {children}
       </main>
     </div>

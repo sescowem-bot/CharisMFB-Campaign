@@ -1,36 +1,43 @@
 import {redirect} from 'next/navigation';
 import Link from 'next/link';
-import {z} from 'zod';
+import {currentAccount} from '@/lib/auth/account';
 import {supabaseServer} from '@/lib/supabase/server';
 import {WorkspaceShell} from '@/components/workspace-shell';
-import {RoleCreationForm,RoleGrantForm,StaffRoleForm,IndividualPermissionForm} from '@/components/charis-access-forms';
+import {RoleCreationForm} from '@/components/charis-access-forms';
+import {RoleCapabilityMatrix,StaffAccessMatrix,type AccessRole,type AccessCapability,type AccessStaff} from '@/components/charis-access-matrix';
 export const dynamic='force-dynamic';
-type Role={id:string;name:string;description:string;active:boolean};
-type Permission={permission_key:string;label:string;category:string;description:string};
-type Staff={id:string;email:string;base_role:string};
 export default async function AccessManagement(){
- const org=z.string().uuid().safeParse(process.env.SINGLE_COMPANY_ORG_ID);
- if(!org.success)redirect('/setup-required');
- const db=await supabaseServer();const {data:{user}}=await db.auth.getUser();if(!user)redirect('/login');
- const {data:allowed}=await db.rpc('charis_has_permission',{p_org:org.data,p_key:'access.manage'});
- if(!allowed)redirect('/dashboard');
- const [roles,permissions,staff,roleGrants,staffRoles,direct]=await Promise.all([
-  db.from('charis_access_roles').select('id,name,description,active').eq('organization_id',org.data).order('name'),
+ const account=await currentAccount();if(!account)redirect('/login');
+ const org=account.workspace.id;
+ if(!account.permissions.includes('access.manage'))redirect('/admin');
+ const db=await supabaseServer();
+ const [roles,permissions,staff,roleGrants,staffRoles,direct,additional]=await Promise.all([
+  db.from('charis_access_roles').select('id,name,description,active').eq('organization_id',org).order('name'),
   db.from('charis_permission_catalog').select('permission_key,label,category,description').order('category').order('label'),
-  db.rpc('charis_access_staff_list',{p_org:org.data}),
-  db.from('charis_role_permissions').select('role_id,permission_key').eq('organization_id',org.data),
-  db.from('charis_staff_access_roles').select('user_id,role_id').eq('organization_id',org.data),
-  db.from('charis_staff_permissions').select('user_id,permission_key,allowed').eq('organization_id',org.data)
+  db.rpc('charis_access_staff_list',{p_org:org}),
+  db.from('charis_role_permissions').select('role_id,permission_key').eq('organization_id',org),
+  db.from('charis_staff_access_roles').select('user_id,role_id').eq('organization_id',org),
+  db.from('charis_staff_permissions').select('user_id,permission_key,allowed').eq('organization_id',org),
+  db.from('charis_additional_roles').select('user_id,role').eq('organization_id',org)
  ]);
- const error=[roles,permissions,staff,roleGrants,staffRoles,direct].some(r=>r.error);
- return <WorkspaceShell title="Roles & permissions" org={org.data} admin subtitle="Manage delegated access to Charis modules and operations.">
-  <div className="actions"><Link className="btn secondary" href={`/dashboard/team?org=${org.data}`}>Staff invitations</Link><Link className="btn secondary" href="/dashboard/departments">Departments</Link></div>
-  {error&&<p className="feedback-error" role="alert">Access settings are unavailable. Ask the system owner to complete the database setup.</p>}
-  {!error&&<>
-   <section className="stat-grid"><div className="stat"><span className="stat-label">Custom roles</span><strong className="stat-value">{roles.data?.length||0}</strong></div><div className="stat"><span className="stat-label">Verified staff</span><strong className="stat-value">{Array.isArray(staff.data)?staff.data.length:0}</strong></div><div className="stat"><span className="stat-label">Capabilities</span><strong className="stat-value">{permissions.data?.length||0}</strong></div></section>
-   <div className="admin-columns"><section className="panel"><h2>Create a custom role</h2><RoleCreationForm/></section><section className="panel"><h2>Role capabilities</h2><RoleGrantForm roles={(roles.data||[]) as Role[]} permissions={(permissions.data||[]) as Permission[]} grants={roleGrants.data||[]}/></section></div>
-   <div className="admin-columns"><section className="panel"><h2>Assign roles to staff</h2><StaffRoleForm staff={(Array.isArray(staff.data)?staff.data:[]) as Staff[]} roles={(roles.data||[]) as Role[]} assigned={staffRoles.data||[]}/></section><section className="panel"><h2>Individual permission overrides</h2><IndividualPermissionForm staff={(Array.isArray(staff.data)?staff.data:[]) as Staff[]} permissions={(permissions.data||[]) as Permission[]} grants={direct.data||[]}/></section></div>
-   <section className="panel"><h2>Permission directory</h2><div className="table-scroll"><table className="admin-table"><thead><tr><th>Area</th><th>Permission</th><th>What it controls</th></tr></thead><tbody>{(permissions.data||[]).map(p=><tr key={p.permission_key}><td>{p.category}</td><td><strong>{p.label}</strong><div className="muted">{p.permission_key}</div></td><td>{p.description}</td></tr>)}</tbody></table></div></section>
+ const result=[roles,permissions,staff,roleGrants,staffRoles,direct,additional];
+ const bad=result.filter(r=>r.error);
+ return <WorkspaceShell title="People & permissions" org={org} admin subtitle="Assign roles and decide exactly what each staff member is permitted to do.">
+  <div className="actions charis-access-links">
+   <Link className="btn secondary" href="/admin">Administration</Link>
+   {account.permissions.includes('staff.manage')&&<Link className="btn secondary" href={`/dashboard/team?org=${org}`}>Invite and manage staff</Link>}
+  </div>
+  {bad.length>0?<section className="panel"><p className="feedback-error" role="alert">Staff permissions could not be loaded. Verify database migrations 027, 037 and 038 and confirm the signed-in administrator has access.</p><p className="muted">No changes were made to existing staff.</p></section>:<>
+   <div className="charis-access-summary">
+    <span><strong>{Array.isArray(staff.data)?staff.data.length:0}</strong><small>Verified staff</small></span>
+    <span><strong>{(roles.data||[]).filter(r=>r.active).length}</strong><small>Active custom roles</small></span>
+    <span><strong>{permissions.data?.length||0}</strong><small>Available actions</small></span>
+   </div>
+   {account.permissions.includes('staff.manage')?<StaffAccessMatrix staff={(Array.isArray(staff.data)?staff.data:[]) as AccessStaff[]}
+    roles={(roles.data||[]) as AccessRole[]} assigned={staffRoles.data||[]} additional={additional.data||[]}
+    permissions={(permissions.data||[]) as AccessCapability[]} direct={direct.data||[]} currentUserId={account.id} delegable={account.permissions} isOwner={account.owner}/>:<section className="panel"><p className="muted">Staff assignment is managed by authorised bank personnel with both staff and access management permissions.</p></section>}
+   <section className="panel charis-role-create"><h2>Create a custom role</h2><p className="muted">Examples: Credit Officer, Customer Service Officer, Marketing Supervisor. After creation, choose the role's permitted actions below.</p><RoleCreationForm/></section>
+   <RoleCapabilityMatrix roles={(roles.data||[]) as AccessRole[]} permissions={(permissions.data||[]) as AccessCapability[]} grants={roleGrants.data||[]} delegable={account.permissions}/>
   </>}
  </WorkspaceShell>;
 }

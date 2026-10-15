@@ -12,11 +12,12 @@ function StatusLabel({status}:{status:string}){
 }
 export default async function Communications(){
  const account=await currentAccount();if(!account)redirect('/login');
- const canRead=account.permissions.includes('campaigns.view')||account.permissions.includes('service_notices.view')||account.permissions.includes('service_notices.create')||account.permissions.includes('service_notices.approve')||account.permissions.includes('loans.view')||account.permissions.includes('loans.manage')||account.permissions.includes('loans.repayments')||account.permissions.some(p=>p.startsWith('credit_reminders.'));
+ const canRead=account.permissions.includes('templates.manage')||account.permissions.includes('campaigns.create')||account.permissions.includes('campaigns.view')||account.permissions.includes('service_notices.view')||account.permissions.includes('service_notices.create')||account.permissions.includes('service_notices.approve')||account.permissions.includes('loans.view')||account.permissions.includes('loans.manage')||account.permissions.includes('loans.repayments')||account.permissions.some(p=>p.startsWith('credit_reminders.'));
  if(!canRead)redirect('/dashboard');
  const org=account.workspace.id;
  const db=await supabaseServer();
  const hasMarketing=account.permissions.includes('campaigns.view');
+ const hasDesign=account.permissions.includes('templates.manage');
  const [{data:emails,error:emailError},{data:sms,error:smsError}]=await Promise.all([
   hasMarketing?db.from('campaign_drafts').select('id,name,status,updated_at').eq('organization_id',org).order('updated_at',{ascending:false}).limit(35):Promise.resolve({data:[],error:null}),
   hasMarketing?db.from('charis_sms_campaigns').select('id,title,status,updated_at').eq('organization_id',org).order('updated_at',{ascending:false}).limit(35):Promise.resolve({data:[],error:null})
@@ -34,6 +35,7 @@ export default async function Communications(){
  const canSend=account.permissions.includes('campaigns.send');
  const routes=[
   {title:'Email campaigns',icon:<Mail size={22}/>,description:'Compose branded communications with recipient selection and delivery tracking.',href:`/dashboard/campaigns?org=${org}`,allowed:hasMarketing},
+  {title:'Design studio',icon:<Mail size={22}/>,description:'Create and edit bank-approved branded email templates.',href:`/dashboard/templates?org=${org}`,allowed:hasDesign},
   {title:'SMS communications',icon:<MessageSquareText size={22}/>,description:'Prepare short customer notices with staff approval and controlled provider settings.',href:`/dashboard/sms?org=${org}`,allowed:hasMarketing},
   {title:'Account-service notices',icon:<FileCheck2 size={22}/>,description:'Prepare and independently review customer-specific non-promotional account notices. Delivery remains disabled.',href:'/dashboard/communications/service',allowed:hasService},
   {title:'Credit repayment reminders',icon:<CalendarClock size={22}/>,description:'Select loan customers, prepare professional repayment reminders, review decisions and stage approved messages without sending.',href:'/dashboard/credit-reminders',allowed:hasReminder},

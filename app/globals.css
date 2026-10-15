@@ -179,3 +179,41 @@ body{font-family:var(--platform-font,system-ui,sans-serif)}.btn:not(.secondary),
 .charis-role-check-item{display:flex!important;align-items:flex-start;gap:12px;cursor:pointer;margin:0!important}
 .charis-role-check-item input[type="checkbox"]{width:18px;height:18px;flex:0 0 18px;margin-top:3px;accent-color:#6448ad}
 .charis-role-check-item span{min-width:0;overflow-wrap:anywhere}
+/* 038: consolidated bank administration, accessible action-based access matrix */
+.charis-top-help{display:inline-flex;gap:7px;align-items:center;font-size:12px;font-weight:600;color:#59677e;white-space:nowrap}
+.charis-admin-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px;margin:24px 0}
+.charis-admin-card{display:flex;gap:16px;align-items:center;padding:22px;border-radius:17px;border:1px solid #dce3ef;background:white;box-shadow:0 3px 14px #1527450a;min-height:119px;transition:border-color .12s,transform .12s}
+.charis-admin-card:hover{border-color:#b7a0d9;transform:translateY(-1px)}
+.charis-admin-card>span:nth-child(2){flex:1;min-width:0}
+.charis-admin-card strong,.charis-admin-card small{display:block}.charis-admin-card strong{font-size:17px;color:#211a38}
+.charis-admin-card small{font-size:13px;color:#6d7286;line-height:1.55;margin-top:6px}
+.charis-admin-card-icon{color:#6d539c;background:#f2eff9;padding:12px;border-radius:13px;display:inline-flex}
+.charis-owner-banner{display:flex;align-items:start;gap:14px}.charis-owner-banner h2{margin:0 0 7px}.charis-owner-banner p{margin:0}
+.charis-access-panel{margin:24px 0}.charis-access-panel h2{margin:0 0 10px}.charis-access-summary{display:flex;flex-wrap:wrap;gap:14px;margin:22px 0}
+.charis-access-summary>span{background:#fff;border:1px solid #dce3ef;border-radius:12px;padding:17px 25px;min-width:150px}
+.charis-access-summary strong,.charis-access-summary small{display:block}.charis-access-summary strong{font-size:27px;color:#251a3d}.charis-access-summary small{color:#6f7388;font-size:12px;margin-top:5px}
+.charis-access-links{margin-bottom:16px}.charis-access-section{padding:21px 0;border-top:1px solid #e8e7ef}.charis-access-section h3{margin:0 0 5px}
+.charis-matrix-form{display:flex;flex-direction:column;gap:20px}.charis-field{display:flex;flex-direction:column;gap:8px;font-size:14px;font-weight:700;max-width:600px;margin:16px 0}
+.charis-field select,.charis-action-header input{border-radius:10px;border:1px solid #cfc9e3;padding:11px 13px;font:inherit;background:#fff;color:#22263a;width:100%}
+.charis-action-group{border:1px solid #e1dced;border-radius:14px;padding:16px 18px;margin:12px 0;min-width:0}
+.charis-action-group legend{font-weight:800;color:#3d315a;padding:0 9px;font-size:14px}
+.charis-check-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.charis-action-check{display:flex;align-items:start;gap:11px;border-radius:10px;border:1px solid #ede9f5;padding:13px;font-size:13px;cursor:pointer;background:#fff}
+.charis-action-check:has(input:checked){border-color:#ab94da;background:#faf7ff}
+.charis-action-check input{width:17px;height:17px;flex-shrink:0;accent-color:#7654aa;margin:1px 0}
+.charis-action-check span,.charis-action-check strong,.charis-action-check small{display:block}.charis-action-check small{color:#737489;font-weight:400;line-height:1.5;margin-top:4px}
+.charis-selection-summary{display:flex;gap:15px;align-items:center;color:#53536b;font-size:13px}
+.charis-selection-summary strong{background:#f0ebf8;padding:7px 12px;border-radius:8px;color:#5b428d}
+.charis-action-header{display:flex;align-items:start;justify-content:space-between;gap:15px;flex-wrap:wrap}.charis-action-header input{max-width:275px}
+.charis-permission-table{display:grid;gap:8px}.charis-permission-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(130px,185px);align-items:center;gap:12px;border-bottom:1px solid #f2eef7;padding:8px 0}
+.charis-permission-row:last-child{border-bottom:0}.charis-permission-row strong,.charis-permission-row small{display:block}.charis-permission-row strong{font-size:13px}
+.charis-permission-row small{color:#70758a;font-size:12px;line-height:1.5;margin-top:4px}.charis-permission-row select{background:#fff;border:1px solid #cfc9e2;border-radius:9px;padding:11px;width:100%;font:inherit;font-size:13px}
+.charis-access-footer{display:flex;justify-content:space-between;gap:15px;align-items:center;flex-wrap:wrap}
+.charis-access-footer span{max-width:600px;font-size:13px}.charis-empty{background:#f8f5fc;border:1px dashed #cfc4e4;color:#615976;border-radius:13px;padding:19px}
+.charis-role-create{margin:24px 0}.charis-role-create>.admin-form{max-width:none;margin-bottom:0}
+@media(max-width:800px){.charis-admin-cards,.charis-check-grid{grid-template-columns:1fr}.charis-top-help{display:none}}
+@media(max-width:520px){.charis-permission-row{grid-template-columns:1fr}.charis-access-panel{padding:16px}.charis-action-header input{max-width:none}}
+
+.charis-action-group summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:800;color:#3d315a;list-style-position:inside;padding:5px 0}
+.charis-action-group summary small{font-size:12px;font-weight:600;color:#818196}
+.charis-action-group[open] summary{padding-bottom:17px}

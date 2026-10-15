@@ -43,7 +43,9 @@ test('Template preview is Charis-branded while existing template persistence sta
 
 test('Operations and SQL history are preserved and campaign paths remain visible',()=>{
  const nav=read('components/workspace-shell.tsx');
- for(const label of ['Communications','Audience filters','Approvals','Sender settings','Team access'])assert.ok(nav.includes(label),label);
+ for(const label of ['Communications','Approvals','Design studio','Customers','Administration'])assert.ok(nav.includes(label),label);
+ assert.match(read('app/dashboard/contacts/page.tsx'),/dashboard\/imports/);
+ assert.match(read('app/admin/providers/page.tsx'),/dashboard\/senders/);
  assert.ok(existsSync(new URL('../supabase/migrations/019_charis_dashboard_and_campaign_lead.sql',import.meta.url)));
  assert.match(read('components/charis-ui.tsx'),/Awaiting approval/);
 });

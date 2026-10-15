@@ -46,6 +46,6 @@ test('The operations overview explicitly disclaims live core ledger balances and
  const page=read('app/dashboard/insights/page.tsx');
  assert.match(page,/core banking reconciliation/);
  assert.match(page,/Held, not sent/);
- assert.match(read('components/workspace-shell.tsx'),/Operations insights/);
+ assert.match(read('components/workspace-shell.tsx'),/dashboard\/insights/);
  assert.match(read('app/dashboard/help/page.tsx'),/Operational insights and audit/);
 });

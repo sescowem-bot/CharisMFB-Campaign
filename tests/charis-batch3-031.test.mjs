@@ -33,6 +33,7 @@ test('service draft, edit, submit and independent review never call customer sen
 });
 test('sidebar gives credit and service notice actions only to permitted staff',()=>{
  const src=read('components/workspace-shell.tsx');
- assert.match(src,/permitted\('loans\.view'\)/);
- assert.match(src,/permitted\('service_notices\.view'\)/);
+ assert.match(src,/canAny\('loans\.view','loans\.manage'/);
+ assert.match(read('app/dashboard/communications/page.tsx'),/service_notices\.view/);
+ assert.match(read('app/dashboard/communications/service/page.tsx'),/service_notices\.view/);
 });

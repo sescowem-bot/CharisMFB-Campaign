@@ -18,7 +18,9 @@ test('Claude visual language is real layout architecture, not a palette-only ove
 test('app shell has white sidebar and compact header structure plus all core Charis routes', () => {
  const shell=read('components/workspace-shell.tsx');
  for(const cls of ['className="app"','className="sidebar"','className="topbar"','className="page"','className="page-head"']) assert.ok(shell.includes(cls),cls);
- for(const route of ['dashboard/contacts','dashboard/imports','dashboard/lists','dashboard/segments','dashboard/campaigns','dashboard/approvals','dashboard/delivery','dashboard/templates','dashboard/senders','dashboard/team']) assert.ok(shell.includes(route),route);
+ for(const route of ['dashboard/contacts','dashboard/communications','dashboard/approvals','dashboard/delivery','dashboard/templates','dashboard/loans']) assert.ok(shell.includes(route),route);
+ assert.match(read('app/admin/page.tsx'),/dashboard\/team/);
+ assert.match(read('app/dashboard/contacts/page.tsx'),/dashboard\/segments/);
  assert.ok(shell.includes('currentVerifiedUser()'));
  assert.doesNotMatch(shell, /account\?\.email/);
  assert.ok(existsSync(new URL('../public/charis-official-logo.png', import.meta.url)));
