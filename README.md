@@ -4,6 +4,10 @@
 
 This repository contains the working Next.js application, Supabase migrations, campaign delivery code and automated tests. The bank's logo, premium purple/green styling and staff interface are included. The product is **single-company**, although some historical database structures remain for backwards compatibility.
 
+## Latest continuation
+
+Batch 4 credit reminders and held delivery staging: see [MD/CHARIS_BATCH_4_032_CREDIT_REMINDERS.md](MD/CHARIS_BATCH_4_032_CREDIT_REMINDERS.md). This complete source archive contains the earlier Batch 1–3 modules plus migrations through **032**. Apply only missing migrations in order, after backup and staging verification. This source is not a live-deployment certificate.
+
 ## Start here
 
 - [System overview](MD/SYSTEM_OVERVIEW.md) — modules and what is implemented.
@@ -32,7 +36,7 @@ Configure `.env.local` with actual non-public Supabase and email-provider creden
 
 ## Database and production
 
-Migrations are kept in **`supabase/migrations/` (001–025)** and must be reviewed/applied sequentially on an existing database. **Do not rerun the fresh-install SQL on a database containing customers or campaigns.** This source is not a production acceptance certificate: database authorisation, staff access, approved sender, background delivery worker, suppression rules and live sending must all pass hosted tests before use.
+Migrations are kept in **`supabase/migrations/` (001–032)** and must be reviewed/applied sequentially on an existing database. **Do not rerun the fresh-install SQL on a database containing customers or campaigns.** This source is not a production acceptance certificate: database authorisation, staff access, approved sender, background delivery worker, suppression rules and live sending must all pass hosted tests before use.
 
 SMS pilot is implemented for controlled staff tests; live account-service broadcasts are not implemented. Promotional sending must respect documented consent, unsubscribe preferences and independent approval. See `MD/SECURITY_AND_COMMUNICATION_PREFERENCES.md`.
 
@@ -45,3 +49,13 @@ Provider-aware email delivery: migration 025 is required before using the new wo
 ## Department workspaces and visual templates
 
 See `MD/DEPARTMENTS_AND_REMINDERS.md` for Migration 026, internal reminders, department access and bank-approved image/shape email design.
+
+
+## Batch 3 continuation (SQL 031)
+
+This source archive adds the Loan Register and a separate **account-service notice draft and review** workflow. Install only missing migrations in sequence, with `031_charis_loan_register.sql` after 030. This batch does not send loan or account notices. Read [Batch 3 rollout and permissions](MD/CHARIS_BATCH_3_031_COMMUNICATIONS_AND_LOANS.md) before using.
+
+
+## Batch 4 continuation (SQL 032)
+
+Credit Reminder Centre now prepares authorised loan reminder drafts, enforces independent or expressly delegated review, and stages approved batches as **HELD ONLY** delivery records. No Batch 4 worker dispatches these records. Use the [Batch 4 release and operations notes](MD/CHARIS_BATCH_4_032_CREDIT_REMINDERS.md) before staging.

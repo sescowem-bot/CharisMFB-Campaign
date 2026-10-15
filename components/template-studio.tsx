@@ -1,43 +1,42 @@
 'use client';
 import {useActionState,useEffect,useState} from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {uploadCharisMedia} from '@/app/dashboard/branding/media-actions';
 import {saveTemplate} from '@/app/dashboard/actions';
-import {starterDesign,type EmailDesign,type EmailBlock} from '@/lib/campaign/design';
+import {starterDesign,type EmailDesign} from '@/lib/campaign/design';
 import {charisTemplatePresets} from '@/lib/campaign/template-presets';
-type Block=EmailDesign['blocks'][number];
+import {EmailDesignCanvas} from '@/components/email-design-canvas';
+import './email-design-canvas.css';
 type MediaAsset={id:string;file_name:string;public_url:string};
 export function TemplateStudio({org,initial,brandName='Charis Microfinance Bank',brandColor='#40239a',assets=[]}:{org:string;brandName?:string;brandColor?:string;assets?:MediaAsset[];initial?:{id:string;name:string;subject:string;description:string;category:string;design:EmailDesign}}){
  const router=useRouter();
  const [uploadResult,uploadAction,uploadPending]=useActionState(uploadCharisMedia,{});
  useEffect(()=>{if(uploadResult.success)router.refresh();},[uploadResult.success,router]);
- const [blocks,setBlocks]=useState<Block[]>(initial?.design?.blocks||starterDesign.blocks);
- const [style,setStyle]=useState<NonNullable<EmailDesign['style']>>(initial?.design?.style||'classic');
+ const [history,setHistory]=useState<{past:EmailDesign[];present:EmailDesign;future:EmailDesign[]}>({past:[],present:initial?.design||starterDesign,future:[]});
+ const design=history.present;
+ function change(next:EmailDesign){setHistory(h=>({past:[...h.past,h.present].slice(-80),present:next,future:[]}));}
+ function undo(){setHistory(h=>h.past.length?{past:h.past.slice(0,-1),present:h.past[h.past.length-1],future:[h.present,...h.future]}:h);}
+ function redo(){setHistory(h=>h.future.length?{past:[...h.past,h.present],present:h.future[0],future:h.future.slice(1)}:h);}
  const [state,action,pending]=useActionState(saveTemplate,{});
- const [name,setName]=useState(initial?.name||'Customer announcement');const [subject,setSubject]=useState(initial?.subject||'An update from our team');
- const [category,setCategory]=useState(initial?.category||'general');const [description,setDescription]=useState(initial?.description||'');
- function choosePreset(id:string){const preset=charisTemplatePresets.find(p=>p.id===id);if(!preset)return;setBlocks(preset.design.blocks.map(b=>({...b})));setStyle(preset.design.style||'classic');setName(preset.name);setSubject(preset.subject);setDescription(preset.description);setCategory(preset.category);}
- function update(i:number,changes:Partial<Block>){setBlocks(old=>old.map((b,j)=>j===i?({...b,...changes} as Block):b));}
- function add(type:EmailBlock['type']){
-  if(type==='image'&&!assets.length)return;
-  let block:EmailBlock;
-  if(type==='button')block={type:'button',text:'Visit our website',url:'https://example.com'};
-  else if(type==='divider')block={type:'divider',text:''};
-  else if(type==='image')block={type:'image',text:'An approved Charis graphic',url:assets[0].public_url,width:'full'};
-  else if(type==='shape')block={type:'shape',text:'Important update',shape:'banner',color:'#40239A'};
-  else block={type,text:type==='heading'?'New heading':'Write your message here'};
-  setBlocks(old=>old.length>=30?old:[...old,block]);
- }
- function move(i:number,dir:number){const j=i+dir;if(j<0||j>=blocks.length)return;setBlocks(old=>{const copy=[...old];[copy[i],copy[j]]=[copy[j],copy[i]];return copy;});}
- return <div className="studio-grid"><form className="admin-form studio-controls" action={action}><input type="hidden" name="organization_id" value={org}/><input type="hidden" name="template_id" value={initial?.id||''}/><input type="hidden" name="design" value={JSON.stringify({version:'1',style,blocks})}/><h2>Design your email</h2><div className="preset-library"><h3>Choose a ready-made design</h3><p className="muted">10 professional templates. Select any design, edit the wording and save it to your bank template library. Nothing is sent automatically.</p><div className="preset-picker">{charisTemplatePresets.map(p=><button type="button" className="preset-tile" key={p.id} onClick={()=>choosePreset(p.id)}><strong>{p.name}</strong><small>{p.category==='promotion'?'Promotional permission required':'Edit before use'}</small></button>)}</div></div>
- <label>Template name<input name="name" value={name} onChange={e=>setName(e.target.value)} required maxLength={120}/></label><label>Subject line<input name="subject" value={subject} onChange={e=>setSubject(e.target.value)} maxLength={200}/></label><label>Category<select name="category" value={category} onChange={e=>setCategory(e.target.value)}><option value="general">General</option><option value="newsletter">Newsletter</option><option value="announcement">Announcement</option><option value="promotion">Promotion</option><option value="event">Event</option></select></label><label>Description<input name="description" maxLength={500} value={description} onChange={e=>setDescription(e.target.value)}/></label>
- <label>Email layout<select value={style} onChange={e=>setStyle(e.target.value as NonNullable<EmailDesign['style']>)}><option value="classic">Classic bank announcement</option><option value="modern">Modern card</option><option value="minimal">Simple and clean</option><option value="announcement">Featured announcement</option></select></label><h3>Message sections</h3><div className="block-add">{(['heading','paragraph','button','image','shape','divider'] as const).map(t=><button type="button" key={t} disabled={blocks.length>=30||(t==='image'&&!assets.length)} onClick={()=>add(t)}>+ {t==='shape'?'shape / banner':t}</button>)}</div>
- {blocks.map((b,i)=><div className="block-control" key={i}><div className="block-control-head"><b>{i+1}. {b.type==='shape'?'Shape / accent':b.type}</b><span><button type="button" aria-label="Move up" onClick={()=>move(i,-1)}>↑</button><button type="button" aria-label="Move down" onClick={()=>move(i,1)}>↓</button><button type="button" aria-label="Remove block" onClick={()=>setBlocks(old=>old.filter((_,j)=>i!==j))}>×</button></span></div>
- {b.type==='image'?<><label>Approved image<select value={b.url} onChange={e=>update(i,{url:e.target.value})}>{assets.map(a=><option key={a.id} value={a.public_url}>{a.file_name}</option>)}</select></label><label>Image description (accessibility)<input value={b.text} maxLength={160} onChange={e=>update(i,{text:e.target.value})}/></label><label>Image size<select value={b.width} onChange={e=>update(i,{width:e.target.value as 'full'|'medium'|'small'})}><option value="full">Wide banner</option><option value="medium">Medium</option><option value="small">Small graphic</option></select></label></>:b.type==='shape'?<><label>Shape style<select value={b.shape} onChange={e=>update(i,{shape:e.target.value as 'banner'|'pill'|'panel'|'rule'})}><option value="banner">Colored banner</option><option value="panel">Rounded panel</option><option value="pill">Rounded label</option><option value="rule">Color divider</option></select></label><label>Accent color<input type="color" value={b.color} onChange={e=>update(i,{color:e.target.value})}/></label>{b.shape!=='rule'&&<label>Text<textarea value={b.text} maxLength={200} rows={2} onChange={e=>update(i,{text:e.target.value})}/></label>}</>:b.type!=='divider'&&<textarea aria-label={b.type+' text'} value={b.text} onChange={e=>update(i,{text:e.target.value})} rows={b.type==='paragraph'?4:2}/>}
- {b.type==='button'&&<input aria-label="Button destination" type="url" value={b.url} onChange={e=>update(i,{url:e.target.value})}/>}</div>)}
- <p className="muted">All images come from the approved Charis media library. For consistent inbox appearance, shapes use email-compatible banners and labels rather than draggable overlays.</p>
- <button className="btn" disabled={pending}>{pending?'Saving…':'Save template as draft'}</button><p role="status">{state.error||state.success}</p></form>
- <div className="studio-preview"><section className="charis-upload-card"><h3>Bank image library</h3><p className="muted">Upload a PNG, JPG or WebP image up to 2 MB, then select it in an Image section.</p><form action={uploadAction} className="admin-form"><input type="hidden" name="organization_id" value={org}/><input type="hidden" name="kind" value="media"/><label>Upload approved graphic<input type="file" name="asset" accept="image/png,image/jpeg,image/webp" required/></label><button className="btn secondary" disabled={uploadPending}>{uploadPending?'Uploading…':'Upload image'}</button>{uploadResult.error&&<p role="alert" className="feedback-error">{uploadResult.error}</p>}{uploadResult.success&&<p role="status">{uploadResult.success}</p>}</form><Link href={`/dashboard/branding?org=${org}`}>Manage full media library →</Link></section><div className="preview-toolbar"><b>Live design preview</b><span>Responsive email layout</span></div><div className={`email-canvas charis-email-${style}`}><div className="email-canvas-brand" style={{background:style==='minimal'?'#ffffff':style==='announcement'?'#251354':brandColor,color:style==='minimal'?brandColor:'#ffffff'}}>{brandName}</div><div className="email-canvas-content">{blocks.map((b,i)=>b.type==='heading'?<h2 key={i}>{b.text}</h2>:b.type==='paragraph'?<p key={i}>{b.text}</p>:b.type==='button'?<span className="email-button" key={i}>{b.text}</span>:b.type==='image'?<Image unoptimized key={i} alt={b.text} width={b.width==='small'?180:b.width==='medium'?360:540} height={280} src={b.url} style={{display:'block',height:'auto',width:'100%',maxWidth:b.width==='small'?180:b.width==='medium'?360:540,margin:'16px auto'}}/>:b.type==='shape'?<div key={i} className="charis-shape-preview" style={{background:b.color,borderRadius:b.shape==='pill'?36:b.shape==='panel'?14:4,padding:b.shape==='rule'?'3px':'18px 22px',color:'white',margin:'12px 0'}}>{b.shape==='rule'?'':b.text}</div>:<hr key={i}/>) }</div><div className="email-canvas-footer">Company footer will be added during sending · Unsubscribe required for marketing</div></div><p className="muted">Preview only. Saving stores a structured draft, not a sent campaign.</p></div></div>;
+ const [savedId,setSavedId]=useState(initial?.id||'');
+ useEffect(()=>{if(state.templateId)setSavedId(state.templateId);},[state.templateId]);
+ const [name,setName]=useState(initial?.name||'Customer announcement');
+ const [subject,setSubject]=useState(initial?.subject||'An update from our team');
+ const [category,setCategory]=useState(initial?.category||'general');
+ const [description,setDescription]=useState(initial?.description||'');
+ const [presetId,setPresetId]=useState('');
+ function applyPreset(){const preset=charisTemplatePresets.find(p=>p.id===presetId);if(preset)change(structuredClone(preset.design));}
+ return <div className="template-studio-workspace">
+  <form className="admin-form" action={action}>
+   <input type="hidden" name="organization_id" value={org}/><input type="hidden" name="template_id" value={state.templateId||savedId}/><input type="hidden" name="design" value={JSON.stringify(design)}/>
+   <div className="visual-studio-heading"><div><h2>Template Studio</h2><p className="muted">Create a clear, branded message for your customers.</p></div><button className="btn" disabled={pending}>{pending?'Saving…':'Save template'}</button></div>
+   <div className="visual-template-details"><label>Template name<input name="name" value={name} onChange={e=>setName(e.target.value)} required maxLength={120}/></label><label>Subject line<input name="subject" value={subject} onChange={e=>setSubject(e.target.value)} maxLength={200}/></label><label>Category<select name="category" value={category} onChange={e=>setCategory(e.target.value)}><option value="general">General</option><option value="newsletter">Newsletter</option><option value="announcement">Announcement</option><option value="promotion">Promotion</option><option value="event">Event</option></select></label></div>
+   <details className="visual-template-options"><summary>Layout and template options</summary><div className="visual-template-details"><label>Description<input name="description" maxLength={500} value={description} onChange={e=>setDescription(e.target.value)}/></label><label>Email layout<select value={design.style||'classic'} onChange={e=>change({...design,style:e.target.value as EmailDesign['style']})}>{['classic','modern','minimal','announcement'].map(s=><option key={s}>{s}</option>)}</select></label><label>Starting design<select value={presetId} onChange={e=>setPresetId(e.target.value)}><option value="">Choose a design</option>{charisTemplatePresets.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><button type="button" disabled={!presetId} onClick={applyPreset}>Apply design</button></div></details>
+   <div className="visual-history"><button type="button" disabled={!history.past.length} onClick={undo}>Undo design change</button><button type="button" disabled={!history.future.length} onClick={redo}>Redo</button><span>{design.blocks.length} / 30 sections</span></div>
+   <EmailDesignCanvas design={design} onChange={change} assets={assets} brandName={brandName} brandColor={brandColor}/>
+   {state.error&&<p role="alert" className="feedback-error">{state.error}</p>}{state.success&&<p role="status">{state.success}</p>}
+  </form>
+  <details className="visual-template-options"><summary>Image library</summary><form action={uploadAction} className="admin-form"><input type="hidden" name="organization_id" value={org}/><input type="hidden" name="kind" value="media"/><label>Upload image · PNG, JPG or WebP, up to 2 MB<input type="file" name="asset" accept="image/png,image/jpeg,image/webp" required/></label><button className="btn secondary" disabled={uploadPending}>{uploadPending?'Uploading…':'Upload image'}</button>{uploadResult.error&&<p role="alert">{uploadResult.error}</p>}{uploadResult.success&&<p role="status">{uploadResult.success}</p>}</form><Link href={`/dashboard/branding?org=${org}`}>Manage media library</Link></details>
+ </div>;
 }

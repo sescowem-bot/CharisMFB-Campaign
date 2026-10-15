@@ -37,9 +37,11 @@ export function renderCampaign(input:{design:unknown;subject:string;preheader?:s
    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:12px 0"><img src="${escapeHtml(b.url)}" alt="${replace(b.text)}" width="${width}" style="width:100%;max-width:${width}px;height:auto;display:block;border:0"/></td></tr></table>`;
   }
   if(b.shape==='rule')return `<div style="height:5px;background:${b.color};font-size:0;line-height:5px">&nbsp;</div>`;
-  const rounding=b.shape==='pill'?'24px':b.shape==='panel'?'12px':'4px';
-  const padding=b.shape==='pill'?'10px 22px':'22px 24px';
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0"><tr><td bgcolor="${b.color}" style="background:${b.color};padding:${padding};border-radius:${rounding};color:#ffffff;font-weight:600">${replace(b.text)}</td></tr></table>`;
+  const rounding=b.shape==='circle'?'50%':b.shape==='pill'?'999px':b.shape==='panel'?'12px':b.shape==='rectangle'?'0':'4px';
+  const padding=b.padding!==undefined?`${b.padding}px`:b.shape==='pill'?'10px 22px':'22px 24px';
+  const width=b.widthPercent??100;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0"><tr><td align="${b.align||'left'}"><table role="presentation" width="${width}%" cellpadding="0" cellspacing="0"><tr><td bgcolor="${b.color}" align="${b.align||'left'}" style="background:${b.color};padding:${padding};border-radius:${rounding};color:${b.textColor||'#ffffff'};font-size:${b.fontSize||16}px;line-height:1.5;font-weight:600;white-space:pre-wrap;overflow-wrap:anywhere;${b.minHeight?`height:${b.minHeight}px;`:''}border:${b.borderWidth||0}px solid ${b.borderColor||b.color}">${replace(b.text)}</td></tr></table></td></tr></table>`;
+
  }).join('');
  const subject=personalize(input.subject,contact,input.company);
  if(!subject.trim()||subject.length>200||/[\r\n]/.test(subject))throw new Error('Rendered subject must be 1 to 200 characters without line breaks.');

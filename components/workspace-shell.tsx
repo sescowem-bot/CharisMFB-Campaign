@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type {ReactNode} from 'react';
-import {BarChart3,ClipboardCheck,FileText,FolderKanban,LayoutDashboard,Mail,Menu,Palette,PenSquare,ScrollText,Send,Settings2,UserCog,Users,Upload,Filter,ArrowRight,Building2,Bell} from 'lucide-react';
+import {BarChart3,ClipboardCheck,FileText,FolderKanban,LayoutDashboard,Mail,MessageSquareText,Menu,Palette,PenSquare,ScrollText,Send,Settings2,UserCog,Users,Upload,Filter,ArrowRight,Building2,Bell,MapPinned,Landmark,FileCheck2,CalendarClock} from 'lucide-react';
 import {currentAccount} from '@/lib/auth/account';
 import {currentVerifiedUser} from '@/lib/auth/current-user';
 import {charisBrandAssets} from '@/lib/charis-brand-assets';
@@ -32,11 +32,16 @@ export async function WorkspaceShell({title,subtitle,actions,org,admin:adminRequ
         <NavLink href="/dashboard"><LayoutDashboard size={18}/> Overview</NavLink>
         <div className="sidebar-label">Campaigns</div>
         {permitted('campaigns.create')&&<NavLink href={scoped('/dashboard/campaigns','&create=1')} match="/dashboard/campaigns/new"><PenSquare size={18}/> Create campaign</NavLink>}
-        {permitted('campaigns.view')&&<NavLink href={scoped('/dashboard/campaigns')}><Mail size={18}/> All communications</NavLink>}
+        {permitted('campaigns.view')&&<NavLink href={scoped('/dashboard/communications')}><Mail size={18}/> Communications</NavLink>}
+        {permitted('campaigns.view')&&<NavLink href={scoped('/dashboard/campaigns')}><Mail size={18}/> Email campaigns</NavLink>}
         {permitted('campaigns.approve')&&<NavLink href={scoped('/dashboard/approvals')}><ClipboardCheck size={18}/> Approvals</NavLink>}
         {permitted('campaigns.send')&&<NavLink href={scoped('/dashboard/delivery')}><Send size={18}/> Send &amp; delivery</NavLink>}
-        {permitted('campaigns.create')&&<NavLink href={scoped('/dashboard/sms')}><Mail size={18}/> SMS communications</NavLink>}
+        {permitted('campaigns.view')&&<NavLink href={scoped('/dashboard/sms')}><MessageSquareText size={18}/> SMS communications</NavLink>}
         {permitted('reports.view')&&<NavLink href={scoped('/dashboard/reports')}><BarChart3 size={18}/> Reports</NavLink>}
+        <div className="sidebar-label">Credit &amp; account service</div>
+        {(permitted('loans.view')||permitted('loans.manage')||permitted('loans.repayments'))&&<NavLink href={scoped('/dashboard/loans')}><Landmark size={18}/> Loan register</NavLink>}
+        {(['credit_reminders.view','credit_reminders.create','credit_reminders.approve','credit_reminders.queue'].some(permitted))&&<NavLink href={scoped('/dashboard/credit-reminders')}><CalendarClock size={18}/> Credit reminders</NavLink>}
+        {(permitted('service_notices.view')||permitted('service_notices.create')||permitted('service_notices.approve'))&&<NavLink href={scoped('/dashboard/communications/service')}><FileCheck2 size={18}/> Account notices</NavLink>}
         <div className="sidebar-label">Customers</div>
         {permitted('customers.manage')&&<NavLink href={scoped('/dashboard/contacts')}><Users size={18}/> Manage customers</NavLink>}
         {permitted('customers.manage')&&<NavLink href={scoped('/dashboard/imports')}><Upload size={18}/> Import contacts</NavLink>}
@@ -44,6 +49,8 @@ export async function WorkspaceShell({title,subtitle,actions,org,admin:adminRequ
         {permitted('customers.manage')&&<NavLink href={scoped('/dashboard/segments')}><Filter size={18}/> Audience filters</NavLink>}
         <div className="sidebar-label">Team workspace</div>
         <NavLink href={scoped('/dashboard/departments')}><Building2 size={18}/> Departments</NavLink>
+        {(permitted('branches.manage')||permitted('departments.manage')||permitted('customers.view'))&&<NavLink href={scoped('/dashboard/branches')}><MapPinned size={18}/> Branches</NavLink>}
+        {(permitted('customers.view')||permitted('customers.manage'))&&<NavLink href={scoped('/dashboard/customers')}><Users size={18}/> Customer workspace</NavLink>}
         {(permitted('reminders.view')||permitted('reminders.manage'))&&<NavLink href={scoped('/dashboard/reminders')}><Bell size={18}/> Team reminders</NavLink>}
         <NavLink href="/dashboard/help"><FileText size={18}/> Help &amp; workflows</NavLink>
         <div className="sidebar-label">Settings</div>

@@ -79,3 +79,9 @@ Patch copies do not automatically delete old source routes. After copying and re
 - `lib/charis-departments.ts`
 - `lib/payments/paystack.ts`
 - `lib/payments/signature.ts`
+
+
+## Visual Template Canvas update (028)
+This release extends the Batch 1 full source. If Migration 027 has already succeeded, apply only `supabase/migrations/028_charis_visual_template_canvas.sql`. Otherwise apply 027, then 028, in order. Never rerun the fresh installer against an existing database. Deploy the matching source after the migration; this update does not enable customer sending or change provider configuration.
+
+Use Email templates → Create a new template. Select a shape, enter its text, set properties, preview mobile width, and save. Saved templates are available in Campaign Studio without a separate template approval. Communication approval rules remain unchanged. The existing database status `draft` is presented as “Ready to use” in the template library because it is already selectable by campaigns.

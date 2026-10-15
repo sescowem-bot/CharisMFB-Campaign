@@ -40,3 +40,7 @@ Ten editable template blueprints are supplied directly in the email Template Lib
 
 ## Batch 1 foundation (source upgrade, not production verified)
 The app is permanently for Charis Microfinance Bank Ltd. No public subscription/pricing or multi-company fallback. The Admin Centre exposes roles, individual allow/deny grants, and department creation. Original roles and migrations are preserved. Existing database-wide customer/campaign RLS is still broad and needs future department-specific scoping; a department name alone does not grant or restrict loan/customer-data access.
+
+
+## Batch 4 credit reminder preparation (032; source only)
+Loan repayment reminders are composed from authorised loan records with bank-ledger reconciliation attestation, a 50-loan selection cap, per-recipient preview and policy-controlled review. The default is independent approval; direct own-approval needs additional delegated permissions and management-configured policy. Approved batches may only be placed in an internal *held* delivery ledger. No credit reminder SMS/email is sent. Production acceptance remains pending. See `MD/CHARIS_BATCH_4_032_CREDIT_REMINDERS.md`.
