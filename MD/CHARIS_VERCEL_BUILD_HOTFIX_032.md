@@ -17,7 +17,7 @@ Vercel Next.js 15.5.27 compilation completed, but TypeScript validation stopped 
 - TypeScript parser and local import resolution across **152 TS/TSX/JS/JSX files**: 0 issues.
 - Targeted Batch 1, Batch 2B, Batch 3, Batch 4 tests: **21/21 passed**.
 - Regression tests for this fix: **2/2 passed**.
-- Complete inherited Node 22 test run: **118 passed / 16 failed**, mostly due to unavailable runtime/dependencies and outdated assertions; failure count unchanged from prior Batch 4 package. This is **not** a clean suite.
+- Complete inherited Node 22 test run with two new regression tests: **120 passed / 16 failed (136 total)**, mostly due to unavailable runtime/dependencies and outdated assertions; failure count unchanged from prior Batch 4 package. This is **not** a clean suite.
 - Node 24 production build and full TypeScript semantic validation could not run in this offline container: installed project dependencies are unavailable here. **Production build success is not yet certified.**
 
 ## Install and verify

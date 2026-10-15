@@ -41,9 +41,14 @@ test('sender name and reply-to remain editable and domain IDs remain server-side
 
 test('old multi-company server actions cannot register or reconcile domains for Charis',()=>{
  const legacy=read('app/dashboard/senders/actions.ts');
- assert.match(legacy,/SINGLE_COMPANY_MODE==='true'.*action!=='test'/);
+ assert.match(legacy,/org!==charisOrgId\(\)/);
+ assert.match(legacy,/form.get\('action'\)!=='test'/);
+ assert.match(legacy,/row.charis_connected!==true/);
+ assert.doesNotMatch(legacy,/adapter\.create\(/);
  const admin=read('app/admin/providers/actions.ts');
- assert.match(admin,/SINGLE_COMPANY_MODE==='true'.*Technical domain ID recovery is disabled/);
+ assert.match(admin,/charis_provider_configure/);
+ assert.match(admin,/charisAdmin!==true/);
+ assert.doesNotMatch(admin,/admin_email_provider_save|admin_provider_limits/);
 });
 test('fresh test email requires a Charis-connected and provider-verified sender',()=>{
  const server=read('lib/email/server.ts');

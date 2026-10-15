@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type {ReactNode} from 'react';
-import {BarChart3,ClipboardCheck,FileText,FolderKanban,LayoutDashboard,Mail,MessageSquareText,Menu,Palette,PenSquare,ScrollText,Send,Settings2,UserCog,Users,Upload,Filter,ArrowRight,Building2,Bell,MapPinned,Landmark,FileCheck2,CalendarClock} from 'lucide-react';
+import {BarChart3,ClipboardCheck,FileText,FolderKanban,LayoutDashboard,Mail,MessageSquareText,Menu,Palette,PenSquare,ScrollText,Send,Settings2,UserCog,Users,Upload,Filter,ArrowRight,Building2,Bell,MapPinned,Landmark,FileCheck2,CalendarClock,Activity} from 'lucide-react';
 import {currentAccount} from '@/lib/auth/account';
 import {currentVerifiedUser} from '@/lib/auth/current-user';
 import {charisBrandAssets} from '@/lib/charis-brand-assets';
@@ -37,6 +37,7 @@ export async function WorkspaceShell({title,subtitle,actions,admin:adminRequeste
         {permitted('campaigns.send')&&<NavLink href={scoped('/dashboard/delivery')}><Send size={18}/> Send &amp; delivery</NavLink>}
         {permitted('campaigns.view')&&<NavLink href={scoped('/dashboard/sms')}><MessageSquareText size={18}/> SMS communications</NavLink>}
         {permitted('reports.view')&&<NavLink href={scoped('/dashboard/reports')}><BarChart3 size={18}/> Reports</NavLink>}
+        {(permitted('operations.view')||permitted('reports.view'))&&<NavLink href="/dashboard/insights"><Activity size={18}/> Operations insights</NavLink>}
         <div className="sidebar-label">Credit &amp; account service</div>
         {(permitted('loans.view')||permitted('loans.manage')||permitted('loans.repayments'))&&<NavLink href={scoped('/dashboard/loans')}><Landmark size={18}/> Loan register</NavLink>}
         {(['credit_reminders.view','credit_reminders.create','credit_reminders.approve','credit_reminders.queue'].some(permitted))&&<NavLink href={scoped('/dashboard/credit-reminders')}><CalendarClock size={18}/> Credit reminders</NavLink>}
@@ -47,6 +48,8 @@ export async function WorkspaceShell({title,subtitle,actions,admin:adminRequeste
         {permitted('customers.manage')&&<NavLink href={scoped('/dashboard/lists')}><FolderKanban size={18}/> Saved groups</NavLink>}
         {permitted('customers.manage')&&<NavLink href={scoped('/dashboard/segments')}><Filter size={18}/> Audience filters</NavLink>}
         <div className="sidebar-label">Team workspace</div>
+        {permitted('credit_followups.view')||permitted('credit_followups.create')||permitted('credit_followups.manage')?<NavLink href="/dashboard/credit-followups"><CalendarClock size={18}/> Credit follow-ups</NavLink>:null}
+        <NavLink href="/dashboard/notifications"><Bell size={18}/> My notifications</NavLink>
         <NavLink href={scoped('/dashboard/departments')}><Building2 size={18}/> Departments</NavLink>
         {(permitted('branches.manage')||permitted('departments.manage')||permitted('customers.view'))&&<NavLink href={scoped('/dashboard/branches')}><MapPinned size={18}/> Branches</NavLink>}
         {(permitted('customers.view')||permitted('customers.manage'))&&<NavLink href={scoped('/dashboard/customers')}><Users size={18}/> Customer workspace</NavLink>}
@@ -70,7 +73,7 @@ export async function WorkspaceShell({title,subtitle,actions,admin:adminRequeste
         <label htmlFor="nav-toggle" className="menu-btn" aria-label="Open navigation"><Menu size={20}/></label>
         <div className="crumbs"><Link href="/dashboard">Charis</Link><ArrowRight size={13} aria-hidden="true"/><span className="topbar-title">{title}</span></div>
         <div className="topbar-spacer"/>
-        <span className="topbar-env" title={liveSending?'Approved customer campaigns may be sent.':'You can send staff test emails now. Customer campaigns stay off until the delivery worker and approval checks are enabled.'}><span className={liveSending?'dot':'dot off'}/>{liveSending?'Customer sending on':'Customer sending off'}</span>
+        <span className="topbar-env" title={liveSending?'The application delivery flag is enabled. Sender eligibility, approvals, provider configuration and worker status must still be verified.':'Customer campaign dispatch is disabled; permitted staff tests can be run separately.'}><span className={liveSending?'dot':'dot off'}/>{liveSending?'Delivery gate enabled':'Customer sending off'}</span>
       </header>
       <main className="page" id="main">
         <div className="page-head"><div><h1>{title}</h1>{subtitle&&<p>{subtitle}</p>}</div>{actions&&<div className="actions" style={{marginTop:0}}>{actions}</div>}</div>

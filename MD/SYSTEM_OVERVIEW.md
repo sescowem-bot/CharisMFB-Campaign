@@ -44,3 +44,13 @@ The app is permanently for Charis Microfinance Bank Ltd. No public subscription/
 
 ## Batch 4 credit reminder preparation (032; source only)
 Loan repayment reminders are composed from authorised loan records with bank-ledger reconciliation attestation, a 50-loan selection cap, per-recipient preview and policy-controlled review. The default is independent approval; direct own-approval needs additional delegated permissions and management-configured policy. Approved batches may only be placed in an internal *held* delivery ledger. No credit reminder SMS/email is sent. Production acceptance remains pending. See `MD/CHARIS_BATCH_4_032_CREDIT_REMINDERS.md`.
+
+
+## Batch 5 — scheduled internal credit follow-ups (Migration 033)
+
+The `/dashboard/credit-followups` module schedules task due dates for authorised loan accounts, with branch-scoped assignment and audit trails. `/dashboard/notifications` is a private in-app inbox. Customer workspace filters now support marketing-consent status and the presence of email/phone details, without changing marketing eligibility rules. There is no automatic customer sending or scheduled email/SMS worker in Batch 5. See `MD/CHARIS_BATCH_5_033_FOLLOWUPS_AND_CUSTOMER_FILTERS.md`.
+
+
+## Batch 6 / 034
+
+`/dashboard/insights` shows operational aggregates for authorised loan and account-service workloads. A dedicated `operations.view` permission allows scoped oversight without opening bank-wide campaign analytics. Audit activity now supports date/category filters and bounded pages. The campaign reports page and CSV endpoint derive the bank workspace from the authenticated session instead of trusting an external `org` parameter. See `MD/CHARIS_BATCH_6_034_OPERATIONS_REPORTING.md`. Production validation remains required.

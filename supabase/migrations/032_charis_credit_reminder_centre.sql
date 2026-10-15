@@ -64,6 +64,13 @@ CREATE TABLE IF NOT EXISTS public.charis_credit_reminder_items (
 );
 CREATE INDEX IF NOT EXISTS charis_credit_item_loan_idx ON public.charis_credit_reminder_items(organization_id,loan_id);
 
+-- A composite FOREIGN KEY in the delivery-holds table references (organization_id, id).
+-- The UUID id PRIMARY KEY does not by itself make that column PAIR a unique key.
+-- A non-partial unique index satisfies PostgreSQL's referenced-key requirement and
+-- can also repair an existing reminder-items table after a prior partial SQL run.
+CREATE UNIQUE INDEX IF NOT EXISTS charis_credit_reminder_items_org_id_uidx_032
+ ON public.charis_credit_reminder_items(organization_id,id);
+
 -- No worker consumes these records in Batch 4. State is intentionally HELD.
 CREATE TABLE IF NOT EXISTS public.charis_credit_delivery_holds (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

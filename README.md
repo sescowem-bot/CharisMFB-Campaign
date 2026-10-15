@@ -59,3 +59,17 @@ This source archive adds the Loan Register and a separate **account-service noti
 ## Batch 4 continuation (SQL 032)
 
 Credit Reminder Centre now prepares authorised loan reminder drafts, enforces independent or expressly delegated review, and stages approved batches as **HELD ONLY** delivery records. No Batch 4 worker dispatches these records. Use the [Batch 4 release and operations notes](MD/CHARIS_BATCH_4_032_CREDIT_REMINDERS.md) before staging.
+
+
+## Batch 5 — internal follow-ups and staff notifications (Migration 033)
+
+Migration `033_charis_credit_followups_notifications.sql` adds scoped loan-linked staff follow-ups and a private in-app notification inbox. The source also improves the customer workspace filters. See `MD/CHARIS_BATCH_5_033_FOLLOWUPS_AND_CUSTOMER_FILTERS.md`. Customer messages are **not** sent by this module. Run Migration 033 only after the corrected 032 is already installed. For a read-only database check, run `supabase/verification/033_charis_credit_followups_verify.sql`.
+
+
+## Batch 6 — Operational insights and audit (Migration 034)
+
+See [`MD/CHARIS_BATCH_6_034_OPERATIONS_REPORTING.md`](MD/CHARIS_BATCH_6_034_OPERATIONS_REPORTING.md) for permission-scoped credit oversight, auditing and installation. Migration 033 is required before applying 034. These reports do not activate customer email or SMS.
+
+## Final source hardening (035 — no database migration)
+
+See [`MD/CHARIS_FINAL_RELEASE_HARDENING_035.md`](MD/CHARIS_FINAL_RELEASE_HARDENING_035.md) for the scoped sender-test and provider-admin safeguards, Node 24 quality gates, and release-readiness verification. This release requires **no new SQL migration**. Confirm whether migrations 033–034 were previously applied; do not repeat them without checking. Live customer sending remains disabled pending acceptance.

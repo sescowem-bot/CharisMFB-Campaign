@@ -2,6 +2,7 @@ import {ProviderCapacityPlanner} from '@/components/provider-capacity-planner';
 import {redirect} from 'next/navigation';
 import {supabaseServer} from '@/lib/supabase/server';
 import {WorkspaceShell} from '@/components/workspace-shell';
+import {charisOrgId} from '@/lib/bank';
 import {ProviderForm,ProviderLimitsForm} from '@/components/provider-form';
 import {ProviderRouteForm,MailjetSenderConnect,BrevoSenderConnect,MonthlyEmailBudgetForm} from '@/components/provider-route-form';
 
@@ -9,9 +10,9 @@ import {ProviderRouteForm,MailjetSenderConnect,BrevoSenderConnect,MonthlyEmailBu
 export default async function Providers() {
  const db=await supabaseServer();
  const {data:{user}}=await db.auth.getUser();if(!user)redirect('/login');
- const {data:admin}=await db.rpc('is_platform_super_admin');const org=process.env.SINGLE_COMPANY_ORG_ID||'';
- const {data:charisAdmin}=org?await db.rpc('can_manage_senders',{p_org:org}):{data:false};
- if(!admin&&!charisAdmin)redirect('/dashboard');
+ const org=charisOrgId();if(!org)redirect('/setup-required');
+ const {data:charisAdmin,error:accessError}=await db.rpc('can_manage_senders',{p_org:org});
+ if(accessError||charisAdmin!==true)redirect('/dashboard');
  const [{data,error},{data:routes},{data:senders},{data:domains},{data:budget}]=await Promise.all([
   db.from('email_provider_settings').select('*').order('provider'),
   org?db.from('charis_email_routes').select('provider,sender_id,enabled,permission_confirmed,allowed_kind').eq('organization_id',org):Promise.resolve({data:[]}),

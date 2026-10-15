@@ -1,7 +1,7 @@
 import {z} from 'zod';
 const count=z.number().int().nonnegative();
 const metrics={recipients:count,submitted:count,delivered:count,opened:count,clicked:count,bounced:count,complained:count,unsubscribed:count,failed:count,unknown:count,skipped:count,waiting:count,attempts:count};
-export const reportSchema=z.object({generated_at:z.string().datetime({offset:true}),total_runs:count,totals:z.object(metrics),runs:z.array(z.object({...metrics,id:z.string().uuid(),name:z.string().nullable(),provider:z.enum(['resend','brevo']),status:z.string(),created_at:z.string().datetime({offset:true}),scheduled_at:z.string().datetime({offset:true})})),daily:z.array(z.object({day:z.string(),runs:count,recipients:count,submitted:count,delivered:count}))});
+export const reportSchema=z.object({generated_at:z.string().datetime({offset:true}),total_runs:count,totals:z.object(metrics),runs:z.array(z.object({...metrics,id:z.string().uuid(),name:z.string().nullable(),provider:z.enum(['resend','brevo','mailjet']),status:z.string(),created_at:z.string().datetime({offset:true}),scheduled_at:z.string().datetime({offset:true})})),daily:z.array(z.object({day:z.string(),runs:count,recipients:count,submitted:count,delivered:count}))});
 export type CampaignReport=z.infer<typeof reportSchema>;
 const dateSchema=z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value=>{const d=new Date(value+'T00:00:00.000Z');return !Number.isNaN(d.valueOf())&&d.toISOString().slice(0,10)===value;},'Use a valid calendar date.');
 export function reportFilters(params:URLSearchParams,now=new Date()) {

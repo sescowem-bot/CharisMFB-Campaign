@@ -10,14 +10,13 @@ add('Public key has public role',env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.startsWith('
 add('Service key is server-only role',env.SUPABASE_SERVICE_ROLE_KEY?.startsWith('sb_secret_')||role(env.SUPABASE_SERVICE_ROLE_KEY||'')==='service_role');
 for(const key of Object.keys(env).filter(k=>k.startsWith('NEXT_PUBLIC_')&&/(SECRET|SERVICE_ROLE|API_KEY)/.test(k)))add('No public secret variable: '+key,false);
 // Charis is a single-bank communication system, not a subscription billing product.
-const singleCompany=env.SINGLE_COMPANY_MODE==='true';
-if(singleCompany)add('Charis organisation UUID configured',/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(env.SINGLE_COMPANY_ORG_ID||''));
-else add('Legacy billing key configured',/^sk_(test|live)_/.test(env.PAYSTACK_SECRET_KEY||''));
+add('Charis organisation UUID configured',/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(env.SINGLE_COMPANY_ORG_ID||''));
 add('Worker secret configured',(env.EMAIL_WORKER_SECRET||'').length>=32);
 add('At least one email provider key',env.RESEND_API_KEY||env.BREVO_API_KEY);
 if(env.RESEND_API_KEY)add('Resend webhook signing secret',env.RESEND_WEBHOOK_SECRET?.startsWith('whsec_'));
 if(env.BREVO_API_KEY){add('Brevo webhook secret',(env.BREVO_WEBHOOK_SECRET||'').length>=32);add('Independent worker and Brevo secrets',env.BREVO_WEBHOOK_SECRET!==env.EMAIL_WORKER_SECRET);}
 add('Delivery stays disabled before acceptance',env.EMAIL_DELIVERY_ENABLED==='false');
+add('Multi-provider routing stays disabled before acceptance',env.CHARIS_MULTI_PROVIDER_ENABLED!=='true');
 for(const c of checks)console.log(`${c.ok?'PASS':'FAIL'} ${c.name}`);
 console.log('Configuration only. Hosted access, DNS, payment, sending, restore and browser acceptance are separate gates.');
 if(checks.some(c=>!c.ok))process.exitCode=1;

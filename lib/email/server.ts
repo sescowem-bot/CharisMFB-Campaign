@@ -34,7 +34,7 @@ export async function refreshDomain(org:string,id:string,trigger=false) {
   if(error||!row||row.verification_status==='revoked') throw new Error('Active sender domain not found in this workspace.');
   const adapter=await providerFor(row.provider as Provider);
   // Invalidate cached verification before a network check. Failure must close access.
-  const {error:invalidate}=await db.from('sending_domains').update({verification_status:'pending'}).eq('id',id).neq('verification_status','revoked');
+  const {error:invalidate}=await db.from('sending_domains').update({verification_status:'pending'}).eq('id',id).eq('organization_id',org).neq('verification_status','revoked');
   if(invalidate) throw new Error('Cannot refresh domain verification.');
   const state=await adapter.check(row.domain,row.provider_domain_id,trigger);
   const charis=process.env.SINGLE_COMPANY_ORG_ID===org;

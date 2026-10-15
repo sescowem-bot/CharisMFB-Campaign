@@ -35,14 +35,15 @@ test('Template preview is Charis-branded while existing template persistence sta
  const f=read('components/template-studio.tsx');
  assert.match(f,/brandName='Charis Microfinance Bank'/);
  assert.match(f,/brandColor/);
- assert.match(f,/charis-email-\$\{style\}/);
+ assert.match(f,/<EmailDesignCanvas design=\{design\}/);
+ assert.match(f,/JSON.stringify\(design\)/);
  assert.match(f,/saveTemplate/);
  assert.match(read('app/dashboard/templates/page.tsx'),/organization_branding/);
 });
 
 test('Operations and SQL history are preserved and campaign paths remain visible',()=>{
  const nav=read('components/workspace-shell.tsx');
- for(const label of ['All communications','Audience filters','Approvals','Sender settings','Team access'])assert.ok(nav.includes(label),label);
+ for(const label of ['Communications','Audience filters','Approvals','Sender settings','Team access'])assert.ok(nav.includes(label),label);
  assert.ok(existsSync(new URL('../supabase/migrations/019_charis_dashboard_and_campaign_lead.sql',import.meta.url)));
  assert.match(read('components/charis-ui.tsx'),/Awaiting approval/);
 });

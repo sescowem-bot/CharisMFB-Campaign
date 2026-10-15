@@ -26,7 +26,8 @@ test('four email designs use one structured schema and persist into template lib
  assert.match(render,/announcement/);
  assert.match(render,/minimal/);
  assert.match(library,/style:z.enum/);
- assert.match(template,/JSON.stringify\(\{version:'1',style,blocks\}\)/);
+ assert.match(template,/JSON.stringify\(design\)/);
+ assert.match(template,/<EmailDesignCanvas design=\{design\}/);
 });
 test('extra customer fields require bank access and protect account identifiers',()=>{
  const sql=read('supabase/migrations/021_charis_customer_details.sql');
