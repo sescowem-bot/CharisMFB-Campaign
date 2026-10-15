@@ -40,7 +40,7 @@ export default async function Dashboard(){
   {title:'Review approvals',description:'Review submitted messages and record a decision.',path:scoped('/dashboard/approvals'),icon:ShieldCheck,show:canApprove},
   {title:canManageCustomers?'Manage customers':'View customers',description:canManageCustomers?'Search customers, organise groups and update contact records.':'View customers assigned to your bank branches.',path:canManageCustomers?scoped('/dashboard/contacts'):scoped('/dashboard/customers'),icon:UsersRound,show:canReadCustomers},
   {title:'Send and track',description:'Queue approved messages and see delivery outcomes.',path:scoped('/dashboard/delivery'),icon:Send,show:canDispatch},
-  {title:'My reminders',description:'See follow-ups, upcoming tasks and department responsibilities.',path:scoped('/dashboard/reminders'),icon:Bell,show:canReadReminders}
+  {title:'My tasks',description:'Manage internal assignments, deadlines and department tasks.',path:scoped('/dashboard/tasks'),icon:Bell,show:canReadReminders}
  ].filter(item=>item.show);
  return <WorkspaceShell org={org} title="Communication overview" subtitle="Charis Microfinance Bank · Customer communications">
   <section className="hero-card">

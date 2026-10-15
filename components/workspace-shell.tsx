@@ -20,7 +20,7 @@ export async function WorkspaceShell({title,subtitle,actions,children}:{
   const org=account?.workspace?.id||'';
   const forBank=(path:string)=>`${path}?org=${encodeURIComponent(org)}`;
   const canCommunicate=canAny('templates.manage','campaigns.view','campaigns.create','service_notices.view','service_notices.create','service_notices.approve','credit_reminders.view','credit_reminders.create');
-  const canCredit=canAny('loans.view','loans.manage','loans.repayments','credit_reminders.view','credit_reminders.create','credit_reminders.approve','credit_reminders.queue','credit_followups.view','credit_followups.create','credit_followups.manage');
+  const canCredit=canAny('loans.view','loans.manage','loans.repayments','credit_reminders.view','credit_reminders.create','credit_reminders.approve','credit_reminders.queue','credit_reminders.dispatch','credit_followups.view','credit_followups.create','credit_followups.manage');
   const liveSending=process.env.EMAIL_DELIVERY_ENABLED==='true';
   const email=verifiedUser?.email||'';
   const initials=(email.split('@')[0]||'C').replace(/[^a-z0-9]/gi,'').slice(0,2).toUpperCase()||'C';
@@ -48,11 +48,12 @@ export async function WorkspaceShell({title,subtitle,actions,children}:{
         {canCredit&&<>
           <div className="sidebar-label">Credit operations</div>
           {canAny('loans.view','loans.manage','loans.repayments')&&<NavLink href="/dashboard/loans"><Landmark size={18}/> Loan register</NavLink>}
-          {canAny('credit_reminders.view','credit_reminders.create','credit_reminders.approve','credit_reminders.queue')&&<NavLink href="/dashboard/credit-reminders"><CalendarClock size={18}/> Credit reminders</NavLink>}
-          {canAny('credit_followups.view','credit_followups.create','credit_followups.manage')&&<NavLink href="/dashboard/credit-followups"><ClipboardCheck size={18}/> Follow-ups</NavLink>}
+          {canAny('credit_reminders.view','credit_reminders.create','credit_reminders.approve','credit_reminders.queue','credit_reminders.dispatch')&&<NavLink href="/dashboard/credit-reminders"><CalendarClock size={18}/> Loan reminders</NavLink>}
+          {canAny('credit_followups.view','credit_followups.create','credit_followups.manage')&&<NavLink href="/dashboard/credit-followups"><ClipboardCheck size={18}/> Credit follow-ups</NavLink>}
         </>}
         {canAny('reports.view','operations.view')&&<NavLink href={permitted('operations.view')?'/dashboard/insights':forBank('/dashboard/reports')}><Activity size={18}/> Reports</NavLink>}
-        <NavLink href="/dashboard/notifications"><Bell size={18}/> Notifications</NavLink>
+        {canAny('reminders.view','reminders.create')&&<NavLink href={forBank('/dashboard/tasks')}><ClipboardCheck size={18}/> My tasks</NavLink>}
+        <NavLink href="/dashboard/notifications"><Bell size={18}/> Staff alerts</NavLink>
         {canAdmin&&<>
           <div className="sidebar-label">Management</div>
           <NavLink href="/admin"><Settings2 size={18}/> Administration</NavLink>

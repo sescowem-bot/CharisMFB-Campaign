@@ -5,8 +5,8 @@ import {creditReminderPreview,DEFAULT_CREDIT_REMINDER} from '@/lib/credit-remind
 export type SelectableLoan={id:string;customerId:string;reference:string;customer:string;first_name:string;due:string;outstanding:number;email:boolean;sms:boolean};
 export function CreditReminderComposer({loans,initialLoan,initialKey}:{loans:SelectableLoan[];initialLoan?:string;initialKey:string}){
  const [result,action,pending]=useActionState(createCreditReminder,{});
- const [selected,setSelected]=useState<string[]>(()=>loans.some(l=>l.id===initialLoan&&l.sms)?[initialLoan!]:[]);
- const [channel,setChannel]=useState<'email'|'sms'>('sms');
+ const [selected,setSelected]=useState<string[]>(()=>loans.some(l=>l.id===initialLoan&&l.email)?[initialLoan!]:[]);
+ const [channel,setChannel]=useState<'email'|'sms'>('email');
  const [message,setMessage]=useState(DEFAULT_CREDIT_REMINDER);
  const [key,setKey]=useState(initialKey);
  useEffect(()=>{if(result.success){setKey(crypto.randomUUID());setSelected([]);}},[result]);

@@ -29,6 +29,7 @@ test('department and reminder UI are accessible from the Charis shell',()=>{
  const shell=read('components/workspace-shell.tsx');
  assert.doesNotMatch(shell,/href="\/dashboard\/reminders"/);
  assert.match(read('app/admin/page.tsx'),/dashboard\/departments/);
- assert.match(read('app/dashboard/departments/page.tsx'),/dashboard\/reminders/);
+ assert.match(read('app/dashboard/departments/page.tsx'),/dashboard\/tasks/);
+ assert.match(read('app/dashboard/tasks/page.tsx'),/Staff tasks & alerts/);
  assert.match(read('app/dashboard/reminders/actions.ts'),/charis_reminder_save/);
 });

@@ -1,0 +1,18 @@
+/* Release 043: compact customer-loan reminder and internal staff task surfaces. */
+.charis-loan-hero{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(220px,.8fr);gap:20px;align-items:center;padding:24px;border:1px solid #dedaf4;border-radius:20px;background:linear-gradient(130deg,#f7f5ff,#fff);margin-bottom:20px}
+.charis-loan-hero h2{font-size:clamp(1.25rem,2.2vw,1.8rem);line-height:1.2;margin:0 0 10px}
+.charis-loan-hero p{color:#625f7f;margin:0;max-width:58ch}
+.charis-loan-hero .charis-loan-flag{display:inline-flex;align-items:center;justify-content:center;background:#ebe5fc;color:#432394;border-radius:16px;padding:15px;min-height:80px;text-align:center;font-weight:750}
+.charis-loan-batch-list{display:grid;gap:16px}
+.charis-loan-batch{padding:18px 20px;border:1px solid #e8e4f3;border-radius:16px;background:#fff;min-width:0}
+.charis-loan-batch .charis-loan-batch-header{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.charis-loan-batch h3{font-size:1.05rem;margin:0 0 4px}
+.charis-loan-dispatch{border:1px solid #e7e2f2;background:#fbfaff;border-radius:12px;padding:12px;margin:8px 0}
+.charis-loan-dispatch-form{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}
+.charis-loan-dispatch-form label{display:flex;align-items:flex-start;gap:8px;flex:1 1 300px;font-size:.88rem;color:#39334f}
+.charis-loan-dispatch-form input[type=checkbox]{margin-top:3px;flex:0 0 auto}
+.charis-loan-dispatch-form button{flex-shrink:0}
+.charis-task-intro{padding:20px;border:1px solid #e7e4f2;background:linear-gradient(135deg,#f6f4ff,#fff);border-radius:16px;margin:0 0 20px}
+.charis-task-intro strong{display:block;font-size:1.1rem;margin-bottom:6px}
+.charis-task-intro p{color:#625f7f;margin:0}
+@media(max-width:780px){.charis-loan-hero{grid-template-columns:minmax(0,1fr);padding:18px}.charis-loan-hero .charis-loan-flag{min-height:48px}.charis-loan-batch{padding:14px}.charis-loan-dispatch-form{align-items:stretch}.charis-loan-dispatch-form button{width:100%}}

@@ -35,7 +35,7 @@ export default async function DepartmentWorkspaces({searchParams}:{searchParams:
    <div className="actions"><Link className="btn secondary" href="/admin/access">Manage staff roles and department access</Link></div>
   </>}
   <div className="charis-dept-grid">{visible.map(d=>{const deptMembers=(members.data||[]).filter(m=>m.department_id===d.id);
-   return <section className="charis-dept-card" key={d.id}><span className="charis-dept-eyebrow">Department</span><h2>{d.name}</h2>{d.description&&<p>{d.description}</p>}<div className="actions"><Link className="btn secondary" href={`/dashboard/reminders?org=${encodeURIComponent(org)}&department=${d.id}`}>Open workspace</Link></div>
+   return <section className="charis-dept-card" key={d.id}><span className="charis-dept-eyebrow">Department</span><h2>{d.name}</h2>{d.description&&<p>{d.description}</p>}<div className="actions"><Link className="btn secondary" href={`/dashboard/tasks?org=${encodeURIComponent(org)}&department=${d.id}`}>Open team tasks</Link></div>
     {administrator&&<><details><summary>Staff ({deptMembers.length})</summary><div className="charis-member-list">{deptMembers.map(m=><p key={m.user_id}>{people.get(m.user_id)||'Staff'} · {m.department_role}</p>)}{!deptMembers.length&&<p>No staff assigned.</p>}</div></details><details><summary>Edit department</summary><EditDepartmentForm department={d}/></details></>}
    </section>;})}</div>
   {!visible.length&&!error&&<section className="panel"><h2>No departments available</h2><p>{administrator?'Create the first department above.':'Ask your administrator to assign a department to your account.'}</p></section>}

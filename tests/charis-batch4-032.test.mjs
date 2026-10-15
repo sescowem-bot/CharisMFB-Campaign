@@ -30,7 +30,9 @@ test('held batches are revalidated and staged records cannot be sent',()=>{
  assert.match(migration,/l\.total_due-r\.amount_paid<=0/);
  assert.match(migration,/FOR UPDATE;/);
  assert.match(migration,/already held today/);
- assert.match(page,/No customer messages are dispatched/);
+ assert.match(page,/bank core ledger/);
+ assert.match(page,/LoanDispatchForm/);
+ assert.match(read('app/dashboard/credit-reminders/dispatch-action.ts'),/CHARIS_LOAN_EMAIL_DELIVERY_ENABLED/);
 });
 test('reminder selection and template preview are scoped and useful',()=>{
  assert.match(page,/charis_loan_balances/);

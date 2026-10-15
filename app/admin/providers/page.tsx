@@ -6,6 +6,7 @@ import {charisOrgId} from '@/lib/bank';
 import {ProviderForm,ProviderLimitsForm} from '@/components/provider-form';
 import {ProviderRouteForm,MailjetSenderConnect,BrevoSenderConnect,MonthlyEmailBudgetForm} from '@/components/provider-route-form';
 import {ProviderCapacityPlanner} from '@/components/provider-capacity-planner';
+import {BrevoStaffCheck} from '@/components/brevo-staff-check';
 
 /** Single-bank provider administration. Keep the secure provider actions unchanged. */
 export const dynamic='force-dynamic';
@@ -103,7 +104,7 @@ export default async function Providers(){
          </details>
          <div className="charis-provider-setting"><h3>Connect an existing Mailjet sender</h3><MailjetSenderConnect/></div>
         </>}
-        {p.provider==='brevo'&&<div className="charis-provider-setting"><h3>Connect an existing Brevo sender</h3><BrevoSenderConnect/></div>}
+        {p.provider==='brevo'&&<><div className="charis-provider-setting"><h3>Connect an existing Brevo sender</h3><BrevoSenderConnect/></div><div className="charis-provider-setting"><BrevoStaffCheck configured={Boolean(process.env.BREVO_STAFF_TEST_EMAIL)}/></div></>}
         {p.provider==='resend'&&<p className="charis-provider-note">Resend marketing uses the approved Broadcast workflow in Campaign Studio. It does not use the legacy transactional email worker.</p>}
        </div>
       </details>

@@ -15,8 +15,8 @@ export async function createReminder(_:ReminderResult,form:FormData):Promise<Rem
   const db=await supabaseServer();const {data:{user}}=await db.auth.getUser();if(!user?.email_confirmed_at)throw Error('Verified sign-in required.');
   const {error}=await db.rpc('charis_reminder_save',{p_org:org,p_dept:dept,p_title:title,p_notes:notes,p_due:date,p_priority:priority,p_assignee:assignee});
   if(error)throw Error(error.message);
-  revalidatePath('/dashboard/reminders');revalidatePath('/dashboard/departments');
-  return {success:'Reminder saved. It will appear on the assigned staff member’s dashboard; no customer message was sent.'};
+  revalidatePath('/dashboard/tasks');revalidatePath('/dashboard/departments');
+  return {success:'Task saved for the assigned staff member. No customer message was sent.'};
  }catch(e){return {error:e instanceof Error?e.message:'Unable to save reminder.'};}
 }
 export async function changeReminderStatus(_:ReminderResult,form:FormData):Promise<ReminderResult>{
@@ -26,6 +26,6 @@ export async function changeReminderStatus(_:ReminderResult,form:FormData):Promi
   const status=z.enum(['open','done','cancelled']).parse(form.get('status'));
   const db=await supabaseServer();const {data:{user}}=await db.auth.getUser();if(!user?.email_confirmed_at)throw Error('Verified sign-in required.');
   const {error}=await db.rpc('charis_reminder_status',{p_org:org,p_id:id,p_status:status});if(error)throw Error(error.message);
-  revalidatePath('/dashboard/reminders');return {success:'Reminder updated.'};
+  revalidatePath('/dashboard/tasks');return {success:'Task updated.'};
  }catch(e){return {error:e instanceof Error?e.message:'Could not update reminder.'};}
 }

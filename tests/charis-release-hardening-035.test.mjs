@@ -23,7 +23,8 @@ test('Provider settings permit only bank-authorised admins and scoped RPC',()=>{
  assert.match(a,/charis_provider_configure/);
  assert.doesNotMatch(a,/admin_email_provider_save|admin_provider_limits/);
  assert.match(page,/const org=charisOrgId\(\)/);
- assert.match(page,/charisAdmin!==true/);
+ assert.match(page,/canManage!==true/);
+ assert.match(page,/accessError/);
 });
 
 test('Domain verification update is limited to the active Charis organisation',()=>{
