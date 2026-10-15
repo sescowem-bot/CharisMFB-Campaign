@@ -36,7 +36,7 @@ export default async function AccessManagement(){
    {account.permissions.includes('staff.manage')?<StaffAccessMatrix staff={(Array.isArray(staff.data)?staff.data:[]) as AccessStaff[]}
     roles={(roles.data||[]) as AccessRole[]} assigned={staffRoles.data||[]} additional={additional.data||[]}
     permissions={(permissions.data||[]) as AccessCapability[]} direct={direct.data||[]} currentUserId={account.id} delegable={account.permissions} isOwner={account.owner}/>:<section className="panel"><p className="muted">Staff assignment is managed by authorised bank personnel with both staff and access management permissions.</p></section>}
-   <section className="panel charis-role-create"><h2>Create a custom role</h2><p className="muted">Examples: Credit Officer, Customer Service Officer, Marketing Supervisor. After creation, choose the role's permitted actions below.</p><RoleCreationForm/></section>
+   <section className="panel charis-role-create"><h2>Create a custom role</h2><p className="muted">Examples: Credit Officer, Customer Service Officer, Marketing Supervisor. After creation, choose the role&apos;s permitted actions below.</p><RoleCreationForm/></section>
    <RoleCapabilityMatrix roles={(roles.data||[]) as AccessRole[]} permissions={(permissions.data||[]) as AccessCapability[]} grants={roleGrants.data||[]} delegable={account.permissions}/>
   </>}
  </WorkspaceShell>;
