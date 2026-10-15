@@ -1,0 +1,66 @@
+/* Charis email-provider administration: contained, accessible and responsive.
+   The provider forms and server actions are intentionally unchanged. */
+body.charis-premium .main,body.charis-premium .page{min-width:0}
+body.charis-premium .charis-provider-page{min-width:0;max-width:100%;display:grid;gap:18px;overflow-wrap:break-word}
+body.charis-premium .charis-provider-page *{min-width:0}
+body.charis-premium .charis-provider-intro{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:22px;padding:27px;border-radius:20px;background:#fff;border:1px solid #e4dff0;box-shadow:0 2px 9px rgba(30,16,60,.045)}
+body.charis-premium .charis-provider-intro>div:first-child{flex:1 1 380px;max-width:680px}
+body.charis-premium .charis-provider-intro h2{margin:8px 0 10px;letter-spacing:-.025em;font-size:clamp(22px,2.2vw,27px);color:#211541;line-height:1.24}
+body.charis-premium .charis-provider-intro p{font-size:14px;line-height:1.65;color:#6d6883;margin:0}
+body.charis-premium .charis-provider-eyebrow{font-size:10px;font-weight:800;letter-spacing:.14em;color:#6c4cba}
+body.charis-premium .charis-provider-intro-actions{display:flex;flex-wrap:wrap;gap:9px;align-self:center}
+body.charis-premium .charis-provider-intro-actions .btn{font-size:13px;padding:10px 14px}
+body.charis-premium .charis-provider-state-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+body.charis-premium .charis-provider-state{background:#f9f8fc;border:1px solid #e6e2ee;border-radius:14px;padding:16px;display:grid;align-content:start;gap:6px}
+body.charis-premium .charis-provider-state span{font-size:12px;color:#6d6883}
+body.charis-premium .charis-provider-state strong{color:#27194f;font-size:17px;line-height:1.3}
+body.charis-premium .charis-provider-state small{color:#79758c;font-size:11px;line-height:1.45}
+body.charis-premium .charis-provider-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+body.charis-premium .charis-provider-jump{background:#fff;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:7px 8px;border:1px solid #e4e0ed;border-radius:16px;padding:18px;box-shadow:0 2px 8px rgba(33,19,71,.035)}
+body.charis-premium .charis-provider-jump:hover,body.charis-premium .charis-provider-jump:focus-visible{border-color:#896ad5;background:#fcfbff}
+body.charis-premium .charis-provider-jump-name{font-size:16px;color:#231743;font-weight:800}
+body.charis-premium .charis-provider-jump small{font-size:11px;color:#7c758e;grid-column:1/-1}
+body.charis-premium .charis-provider-jump-link{font-size:12px;color:#4b2c9f;font-weight:700;grid-column:1/-1}
+body.charis-premium .charis-provider-pill{font-size:11px;font-weight:750;border-radius:100px;padding:5px 9px;background:#f2f0f5;color:#686378;border:1px solid #e4e1e9;white-space:nowrap}
+body.charis-premium .charis-provider-pill.is-on{background:#e9f7ee;border-color:#bfe7d0;color:#16623b}
+body.charis-premium .charis-provider-settings{display:grid;gap:14px;min-width:0}
+body.charis-premium .charis-provider-section{scroll-margin-top:85px;min-width:0;background:white;border:1px solid #e4dfec;border-radius:18px;box-shadow:0 2px 10px rgba(20,10,56,.04);overflow:hidden}
+body.charis-premium .charis-provider-section-head{padding:22px 24px 17px}
+body.charis-premium .charis-provider-section-heading{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+body.charis-premium .charis-provider-section-heading h2{font-size:21px;margin:0;color:#211541;letter-spacing:-.02em}
+body.charis-premium .charis-provider-section-head p{font-size:13px;color:#69637c;margin:8px 0;line-height:1.55}
+body.charis-premium .charis-provider-section-head small{font-size:11px;color:#807c90;line-height:1.45}
+body.charis-premium .charis-provider-disclosure{border-top:1px solid #ece8f3}
+body.charis-premium .charis-provider-disclosure>summary,body.charis-premium .charis-provider-finance>summary{cursor:pointer;padding:16px 24px;list-style:none;font-size:13px;font-weight:800;color:#41248d;display:flex;justify-content:space-between;align-items:center;gap:12px}
+body.charis-premium .charis-provider-disclosure>summary::-webkit-details-marker,body.charis-premium .charis-provider-finance>summary::-webkit-details-marker{display:none}
+body.charis-premium .charis-provider-disclosure>summary::after,body.charis-premium .charis-provider-finance>summary::after{content:'+';font-size:21px;line-height:1;color:#674bb0}
+body.charis-premium .charis-provider-disclosure[open]>summary::after,body.charis-premium .charis-provider-finance[open]>summary::after{content:'−'}
+body.charis-premium .charis-provider-disclosure>summary:hover,body.charis-premium .charis-provider-finance>summary:hover{background:#f9f7ff}
+body.charis-premium .charis-provider-disclosure-body{background:#fcfbfe;border-top:1px solid #eeeaf5;padding:20px 24px 24px;display:grid;gap:16px}
+body.charis-premium .charis-provider-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+body.charis-premium .charis-provider-setting{min-width:0;padding:19px;border:1px solid #e8e3f1;border-radius:14px;background:#fff}
+body.charis-premium .charis-provider-setting h3{font-size:15px;color:#241941;margin:0 0 6px}
+body.charis-premium .charis-provider-setting>p{font-size:12px;color:#706b81;line-height:1.5;margin:0}
+body.charis-premium .charis-provider-setting>.admin-form,body.charis-premium .charis-provider-setting>.charis-extra-form{border:0;background:transparent;box-shadow:none;margin:12px 0 0;padding:0;width:100%;max-width:none}
+body.charis-premium .charis-provider-setting>.admin-form .btn{max-width:100%}
+body.charis-premium .charis-provider-setting .actions{margin-top:6px}
+body.charis-premium .charis-provider-setting .admin-form label{line-height:1.45}
+body.charis-premium .charis-provider-routing .admin-form{margin-top:14px}
+body.charis-premium .charis-provider-note{border:1px solid #d9eee4;background:#f2fbf6;border-radius:12px;padding:13px 16px;margin:0;font-size:12px;color:#28563b;line-height:1.6}
+body.charis-premium .charis-webhook-details{background:#fff;border:1px solid #dfd4f3;border-radius:14px;overflow:hidden}
+body.charis-premium .charis-webhook-details>summary{cursor:pointer;color:#41248d;font-size:13px;font-weight:800;padding:16px 18px;line-height:1.5}
+body.charis-premium .charis-webhook-content{padding:0 18px 18px;font-size:13px;line-height:1.65;color:#514d66;overflow-wrap:anywhere}
+body.charis-premium .charis-webhook-content p{margin:8px 0}
+body.charis-premium .charis-webhook-url{display:grid;gap:8px;border-radius:10px;padding:13px 15px;background:#f7f5fc;border:1px solid #ece6f6}
+body.charis-premium .charis-webhook-url span{font-size:11px;color:#6b6580;font-weight:700}
+body.charis-premium .charis-webhook-url code{display:block;font-size:12px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;color:#2e2171}
+body.charis-premium .charis-webhook-content code{white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+body.charis-premium .charis-webhook-note{color:#7a5a18}
+body.charis-premium .charis-provider-finance{min-width:0;background:#fff;border:1px solid #e4dfec;border-radius:16px;overflow:hidden}
+body.charis-premium .charis-provider-finance-grid{border-top:1px solid #ebe5f2;padding:20px;display:grid;gap:18px;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+body.charis-premium .charis-provider-finance-grid>.panel{margin:0;box-shadow:none;min-width:0}
+body.charis-premium .charis-provider-finance-grid .admin-form{margin:0}
+body.charis-premium .charis-provider-page .btn{max-width:100%;white-space:normal;text-align:center}
+@media(max-width:1120px){body.charis-premium .charis-provider-form-grid,body.charis-premium .charis-provider-finance-grid{grid-template-columns:1fr}}
+@media(max-width:760px){body.charis-premium .charis-provider-state-grid,body.charis-premium .charis-provider-overview{grid-template-columns:1fr}body.charis-premium .charis-provider-intro{padding:20px}body.charis-premium .charis-provider-section-head{padding:18px}body.charis-premium .charis-provider-disclosure>summary{padding:14px 18px}body.charis-premium .charis-provider-disclosure-body{padding:14px}body.charis-premium .charis-provider-setting{padding:14px}body.charis-premium .charis-provider-finance-grid{padding:14px}body.charis-premium .charis-provider-page .admin-form .actions{flex-direction:column;align-items:stretch}body.charis-premium .charis-provider-page .admin-form .actions>.btn{width:100%}}
+@media(max-width:440px){body.charis-premium .charis-provider-intro-actions{width:100%}body.charis-premium .charis-provider-intro-actions .btn{width:100%}}

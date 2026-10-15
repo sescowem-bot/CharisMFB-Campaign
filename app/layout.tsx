@@ -7,6 +7,7 @@ import './globals.css';
 import './charis-premium.css';
 import './charis-design-v3.css';
 import './charis-claude-faithful.css';
+import './charis-providers.css';
 export const dynamic='force-dynamic';
 export async function generateMetadata():Promise<Metadata>{
  const assets=await charisBrandAssets();
