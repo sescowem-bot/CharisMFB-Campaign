@@ -96,11 +96,25 @@ export async function saveStaffAccessMatrix(_:Outcome,form:FormData):Promise<Out
    overrides[key]=value;
   }
   if(Object.keys(overrides).length>150)throw Error('Too many permission changes');
-  const {error}=await db.rpc('charis_staff_access_matrix_save',{
-   p_org:org,p_user:staff,p_primary:primary,p_additional:additional,p_custom:custom,p_overrides:overrides
+  // Null means the caller did not load department administration. The database
+  // will leave all department memberships unchanged in that case.
+  let departmentChanges:Record<string,string>|null=null;
+  if(form.get('departments_visible')==='yes'){
+   departmentChanges={};
+   for(const [name,value] of form.entries()){
+    if(!name.startsWith('department:'))continue;
+    const id=z.string().uuid().parse(name.slice('department:'.length));
+    const deptRole=z.enum(['none','member','head','observer']).parse(value);
+    if(Object.prototype.hasOwnProperty.call(departmentChanges,id))throw Error('Duplicate department selection');
+    departmentChanges[id]=deptRole;
+   }
+   if(Object.keys(departmentChanges).length>200)throw Error('Too many department selections');
+  }
+  const {error}=await db.rpc('charis_staff_profile_save',{
+   p_org:org,p_user:staff,p_primary:primary,p_additional:additional,p_custom:custom,p_overrides:overrides,p_departments:departmentChanges
   });
   if(error)throw Error(error.message);
-  revalidatePath('/admin/access');revalidatePath('/dashboard/team');revalidatePath('/dashboard');
-  return {success:'Staff access saved. Their assigned roles and actions are now updated.'};
+  revalidatePath('/admin/access');revalidatePath('/dashboard/team');revalidatePath('/dashboard/departments');revalidatePath('/dashboard');
+  return {success:'Staff access saved. Roles, module actions and selected departments are now updated.'};
  }catch(e){return fail(e);}
 }

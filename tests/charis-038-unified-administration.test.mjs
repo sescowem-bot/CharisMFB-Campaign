@@ -24,7 +24,8 @@ test('staff action matrix edits primary, supplementary, custom and per-module ac
  for(const key of ['primary_role','additional_role','custom_role','override:','Use role','Allow','Deny'])assert.ok(ui.includes(key),key);
  assert.match(ui,/member\.id===currentUserId/);
  assert.match(ui,/disabled=\{pending\|\|locked\}/);
- assert.match(actions,/charis_staff_access_matrix_save/);
+ assert.match(actions,/charis_staff_profile_save/);
+ assert.match(read('supabase/migrations/039_charis_staff_departments_and_actions.sql'),/charis_staff_access_matrix_save/);
  assert.match(actions,/charis_role_permissions_replace/);
  assert.match(actions,/bankAccess\(\)/);
 });

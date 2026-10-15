@@ -28,12 +28,17 @@ export default async function DepartmentWorkspaces({searchParams}:{searchParams:
  const people=new Map(staff.map(s=>[s.id,s.email]));
  return <WorkspaceShell title="Departments" org={org} subtitle="Workspaces and responsibilities configured by your bank.">
   {error&&<p className="feedback-error" role="alert">Departments are unavailable. Contact the system administrator.</p>}
-  {administrator&&<><CreateDepartmentForm/><div className="actions"><Link className="btn secondary" href="/admin/access">Roles & permissions</Link></div></>}
+  {administrator&&<>
+   {(staffResult.error||members.error)&&<p className="feedback-error" role="alert">Staff directory or current assignments could not be loaded. Check department access before assigning staff.</p>}
+   {!staffResult.error&&!members.error&&<DepartmentAssignmentForm org={org} departments={visible.map(d=>({id:d.id,name:d.name}))} staff={staff.map(s=>({id:s.id,email:s.email,role:s.base_role}))} members={members.data||[]}/>}
+   <details className="panel charis-dept-create-collapsible"><summary>Create a new department</summary><CreateDepartmentForm/></details>
+   <div className="actions"><Link className="btn secondary" href="/admin/access">Manage staff roles and department access</Link></div>
+  </>}
   <div className="charis-dept-grid">{visible.map(d=>{const deptMembers=(members.data||[]).filter(m=>m.department_id===d.id);
    return <section className="charis-dept-card" key={d.id}><span className="charis-dept-eyebrow">Department</span><h2>{d.name}</h2>{d.description&&<p>{d.description}</p>}<div className="actions"><Link className="btn secondary" href={`/dashboard/reminders?org=${encodeURIComponent(org)}&department=${d.id}`}>Open workspace</Link></div>
     {administrator&&<><details><summary>Staff ({deptMembers.length})</summary><div className="charis-member-list">{deptMembers.map(m=><p key={m.user_id}>{people.get(m.user_id)||'Staff'} · {m.department_role}</p>)}{!deptMembers.length&&<p>No staff assigned.</p>}</div></details><details><summary>Edit department</summary><EditDepartmentForm department={d}/></details></>}
    </section>;})}</div>
   {!visible.length&&!error&&<section className="panel"><h2>No departments available</h2><p>{administrator?'Create the first department above.':'Ask your administrator to assign a department to your account.'}</p></section>}
-  {administrator&&<>{archived.length>0&&<section className="panel"><h2>Archived departments</h2>{archived.map(d=><details key={d.id}><summary>{d.name}</summary><EditDepartmentForm department={d}/></details>)}</section>}<DepartmentAssignmentForm org={org} departments={visible.map(d=>({id:d.id,name:d.name}))} staff={staff.map(s=>({id:s.id,email:s.email,role:s.base_role}))}/></>}
+  {administrator&&<>{archived.length>0&&<section className="panel"><h2>Archived departments</h2>{archived.map(d=><details key={d.id}><summary>{d.name}</summary><EditDepartmentForm department={d}/></details>)}</section>}</>}
  </WorkspaceShell>;
 }
