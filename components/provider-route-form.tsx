@@ -7,7 +7,7 @@ export function ProviderRouteForm({provider,senders,route}:{provider:'resend'|'b
  const canMarketing=provider==='mailjet'||provider==='resend';
  return <form action={submit} className="admin-form">
   <h3>Recipient routing</h3><input type="hidden" name="provider" value={provider}/>
-  <p className="muted">Choose an approved sender. Resend marketing uses Broadcasts and the bank's opted-in campaign audience, not transactional email.</p>
+  <p className="muted">Choose an approved sender. Resend marketing uses Broadcasts and the bank&apos;s opted-in campaign audience, not transactional email.</p>
   <label>Sender address<select name="sender_id" required defaultValue={route?.sender_id||''} disabled={pending}>
    <option value="">Choose verified sender</option>{senders.map(s=><option key={s.id} value={s.id}>{s.name} · {s.email}</option>)}
   </select></label>
@@ -16,7 +16,7 @@ export function ProviderRouteForm({provider,senders,route}:{provider:'resend'|'b
    {canMarketing&&<option value="marketing">Opted-in promotional campaigns</option>}
   </select></label>
   <label><input type="checkbox" name="confirmed" defaultChecked={route?.permission_confirmed||false} disabled={pending}/> I have checked this provider account permits the selected message type and its sending limits.</label>
-  <label><input type="checkbox" name="enabled" defaultChecked={route?.enabled||false} disabled={pending||!senders.length}/> Include this provider in automatic routing</label>
+  <label><input type="checkbox" name="enabled" defaultChecked={route?.enabled||false} disabled={pending||!senders.length}/> Enable this provider for its approved sending workflow</label>
   <button className="btn secondary" disabled={pending||!senders.length}>Save routing settings</button>
   {state.error&&<p role="alert" className="feedback-error">{state.error}</p>}{state.success&&<p role="status" className="feedback-success">{state.success}</p>}
  </form>;

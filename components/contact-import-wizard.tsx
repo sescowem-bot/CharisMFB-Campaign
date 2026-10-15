@@ -34,12 +34,18 @@ function autoMap(field:MainField,header:string){
 /**
  * The four core fields map directly to the contacts table. Up to 12 explicitly
  * chosen extra columns are saved to contacts.attributes and can be used in
- * campaign personalization. No marketing consent is imported from spreadsheets.
+ * campaign personalization. Consent for marketing emails is confirmed against bank records, not inferred from spreadsheets.
  */
 export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;name:string}[]}){
  const [preview,setPreview]=useState<Preview|null>(null);
  const [mapping,setMapping]=useState<Record<MainField,number>>({first_name:-1,last_name:-1,email:-1,phone:-1});
  const [extraColumns,setExtraColumns]=useState<Record<number,ExtraColumn>>({});
+ const [consentConfirmed,setConsentConfirmed]=useState(false);
+ const [consentScope,setConsentScope]=useState<'all_marketing'|'product_specific'>('all_marketing');
+ const [consentSource,setConsentSource]=useState('consent_register');
+ const [consentReference,setConsentReference]=useState('');
+ const [consentDate,setConsentDate]=useState('');
+ const [consentProduct,setConsentProduct]=useState('');
  const [country,setCountry]=useState<'none'|'NG'>('none');
  const [counts,setCounts]=useState<Counts>(emptyCounts);
  const [processed,setProcessed]=useState(0);
@@ -140,6 +146,10 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
    if(names.has(entry.key))return `You have used the field name "${entry.key}" twice. Give each extra field a different name.`;
    names.add(entry.key);
   }
+  if(!consentConfirmed)return 'Confirm that each included customer has already consented to the selected marketing purpose.';
+  if(consentReference.trim().length<8)return 'Enter a consent register, signed-form or CRM record reference (at least 8 characters).';
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(consentDate)||consentDate>new Date().toISOString().slice(0,10))return 'Enter the actual date the permission was recorded.';
+  if(consentScope==='product_specific'&&consentProduct.trim().length<2)return 'Enter the product or service covered by the permission.';
   if(listTarget==='new'&&!newListName.trim())return 'Enter a name for your new customer group.';
   return '';
  }
@@ -164,7 +174,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
    }
    for(let i=0;i<totalBatches;i++){
     const rows=prepared.slice(i*batchSize,(i+1)*batchSize).map((row,j)=>({...row,source_row:i*batchSize+j+2}));
-    const response=await fetch('/api/contacts/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({organization_id:org,batch_key:batches.current[i],rows,...(listId?{list_id:listId}:{})})});
+    const response=await fetch('/api/contacts/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({organization_id:org,batch_key:batches.current[i],rows,...(listId?{list_id:listId}:{}),consent:{confirmed:true,scope:consentScope,source:consentSource,reference:consentReference.trim(),recorded_on:consentDate,product:consentProduct.trim()}})});
     const result=await response.json();
     if(!response.ok)throw new Error(`Batch ${i+1}: ${result.error||'The import could not be completed.'}`);
     inserted+=result.inserted;skipped+=result.skipped;rejected+=result.rejected;
@@ -188,7 +198,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
     <p className="muted"><strong>{preview.filename}</strong> · {preview.rows.length.toLocaleString()} customer rows · {preview.headers.length} columns found.</p>
     <h3>Main customer information</h3>
     <div className="mapping-grid">{mainFields.map(field=><label key={field.key}>{field.label}<select value={mapping[field.key]} disabled={busy||complete} onChange={e=>{setMapping(old=>({...old,[field.key]:Number(e.target.value)}));invalidate();}}><option value={-1}>Not included</option>{preview.headers.map((header,index)=><option value={index} key={index}>{header} (column {index+1})</option>)}</select></label>)}</div>
-    <p className="muted">You need at least Email or Phone. Names are optional. This import does not assume that anyone has agreed to marketing emails.</p>
+    <p className="muted">You need at least Email or Phone. Names are optional. Consent must be documented in Step 4; no permission is inferred from a customer account.</p>
     <div className="workspace-heading"><div><h3>Other spreadsheet columns</h3><p className="muted">Choose additional details you want to keep for your campaigns. Rename them if needed.</p></div><button className="btn secondary" type="button" onClick={selectSuggested} disabled={busy||complete}>Select suggested fields</button></div>
     <p className="muted"><strong>{selectedExtras.length} of {MAX_EXTRA} extra fields selected.</strong> Other spreadsheet columns are ignored. Sensitive columns such as BVN, balances and PINs are not imported.</p>
     <div className="table-scroll"><table className="admin-table"><thead><tr><th>Spreadsheet column</th><th>What to do</th><th>Save this detail as</th></tr></thead><tbody>{preview.headers.map((header,index)=>{
@@ -206,12 +216,20 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
     {listTarget==='new'&&<label>New group name<input value={newListName} disabled={busy||complete} maxLength={100} onChange={e=>{setNewListName(e.target.value);listRef.current=null;invalidate();}} placeholder="October account updates"/></label>}
    </div>
    <div className="admin-form">
-    <h2>Step 4 · Review and import</h2>
+    <h2>Step 4 · Verify existing customer marketing permission</h2>
+    <p className="muted">Import only people who already gave documented permission. A new upload will never undo a previous opt-out. Contacts whose permission is limited to one product are stored without eligibility for general marketing broadcasts.</p>
+    <label>Permission covers<select value={consentScope} disabled={busy||complete} onChange={e=>{setConsentScope(e.target.value as 'all_marketing'|'product_specific');invalidate();}}><option value="all_marketing">All Charis promotional updates (explicit permission required)</option><option value="product_specific">Only one product or service (not eligible for general broadcasts)</option></select></label>
+    {consentScope==='product_specific'&&<label>Approved product/service<input value={consentProduct} maxLength={80} disabled={busy||complete} onChange={e=>{setConsentProduct(e.target.value);invalidate();}} placeholder="e.g. Fixed deposits"/></label>}
+    <label>Where was permission recorded?<select value={consentSource} disabled={busy||complete} onChange={e=>{setConsentSource(e.target.value);invalidate();}}><option value="consent_register">Bank consent register / CRM</option><option value="signed_form">Signed customer opt-in form</option><option value="digital_form">Online opt-in form</option><option value="recorded_call">Recorded customer permission</option><option value="other">Other documented evidence</option></select></label>
+    <label>Evidence/register reference<input value={consentReference} maxLength={200} disabled={busy||complete} onChange={e=>{setConsentReference(e.target.value);invalidate();}} placeholder="Consent register batch, form or record ID"/></label>
+    <label>Date of existing permission<input type="date" value={consentDate} max={new Date().toISOString().slice(0,10)} disabled={busy||complete} onChange={e=>{setConsentDate(e.target.value);invalidate();}}/></label>
+    <label><input type="checkbox" checked={consentConfirmed} disabled={busy||complete} onChange={e=>{setConsentConfirmed(e.target.checked);invalidate();}}/> I confirm that evidence is available for each contact in this file, and that this import does not include people who declined or withdrew promotional permission.</label>
+    <h2>Step 5 · Review and import</h2>
     <p className="muted">Previewing the first five rows. Check the mapped columns before importing.</p>
     <div className="table-scroll"><table className="admin-table"><thead><tr><th>First name</th><th>Last name</th><th>Email</th><th>Phone</th>{selectedExtras.map(item=><th key={item.index}>{item.header}</th>)}</tr></thead><tbody>{prepared.slice(0,5).map((row,index)=><tr key={index}><td>{row.first_name||'—'}</td><td>{row.last_name||'—'}</td><td>{row.email||'—'}</td><td>{row.phone||'—'}</td>{selectedExtras.map(item=><td key={item.index}>{previewColumnValue(item.key,preview.rows[index]?.[item.index]||'')||'—'}</td>)}</tr>)}</tbody></table></div>
-    <button className="btn" type="button" onClick={importRows} disabled={busy||complete}>{busy?'Importing customers…':complete?'Import complete':'Import customers'}</button>
+    <button className="btn" type="button" onClick={importRows} disabled={busy||complete}>{busy?'Importing customers…':complete?'Import complete':'Import customers with recorded consent'}</button>
     {(busy||processed>0)&&<><progress max={prepared.length} value={processed} className="import-progress"/><p className="muted">Processed {processed} of {prepared.length} · Added {counts.inserted} · Duplicates {counts.skipped} · Invalid {counts.rejected}</p></>}
-    {complete&&<div role="status" className="feedback-success"><p>Import complete. Existing consent and opt-outs were preserved.</p>{issueBatchCount>0&&<p><strong>{issueBatchCount} batch(es) contain duplicates or invalid rows.</strong> <Link href={`/dashboard/imports?org=${org}&review=${reviewBatch}#import-review`}>Review those rows →</Link> Select other batches from the review dropdown if needed.</p>}<Link href={`/dashboard/campaigns?org=${org}&create=1`}>Create a campaign →</Link></div>}
+    {complete&&<div role="status" className="feedback-success"><p>Import complete. Existing contacts and opt-outs were preserved; suppressed emails were skipped. Product-limited permissions do not grant general broadcast eligibility.</p>{issueBatchCount>0&&<p><strong>{issueBatchCount} batch(es) contain duplicates or invalid rows.</strong> <Link href={`/dashboard/imports?org=${org}&review=${reviewBatch}#import-review`}>Review those rows →</Link> Select other batches from the review dropdown if needed.</p>}<Link href={`/dashboard/campaigns?org=${org}&create=1`}>Create a campaign →</Link></div>}
     {error&&<p role="alert" className="feedback-error">{error}</p>}
    </div>
   </>}

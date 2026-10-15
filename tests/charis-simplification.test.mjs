@@ -14,12 +14,14 @@ test('selected email recipients are tenant-scoped, eligible and bounded',()=>{
  assert.match(sql,/public\.campaign_save\(/);
  assert.match(sql,/campaign\.recipient_selection/);
 });
-test('import-to-group reuses guarded idempotent importer without altering consent',()=>{
+test('import-to-group legacy path remains guarded, new uploads require documented consent',()=>{
  assert.match(sql,/public\.import_contact_batch\(p_org,p_batch_key,p_rows\)/);
  assert.match(sql,/on conflict\(list_id,contact_id\) do nothing/);
  assert.doesNotMatch(sql,/update public\.contacts set consent_status/);
  const route=read('app/api/contacts/import/route.ts');
- assert.match(route,/charis_import_batch_to_list/);
+ assert.match(route,/charis_import_consented_batch/);
+ assert.match(route,/confirmed:z.literal\(true\)/);
+ assert.match(read('supabase/migrations/041_charis_documented_optin_imports.sql'),/email_suppressions/);
  assert.match(route,/contactsAccess/);
 });
 test('single company hides day-to-day company switching without removing protected routes',()=>{

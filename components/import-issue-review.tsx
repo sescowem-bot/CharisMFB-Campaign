@@ -6,6 +6,7 @@ type Batch={id:string;batch_key:string;inserted_count:number;skipped_count:numbe
 type Issue={id:string;source_row:number;issue_type:'duplicate'|'invalid';reason_code:string;first_name:string;last_name:string;email:string|null;phone:string|null;resolution:'unresolved'|'reviewed'|'corrected'|'kept_existing'};
 const messages:Record<string,string>={
  existing_email:'Email address already belongs to an existing customer.',
+ suppressed_email:'This address is on the bank suppression list. It was not added or opted back in.',
  existing_phone:'Phone number is already saved for a customer.',
  concurrent_duplicate:'This customer was saved by another import at the same time.',
  missing_identity:'Both email and phone are missing.',
@@ -24,6 +25,10 @@ function IssueItem({org,item,onReviewed}:{org:string;item:Issue;onReviewed:(id:s
  const [email,setEmail]=useState(item.email||'');
  const [phone,setPhone]=useState(item.phone||'');
  const [pending,setPending]=useState(false);
+ const [consentSource,setConsentSource]=useState('consent_register');
+ const [consentRef,setConsentRef]=useState('');
+ const [consentDate,setConsentDate]=useState('');
+ const [consentConfirmed,setConsentConfirmed]=useState(false);
  const [error,setError]=useState('');
  const lookup=item.reason_code==='existing_phone'?item.phone||'':item.reason_code==='existing_email'?item.email||'':item.email||item.phone||'';
  async function resolve(resolution:'reviewed'|'kept_existing'|'corrected'){
@@ -36,7 +41,8 @@ function IssueItem({org,item,onReviewed}:{org:string;item:Issue;onReviewed:(id:s
   setPending(true);setError('');
   try{
    if(!email.trim()&&!phone.trim())throw new Error('Enter an email address or phone number.');
-   const response=await fetch('/api/contacts/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({organization_id:org,batch_key:crypto.randomUUID(),rows:[{source_row:item.source_row,first_name:first.trim(),last_name:last.trim(),email:email.trim().toLowerCase(),phone:phone.trim(),attributes:{}}]})});
+   if(!consentConfirmed||consentRef.trim().length<8||!consentDate)throw new Error('Confirm the existing consent evidence, date and reference before retrying.');
+   const response=await fetch('/api/contacts/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({organization_id:org,batch_key:crypto.randomUUID(),rows:[{source_row:item.source_row,first_name:first.trim(),last_name:last.trim(),email:email.trim().toLowerCase(),phone:phone.trim(),attributes:{}}],consent:{confirmed:true,source:consentSource,reference:consentRef.trim(),recorded_on:consentDate,scope:'all_marketing',product:''}})});
    const result=await response.json();
    if(!response.ok)throw new Error(result.error||'The corrected customer could not be imported.');
    if(result.inserted===1){await resolve('corrected');setEditing(false);}
@@ -49,18 +55,22 @@ function IssueItem({org,item,onReviewed}:{org:string;item:Issue;onReviewed:(id:s
   setPending(true);setError('');try{await resolve(resolution);}catch(e){setError(e instanceof Error?e.message:'Could not mark row reviewed.');}finally{setPending(false);}
  }
  return <div className="charis-import-issue" key={item.id}>
-  <div className="charis-import-issue-heading"><strong>Excel row {item.source_row} · {item.issue_type==='duplicate'?'Duplicate':'Needs correction'}</strong><span className={item.resolution==='unresolved'?'muted':'feedback-success'}>{item.resolution==='unresolved'?'Not reviewed':item.resolution.replaceAll('_',' ')}</span></div>
+  <div className="charis-import-issue-heading"><strong>Excel row {item.source_row} · {item.reason_code==='suppressed_email'?'Suppressed':item.issue_type==='duplicate'?'Duplicate':'Needs correction'}</strong><span className={item.resolution==='unresolved'?'muted':'feedback-success'}>{item.resolution==='unresolved'?'Not reviewed':item.resolution.replaceAll('_',' ')}</span></div>
   <p>{[item.first_name,item.last_name].filter(Boolean).join(' ')||'Unnamed customer'} · {item.email||item.phone||'No contact details'}</p>
   <p className="muted">{messages[item.reason_code]||'Review the customer details.'}</p>
   {item.resolution==='unresolved'&&<div className="workspace-links">
    {lookup&&<Link className="btn secondary" href={`/dashboard/contacts?org=${org}&q=${encodeURIComponent(lookup)}`}>Find customer</Link>}
    {item.issue_type==='invalid'&&<button className="btn secondary" type="button" onClick={()=>setEditing(!editing)}>{editing?'Close correction':'Correct and retry'}</button>}
-   <button className="btn secondary" type="button" disabled={pending} onClick={()=>markReviewed(item.issue_type==='duplicate'?'kept_existing':'reviewed')}>{pending?'Saving…':item.issue_type==='duplicate'?'Keep existing customer':'Mark reviewed'}</button>
+   <button className="btn secondary" type="button" disabled={pending} onClick={()=>markReviewed(item.issue_type==='duplicate'?'kept_existing':'reviewed')}>{pending?'Saving…':item.reason_code==='suppressed_email'?'Mark suppression reviewed':item.issue_type==='duplicate'?'Keep existing customer':'Mark reviewed'}</button>
   </div>}
-  {editing&&item.resolution==='unresolved'&&<div className="charis-import-correction"><p className="muted">Correct the contact details and retry as a new customer. This will not overwrite existing customers, change consent or copy restricted extra columns.</p>
+  {editing&&item.resolution==='unresolved'&&<div className="charis-import-correction"><p className="muted">Correct the contact details and retry as a new customer. A correction will not overwrite existing customers and requires documented prior permission. Existing opt-outs remain blocked.</p>
    <div className="form-two"><label>First name<input value={first} onChange={e=>setFirst(e.target.value)} maxLength={100}/></label><label>Last name<input value={last} onChange={e=>setLast(e.target.value)} maxLength={100}/></label></div>
    <div className="form-two"><label>Email<input type="email" value={email} onChange={e=>setEmail(e.target.value)} maxLength={254}/></label><label>Phone (+country code)<input value={phone} onChange={e=>setPhone(e.target.value)} maxLength={20} placeholder="+2348012345678"/></label></div>
-   <button type="button" className="btn" disabled={pending} onClick={submitCorrection}>{pending?'Checking…':'Retry this row'}</button>
+   <label>Original consent source<select value={consentSource} onChange={e=>setConsentSource(e.target.value)}><option value="consent_register">Bank consent register</option><option value="signed_form">Signed form</option><option value="digital_form">Online opt-in form</option><option value="recorded_call">Recorded customer permission</option><option value="other">Other documented evidence</option></select></label>
+   <label>Consent evidence reference<input value={consentRef} maxLength={200} onChange={e=>setConsentRef(e.target.value)}/></label>
+   <label>Consent date<input type="date" value={consentDate} max={new Date().toISOString().slice(0,10)} onChange={e=>setConsentDate(e.target.value)}/></label>
+   <label><input type="checkbox" checked={consentConfirmed} onChange={e=>setConsentConfirmed(e.target.checked)}/> I verified this customer already opted into all Charis promotional updates.</label>
+   <button type="button" className="btn" disabled={pending||!consentConfirmed||consentRef.length<8||!consentDate} onClick={submitCorrection}>{pending?'Checking…':'Retry this row'}</button>
   </div>}
   {error&&<p role="alert" className="feedback-error">{error}</p>}
  </div>;

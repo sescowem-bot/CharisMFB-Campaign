@@ -6,6 +6,14 @@ const schema=z.object({
  organization_id:z.string().uuid(),
  batch_key:z.string().uuid(),
  list_id:z.string().uuid().optional(),
+ consent:z.object({
+  confirmed:z.literal(true),
+  source:z.enum(['signed_form','digital_form','consent_register','recorded_call','other']),
+  reference:z.string().trim().min(8).max(200),
+  recorded_on:z.iso.date().refine(value=>value<=new Date().toISOString().slice(0,10)),
+  scope:z.enum(['all_marketing','product_specific']),
+  product:z.string().trim().max(80)
+ }).strict().refine(value=>value.scope!=='product_specific'||value.product.length>=2),
  rows:z.array(z.object({
   source_row:z.number().int().min(2).max(5001).optional(),
   first_name:z.string().trim().max(300),last_name:z.string().trim().max(300),
@@ -24,9 +32,10 @@ export async function POST(request:Request){
   const {db,user,authorized}=await contactsAccess(parsed.data.organization_id);
   if(!user)return NextResponse.json({error:'Sign in required'},{status:401});
   if(!authorized)return NextResponse.json({error:'Not authorized'},{status:403});
-  const {data,error}=parsed.data.list_id
-   ?await db.rpc('charis_import_batch_to_list',{p_org:parsed.data.organization_id,p_batch_key:parsed.data.batch_key,p_rows:parsed.data.rows,p_list:parsed.data.list_id})
-   :await db.rpc('import_contact_batch',{p_org:parsed.data.organization_id,p_batch_key:parsed.data.batch_key,p_rows:parsed.data.rows});
+  const {data,error}=await db.rpc('charis_import_consented_batch',{
+   p_org:parsed.data.organization_id,p_batch_key:parsed.data.batch_key,p_rows:parsed.data.rows,
+   p_list:parsed.data.list_id||null,p_consent:parsed.data.consent
+  });
   if(error)return NextResponse.json({error:'Contact import rejected: '+error.message},{status:422});
   const summary=Array.isArray(data)?data[0]:data;
   const {data:batch}=await db.from('contact_import_batches').select('id').eq('organization_id',parsed.data.organization_id).eq('batch_key',parsed.data.batch_key).maybeSingle();
