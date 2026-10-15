@@ -7,12 +7,13 @@ import {mailbox} from '@/lib/email/validation';
 import {charisOrgId} from '@/lib/bank';
 export type BrevoStaffTestResult={error?:string;success?:string};
 /** Real email to ONE preconfigured bank-owned test inbox, never to an arbitrary user-supplied address. */
-export async function sendBrevoStaffCheck(_:BrevoStaffTestResult,_form:FormData):Promise<BrevoStaffTestResult>{
+export async function sendBrevoStaffCheck(_state:BrevoStaffTestResult,_form:FormData):Promise<BrevoStaffTestResult>{
+ void _state;void _form;
  let reserved:string|undefined;let org:string|undefined;
  try{
   const db=await supabaseServer();const {data:{user}}=await db.auth.getUser();
   if(!user?.email_confirmed_at)throw Error('Verified bank sign-in required');
-  org=charisOrgId();if(!org)throw Error('Bank workspace not configured');
+  org=charisOrgId()??undefined;if(!org)throw Error('Bank workspace not configured');
   const {data:admin,error:accessError}=await db.rpc('can_manage_senders',{p_org:org});
   if(accessError||admin!==true)throw Error('Provider administrator permission required');
   const to=mailbox(process.env.BREVO_STAFF_TEST_EMAIL||'');
