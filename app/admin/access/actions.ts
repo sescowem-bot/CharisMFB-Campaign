@@ -38,6 +38,22 @@ export async function changeStaffRole(_:Outcome,form:FormData):Promise<Outcome>{
   if(error)throw Error(error.message);revalidatePath('/admin/access');return {success:'Staff role updated.'};
  }catch(e){return fail(e);}
 }
+// Apply a complete set of custom roles atomically in the database.
+// Built-in primary and supplementary responsibilities remain managed in Team Access.
+export async function saveStaffCustomRoles(_:Outcome,form:FormData):Promise<Outcome>{
+ try{
+  const {db,org}=await bankAccess();
+  const staff=z.string().uuid().parse(form.get('user_id'));
+  const roleIds=z.array(z.string().uuid()).max(30).parse(form.getAll('role_id'));
+  if(new Set(roleIds).size!==roleIds.length)throw Error('Duplicate roles in selection.');
+  const {error}=await db.rpc('charis_staff_roles_sync',{
+   p_org:org,p_user:staff,p_roles:roleIds
+  });
+  if(error)throw Error(error.message);
+  revalidatePath('/admin/access');
+  return {success:'Staff custom roles saved. Changes to staff access are audited.'};
+ }catch(e){return fail(e);}
+}
 export async function changeStaffPermission(_:Outcome,form:FormData):Promise<Outcome>{
  try{
   const {db,org}=await bankAccess();const staff=z.string().uuid().parse(form.get('user_id'));

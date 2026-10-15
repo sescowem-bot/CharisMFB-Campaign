@@ -24,7 +24,7 @@ export default async function AccessManagement(){
  ]);
  const error=[roles,permissions,staff,roleGrants,staffRoles,direct].some(r=>r.error);
  return <WorkspaceShell title="Roles & permissions" org={org.data} admin subtitle="Manage delegated access to Charis modules and operations.">
-  <div className="actions"><Link className="btn secondary" href="/dashboard/team">Staff invitations</Link><Link className="btn secondary" href="/dashboard/departments">Departments</Link></div>
+  <div className="actions"><Link className="btn secondary" href={`/dashboard/team?org=${org.data}`}>Staff invitations</Link><Link className="btn secondary" href="/dashboard/departments">Departments</Link></div>
   {error&&<p className="feedback-error" role="alert">Access settings are unavailable. Ask the system owner to complete the database setup.</p>}
   {!error&&<>
    <section className="stat-grid"><div className="stat"><span className="stat-label">Custom roles</span><strong className="stat-value">{roles.data?.length||0}</strong></div><div className="stat"><span className="stat-label">Verified staff</span><strong className="stat-value">{Array.isArray(staff.data)?staff.data.length:0}</strong></div><div className="stat"><span className="stat-label">Capabilities</span><strong className="stat-value">{permissions.data?.length||0}</strong></div></section>

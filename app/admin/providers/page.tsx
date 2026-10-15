@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import {ProviderCapacityPlanner} from '@/components/provider-capacity-planner';
 import {redirect} from 'next/navigation';
 import {supabaseServer} from '@/lib/supabase/server';
@@ -26,6 +27,7 @@ export default async function Providers() {
  };
  return <WorkspaceShell admin title="Email service health">
   <div className="charis-guide-card">API keys stay in Vercel. This page checks API connectivity and stores conservative dispatch limits. A successful connection is not approval to send marketing email or proof of a verified sender. Live campaign delivery remains gated separately.</div>
+  <div className="panel"><h2>SendGrid</h2><p className="muted">Verify your new SendGrid domain and API in sandbox mode. This does not enable customer delivery or promotional campaigns.</p><Link href="/admin/sendgrid">Open SendGrid setup →</Link></div>
   {error||!data?<p role="alert" className="feedback-error">Email provider settings are unavailable. Confirm the installed migrations.</p>:<div className="admin-columns">{data.map(p=><section className="panel" key={p.provider}>
    <div className="workspace-heading"><h2>{p.provider==='resend'?'Resend':p.provider==='brevo'?'Brevo':'Mailjet'}</h2><span className={`status-chip ${p.enabled?'status-granted':''}`}>{p.enabled?'Enabled':'Disabled'}</span></div>
    <p className="muted">Connection: {p.health_status}. {p.checked_at?`Last checked ${new Date(p.checked_at).toLocaleString('en-NG')}`:'Not checked yet.'}</p>

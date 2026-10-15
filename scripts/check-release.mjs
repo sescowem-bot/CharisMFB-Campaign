@@ -12,11 +12,16 @@ for(const key of Object.keys(env).filter(k=>k.startsWith('NEXT_PUBLIC_')&&/(SECR
 // Charis is a single-bank communication system, not a subscription billing product.
 add('Charis organisation UUID configured',/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(env.SINGLE_COMPANY_ORG_ID||''));
 add('Worker secret configured',(env.EMAIL_WORKER_SECRET||'').length>=32);
-add('At least one email provider key',env.RESEND_API_KEY||env.BREVO_API_KEY);
+add('At least one delivery provider configured if live sending is enabled',env.EMAIL_DELIVERY_ENABLED!=='true'||Boolean(env.RESEND_API_KEY||env.BREVO_API_KEY||env.MAILJET_API_KEY));
+if(env.SENDGRID_API_KEY){
+ add('SendGrid From address configured',/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(env.SENDGRID_FROM_EMAIL||''));
+ add('SendGrid API key remains server-only',!env.NEXT_PUBLIC_SENDGRID_API_KEY);
+}
+// A SendGrid sandbox check is NOT a live customer delivery route.
+add('Delivery stays disabled before acceptance',env.EMAIL_DELIVERY_ENABLED==='false');
 if(env.RESEND_API_KEY)add('Resend webhook signing secret',env.RESEND_WEBHOOK_SECRET?.startsWith('whsec_'));
 if(env.BREVO_API_KEY){add('Brevo webhook secret',(env.BREVO_WEBHOOK_SECRET||'').length>=32);add('Independent worker and Brevo secrets',env.BREVO_WEBHOOK_SECRET!==env.EMAIL_WORKER_SECRET);}
-add('Delivery stays disabled before acceptance',env.EMAIL_DELIVERY_ENABLED==='false');
 add('Multi-provider routing stays disabled before acceptance',env.CHARIS_MULTI_PROVIDER_ENABLED!=='true');
 for(const c of checks)console.log(`${c.ok?'PASS':'FAIL'} ${c.name}`);
-console.log('Configuration only. Hosted access, DNS, payment, sending, restore and browser acceptance are separate gates.');
+console.log('Configuration check only. SendGrid is in diagnostic sandbox mode, NOT live campaign sending. SQL 033/034, RLS, DNS, backups, approval and bank acceptance must be validated separately.');
 if(checks.some(c=>!c.ok))process.exitCode=1;

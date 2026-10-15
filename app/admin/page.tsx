@@ -11,6 +11,7 @@ export default async function Administration(){
   {name:'Roles & permissions',detail:'Create roles and delegate capabilities',href:'/admin/access',show:account.accessAdmin,icon:ShieldCheck},
   {name:'Departments',detail:'Create workspaces and assign staff',href:'/dashboard/departments',show:account.admin,icon:Building2},
   {name:'Email providers',detail:'Configure approved sending services',href:'/admin/providers',show:account.providerAdmin,icon:Mail},
+  {name:'SendGrid setup',detail:'Verify sender domain and sandbox API requests',href:'/admin/sendgrid',show:account.providerAdmin,icon:Mail},
   {name:'Brand & media',detail:'Maintain approved bank branding',href:'/dashboard/branding',show:account.admin,icon:Palette},
   {name:'Audit activity',detail:'Review recent change and delivery records',href:'/admin/audit',show:account.auditAdmin,icon:ScrollText}
  ];

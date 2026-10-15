@@ -73,3 +73,8 @@ See [`MD/CHARIS_BATCH_6_034_OPERATIONS_REPORTING.md`](MD/CHARIS_BATCH_6_034_OPER
 ## Final source hardening (035 — no database migration)
 
 See [`MD/CHARIS_FINAL_RELEASE_HARDENING_035.md`](MD/CHARIS_FINAL_RELEASE_HARDENING_035.md) for the scoped sender-test and provider-admin safeguards, Node 24 quality gates, and release-readiness verification. This release requires **no new SQL migration**. Confirm whether migrations 033–034 were previously applied; do not repeat them without checking. Live customer sending remains disabled pending acceptance.
+
+
+## Release 036: SendGrid connection checks and production gate
+
+See [Production Readiness & SendGrid](MD/CHARIS_036_PRODUCTION_READINESS_AND_SENDGRID.md). New SendGrid support is domain verification and sandbox request validation only. **No live customer delivery route is enabled for SendGrid.**
