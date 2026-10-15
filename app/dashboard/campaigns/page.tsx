@@ -17,7 +17,7 @@ export default async function Campaigns({searchParams}:{searchParams:Promise<{or
  db.from('campaign_drafts').select('*').eq('organization_id',org).order('updated_at',{ascending:false}).limit(100),
  db.from('organization_branding').select('display_name,postal_address,primary_color').eq('organization_id',org).maybeSingle()
  ]);
- const [{data:ownWorkspace},{data:canTest}]=await Promise.all([db.rpc('is_owner_workspace',{p_org:org}),db.rpc('can_edit_campaigns',{p_org:org})]);
+ const {data:canTest}=await db.rpc('can_edit_campaigns',{p_org:org});
  const own=false;
  const charis=process.env.SINGLE_COMPANY_ORG_ID===org;
  const preset=list&&z.string().uuid().safeParse(list).success?{type:'list' as const,id:list}:segment&&z.string().uuid().safeParse(segment).success?{type:'segment' as const,id:segment}:undefined;

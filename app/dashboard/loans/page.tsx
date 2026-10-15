@@ -24,7 +24,7 @@ export default async function LoanRegister({searchParams}:{searchParams:Promise<
  const rows=(loans||[]) as LoanRow[];
  const ids=rows.map(l=>l.id),contactIds=[...new Set(rows.map(l=>l.contact_id))];
  const [{data:payments,error:balanceError},{data:names},{data:matchingCustomers}]=await Promise.all([
-  ids.length?db.from('charis_loan_balances').select('loan_id,amount_paid,outstanding').eq('organization_id',org).in('loan_id',ids):Promise.resolve({data:[]}),
+  ids.length?db.from('charis_loan_balances').select('loan_id,amount_paid,outstanding').eq('organization_id',org).in('loan_id',ids):Promise.resolve({data:[],error:null}),
   contactIds.length?db.from('contacts').select('id,first_name,last_name,email').eq('organization_id',org).in('id',contactIds):Promise.resolve({data:[]}),
   (account.permissions.includes('loans.manage')&&account.permissions.includes('customers.view'))?(()=>{
    let c=db.from('contacts').select('id,first_name,last_name,email').eq('organization_id',org).is('archived_at',null).order('created_at',{ascending:false}).limit(40);

@@ -9,13 +9,12 @@ import {SignOutForm} from '@/components/signout-form';
 import {NavLink} from '@/components/nav-link';
 
 /** Claude-reference Charis shell. Functional modules and access checks remain unchanged. */
-export async function WorkspaceShell({title,subtitle,actions,org,admin:adminRequested=false,children}:{
+export async function WorkspaceShell({title,subtitle,actions,admin:adminRequested=false,children}:{
   title:string;subtitle?:string;actions?:ReactNode;org?:string;admin?:boolean;children:ReactNode;
 }) {
   const [account,assets,verifiedUser]=await Promise.all([currentAccount(),charisBrandAssets(),currentVerifiedUser()]);
   const admin=account?.admin===true;
   const permitted=(key:string)=>account?.permissions?.includes(key)===true;
-  const workspace=org||account?.workspace?.id;
   const scoped=(path:string,extra='')=>extra?`${path}?${extra.replace(/^&/,'')}`:path;
   const liveSending=process.env.EMAIL_DELIVERY_ENABLED==='true';
   const email=verifiedUser?.email||'';
