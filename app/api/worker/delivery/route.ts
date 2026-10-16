@@ -2,8 +2,6 @@ import {NextResponse} from 'next/server';
 import {bearerMatches} from '@/lib/delivery/events';
 import {processDeliveryBatch} from '@/lib/delivery/worker';
 import {sendDirectBatch} from '@/lib/direct/dispatch';
-import {sendDirectBatch} from '@/lib/direct/dispatch';
-import {sendDirectBatch} from '@/lib/direct/dispatch';
 export const runtime='nodejs';
 export const maxDuration=120;
 export async function POST(request:Request) {
