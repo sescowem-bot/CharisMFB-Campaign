@@ -33,7 +33,9 @@ export default async function Providers(){
   db.from('charis_email_monthly_budget').select('monthly_limit').eq('organization_id',org).maybeSingle()
  ]);
  const {data,error}=providersResult;
- const readErrors=[routesResult,sendersResult,domainsResult,budgetResult].filter(r=>r.error);
+ // The monthly budget is optional presentation data. A failure must not hide the provider route.
+ const readErrors=[routesResult,sendersResult,domainsResult].filter(r=>r.error);
+ const routeErrorAreas=[routesResult.error?'provider routes':null,sendersResult.error?'sender identities':null,domainsResult.error?'verified domains':null].filter(Boolean).join(', ');
  const routes=routesResult.data||[];
  const senders=sendersResult.data||[];
  const domains=domainsResult.data||[];
@@ -64,7 +66,7 @@ export default async function Providers(){
     <div className="charis-provider-state"><span>Mailjet webhook secret</span><strong>{mailjetWebhookReady?'Configured':'Not configured'}</strong><small>Only needed when using Mailjet.</small></div>
    </div>
    {error||!data?<section className="panel"><p role="alert" className="feedback-error">Provider settings could not be loaded. Check the email-provider migrations or contact the system administrator.</p></section>:<>
-    {readErrors.length>0&&<section className="panel"><p role="alert" className="feedback-error">Some sender or route details could not be loaded. Please refresh before changing delivery routing. Existing settings have not been changed.</p></section>}
+    {readErrors.length>0&&<section className="panel"><p role="alert" className="feedback-error">Email routing could not load: {routeErrorAreas}. Please contact your administrator. Existing settings have not been changed.</p></section>}
     <div className="charis-provider-overview" aria-label="Providers">
      {providers.map(p=><a className="charis-provider-jump" key={p.provider} href={`#provider-${p.provider}`}>
       <span className="charis-provider-jump-name">{names[p.provider]||p.provider}</span>
@@ -115,7 +117,7 @@ export default async function Providers(){
     <div className="charis-provider-finance-grid"><div className="charis-provider-setting"><h3>SendGrid diagnostics</h3><p>Use the existing secured domain and API checks if Charis adds SendGrid delivery later. This page does not activate broadcasts.</p><div className="actions"><Link className="btn secondary" href="/admin/sendgrid">Open SendGrid setup</Link></div></div></div>
    </details>
    <details className="charis-provider-finance"><summary>Limits &amp; capacity planning</summary>
-    <div className="charis-provider-finance-grid"><div className="charis-provider-setting"><MonthlyEmailBudgetForm value={budgetResult.data?.monthly_limit||10000}/></div>{data&&<ProviderCapacityPlanner providers={data.map(p=>({provider:p.provider,enabled:p.enabled,health_status:p.health_status,daily_limit:p.daily_limit}))}/>}</div>
+    <div className="charis-provider-finance-grid"><div className="charis-provider-setting">{budgetResult.error?<p role="alert" className="feedback-error">Monthly budget information could not be loaded. Routing can still be configured independently. Check SQL 045 permissions before editing the budget.</p>:<MonthlyEmailBudgetForm value={budgetResult.data?.monthly_limit||10000}/> }</div>{data&&<ProviderCapacityPlanner providers={data.map(p=>({provider:p.provider,enabled:p.enabled,health_status:p.health_status,daily_limit:p.daily_limit}))}/>}</div>
    </details>
   </div>
  </WorkspaceShell>;
