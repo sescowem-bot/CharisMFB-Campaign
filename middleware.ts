@@ -17,7 +17,7 @@ export async function middleware(request:NextRequest){
  const nonce=btoa(crypto.randomUUID());const policy=contentSecurityPolicy(nonce,process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.NODE_ENV!=='production');
  const requestHeaders=new Headers(request.headers);requestHeaders.set('x-nonce',nonce);requestHeaders.set('Content-Security-Policy',policy);
  const internal=request.nextUrl.clone();if(pathname.startsWith('/dashboard')&&!internal.searchParams.has('org'))internal.searchParams.set('org',org);
- const next=()=>{requestHeaders.set('cookie',request.headers.get('cookie')||'');const result=pathname.startsWith('/dashboard')?NextResponse.rewrite(internal,{request:{headers:requestHeaders}}):NextResponse.next({request:{headers:requestHeaders}});result.headers.set('Content-Security-Policy',policy);return result;};
+ const next=()=>{requestHeaders.set('cookie',request.headers.get('cookie')||'');const result=pathname.startsWith('/dashboard')?NextResponse.rewrite(internal,{request:{headers:requestHeaders}}):NextResponse.next({request:{headers:requestHeaders}});result.headers.set('Content-Security-Policy',policy);if(pathname.startsWith('/unsubscribe')){result.headers.set('Referrer-Policy','no-referrer');result.headers.set('Cache-Control','no-store');}return result;};
  let response=next();
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL;const key=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
  if(!url||!key){if(protectedPage)return NextResponse.redirect(new URL('/setup-required',request.url));return response;}

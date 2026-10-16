@@ -31,6 +31,7 @@ test('Resend is never consulted for routine sender page views',()=>{
 test('campaign workflow keeps independently approved send actions',()=>{
  const s=read('app/dashboard/campaigns/page.tsx');
  assert.match(s,/can_approve_campaigns/);
- assert.match(s,/CharisWorkflowSteps/);
+ assert.match(s,/Previous campaign workflow/);
+ assert.match(s,/redirect\('\/dashboard\/communications\/new'\)/);
  assert.match(read('app/dashboard/approvals/page.tsx'),/submitted_by!==user\.id/);
 });

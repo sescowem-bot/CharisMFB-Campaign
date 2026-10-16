@@ -3,6 +3,7 @@ import {emailServiceDb,providerFor,refreshDomain} from '@/lib/email/server';
 import {escapeHtml,mailbox} from '@/lib/email/validation';
 import {sendQueuedEmail} from '@/lib/delivery/transport';
 import type {Provider} from '@/lib/email/validation';
+import {reservePreferenceLink} from '@/lib/preferences/tokens';
 
 type Item={id:string;organization_id:string;message_id:string;contact_id:string;recipient_email:string|null;recipient_phone:string|null};
 type Message={id:string;organization_id:string;subject:string;body:string;channel:'email'|'sms';purpose:string;status:string};
@@ -49,12 +50,25 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
    if(contact.archived_at)throw Error('customer_archived');
    if(m.channel==='email'){
     if(!settings.email_enabled||!row.recipient_email||contact.email?.toLowerCase()!==row.recipient_email.toLowerCase())throw Error('email_destination_changed');
-    const {data:suppressed,error:suppError}=await db.from('email_suppressions').select('email').eq('organization_id',row.organization_id).ilike('email',row.recipient_email).limit(1);
-    if(suppError||suppressed?.length)throw Error('email_suppressed');
+    const {data:suppressed,error:suppError}=await db.from('email_suppressions').select('email,reason').eq('organization_id',row.organization_id).ilike('email',row.recipient_email).limit(1);
+    if(suppError)throw Error('suppression_check_unavailable');
+    // Respect all recorded opt-outs for manually composed Charis messages.
+    // Essential notifications should use a separate tightly authorised event workflow.
+    if(suppressed?.length)throw Error('email_suppressed');
+    if(m.purpose==='general_notice'){
+     const {data:optout,error:optoutError}=await db.from('charis_optional_email_optouts').select('email').eq('organization_id',row.organization_id).eq('email',row.recipient_email.toLowerCase()).maybeSingle();
+     if(optoutError)throw Error('preference_check_unavailable');
+     if(optout)throw Error('optional_email_opted_out');
+    }
     const {data:prefs,error:prefsError}=await db.from('charis_direct_provider_prefs').select('provider,sender_id,priority').eq('organization_id',row.organization_id).eq('enabled',true).order('priority',{ascending:true});
     if(prefsError||!prefs?.length)throw Error('No service-email provider configured. Ask an administrator to select a verified service sender.');
+    // One-time, bank-hosted preference URL. No personal data in the URL or token.
+    // All manually composed direct emails respect suppressions.
+    // Bank-mandated account/security notifications belong to a separate event workflow.
+    const preference=await reservePreferenceLink({org:row.organization_id,contact:row.contact_id,email:row.recipient_email});
+    const preferenceFooter=`<p style="font-size:12px;color:#64748b"><a href="${escapeHtml(preference)}" style="color:#40239a">${m.purpose==='general_notice'?'Unsubscribe from optional updates':'Manage optional email preferences'}</a></p>`;
     const textBody=escapeHtml(m.body).replace(/\r?\n/g,'<br/>');
-    const html=`<!doctype html><html><body style="margin:0;background:#f5f6fa;padding:28px;font-family:Arial,sans-serif"><main style="max-width:640px;margin:auto;background:white;border:1px solid #e4e8f2;padding:28px"><h2 style="color:#41259a;margin-top:0">Charis Microfinance Bank</h2><div style="font-size:15px;line-height:1.7;color:#243047">${textBody}</div><hr style="border:0;border-top:1px solid #e5e7eb;margin-top:30px"><p style="font-size:12px;color:#64748b">This is an official bank service communication. Do not share your PIN, password or OTP by email.</p></main></body></html>`;
+    const html=`<!doctype html><html><body style="margin:0;background:#f5f6fa;padding:28px;font-family:Arial,sans-serif"><main style="max-width:640px;margin:auto;background:white;border:1px solid #e4e8f2;padding:28px"><h2 style="color:#41259a;margin-top:0">Charis Microfinance Bank</h2><div style="font-size:15px;line-height:1.7;color:#243047">${textBody}</div><hr style="border:0;border-top:1px solid #e5e7eb;margin-top:30px"><p style="font-size:12px;color:#64748b">This is an official bank service communication. Do not share your PIN, password or OTP by email.</p>${preferenceFooter}</main></body></html>`;
     for(const pref of prefs){
      provider=pref.provider;
      const {data:sender,error:senderError}=await db.from('sender_identities').select('id,domain_id,from_name,from_email,reply_to,is_active').eq('organization_id',row.organization_id).eq('id',pref.sender_id).single();
@@ -72,7 +86,7 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
       const day=new Date().toISOString().slice(0,10)+'T00:00:00.000Z';
       const [{count:used},{count:legacyUsed}]=await Promise.all([db.from('charis_direct_recipients').select('id',{head:true,count:'exact'}).eq('provider',provider).in('status',['accepted','failed','unknown']).gte('updated_at',day),db.from('delivery_quota_reservations').select('id',{head:true,count:'exact'}).eq('provider',provider).gte('reserved_at',day)]);
       if((used||0)+(legacyUsed||0)>=providerLimit.daily_limit)continue;
-      const result=await sendQueuedEmail({provider:provider as Provider,key,mailjetSecret:process.env.MAILJET_SECRET_KEY,id:row.id,name:sender.from_name,from:sender.from_email,replyTo:sender.reply_to||sender.from_email,domain:mailbox(sender.from_email).split('@')[1],to:row.recipient_email,subject:m.subject,html});
+      const result=await sendQueuedEmail({provider:provider as Provider,key,mailjetSecret:process.env.MAILJET_SECRET_KEY,id:row.id,name:sender.from_name,from:sender.from_email,replyTo:sender.reply_to||sender.from_email,domain:mailbox(sender.from_email).split('@')[1],to:row.recipient_email,subject:m.subject,html,unsubscribe:m.purpose==='general_notice'?preference.replace('/unsubscribe?','/api/preferences/unsubscribe?'):undefined});
       status=result.status==='retry'?'failed':result.status;reason=result.reason;providerId=result.message||null;
       if(status==='accepted'||status==='unknown')break;
       // Definitive rejection only; never fail over after a potentially accepted submission.
@@ -85,7 +99,7 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
     if(!settings.sms_enabled||!row.recipient_phone||contact.phone!==row.recipient_phone)throw Error('sms_destination_changed');
     provider='termii';const r=await sendDirectSms(m.body,row.recipient_phone);status=r.status;reason=r.reason;providerId=r.message||null;
    }
-  }catch(e){reason=e instanceof Error?e.message.slice(0,140):'unknown_preparation_error';status=reason==='email_suppressed'||reason==='customer_archived'?'skipped':'failed';}
+  }catch(e){reason=e instanceof Error?e.message.slice(0,140):'unknown_preparation_error';status=['email_suppressed','optional_email_opted_out','customer_archived'].includes(reason)?'skipped':'failed';}
   const {error:finished}=await db.rpc('charis_direct_finish',{p_id:claimed,p_status:status,p_provider:provider,p_provider_id:providerId,p_error:reason});
   if(finished)throw Error('Delivery outcome was not saved. Reconcile with the provider before retrying.');
   outcomes[status]=(outcomes[status]||0)+1;

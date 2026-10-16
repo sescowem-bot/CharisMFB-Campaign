@@ -40,7 +40,7 @@ export async function WorkspaceShell({title,subtitle,actions,children}:{
           <div className="sidebar-label">Communications</div>
           <NavLink href="/dashboard/communications"><Mail size={18}/> Communications</NavLink>
           {permitted('templates.manage')&&<NavLink href={forBank('/dashboard/templates')}><FileText size={18}/> Design studio</NavLink>}
-          {(permitted('campaigns.approve')||permitted('campaigns.send'))&&<details className="charis-advanced-nav"><summary>Legacy campaign tools</summary>
+          {canAdmin&&(permitted('campaigns.approve')||permitted('campaigns.send'))&&<details className="charis-advanced-nav"><summary>Previous campaign records</summary>
             {permitted('campaigns.approve')&&<NavLink href={forBank('/dashboard/approvals')}><ClipboardCheck size={18}/> Approvals</NavLink>}
             {permitted('campaigns.send')&&<NavLink href={forBank('/dashboard/delivery')}><Activity size={18}/> Delivery status</NavLink>}
           </details>}
@@ -73,7 +73,7 @@ export async function WorkspaceShell({title,subtitle,actions,children}:{
         <label htmlFor="nav-toggle" className="menu-btn" aria-label="Open navigation"><Menu size={20}/></label>
         <div className="crumbs"><Link href="/dashboard">Charis</Link><ArrowRight size={13} aria-hidden="true"/><span className="topbar-title">{title}</span></div>
         <div className="topbar-spacer"/><Link className="charis-top-help" href="/dashboard/help"><ShieldCheck size={15}/> Help &amp; workflows</Link>
-        <span className="topbar-env" title={liveSending?'The application delivery flag is enabled. Sender eligibility, approvals, provider configuration and worker status must still be verified.':'Customer campaign dispatch is disabled; permitted staff tests can be run separately.'}><span className={liveSending?'dot':'dot off'}/>{liveSending?'Delivery gate enabled':'Customer sending off'}</span>
+        {canAdmin&&<span className="topbar-env" title={liveSending?'Email delivery switch enabled; individual channels and workers may still be unavailable.':'Email delivery switch disabled.'}><span className={liveSending?'dot':'dot off'}/>{liveSending?'Email enabled':'Email disabled'}</span>}
       </header>
       <main className="page" id="main">
         <div className="page-head"><div><h1>{title}</h1>{subtitle&&<p>{subtitle}</p>}</div>{actions&&<div className="actions" style={{marginTop:0}}>{actions}</div>}</div>

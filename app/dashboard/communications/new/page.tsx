@@ -18,9 +18,9 @@ export default async function NewCommunication(){
   db.from('contacts').select('id,first_name,last_name,email,phone').eq('organization_id',org).is('archived_at',null).order('created_at',{ascending:false}).limit(250),
   bankWide?db.from('contact_lists').select('id,name').eq('organization_id',org).order('name').limit(100):Promise.resolve({data:[]})
  ]);
- return <WorkspaceShell title="New message" subtitle="Compose a bank message, select customers, and send. No separate approval when the bank setting is off." actions={<Link href="/dashboard/communications" className="btn secondary">Communication history</Link>}>
+ return <WorkspaceShell title="New message" subtitle="Write, select recipients, send." actions={<Link href="/dashboard/communications" className="btn secondary">Communication history</Link>}>
   {contactError&&<p role="alert" className="feedback-error">Customer access could not be loaded. Ask your administrator to check customer viewing permissions.</p>}
-  {settings.approval_required&&<p className="notice">Bank approval is currently enabled. Your message will go to the approver rather than send immediately.</p>}
+  {settings.approval_required&&<p className="notice">Approval is on. Messages will wait for review.</p>}
   {!settings.email_enabled&&!settings.sms_enabled?<p role="alert" className="feedback-error">Email and SMS are disabled by the bank administrator.</p>:
    <DirectCompose token={randomUUID()} contacts={contacts||[]} groups={groups||[]} canBulk={bankWide===true} emailEnabled={settings.email_enabled} smsEnabled={settings.sms_enabled} maxRecipients={settings.max_recipients}/>}
  </WorkspaceShell>;

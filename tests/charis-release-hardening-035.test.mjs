@@ -43,7 +43,7 @@ test('Release gate requires Charis UUID and refuses premature delivery',()=>{
 
 test('Delivery indicator does not certify acceptance from a Vercel flag',()=>{
  const shell=read('components/workspace-shell.tsx');
- assert.match(shell,/Delivery gate enabled/);
- assert.match(shell,/worker status must still be verified/);
- assert.match(shell,/Customer sending off/);
+ assert.match(shell,/Email enabled/);
+ assert.match(shell,/individual channels and workers may still be unavailable/);
+ assert.match(shell,/Email disabled/);
 });

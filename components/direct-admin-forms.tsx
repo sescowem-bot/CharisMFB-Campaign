@@ -3,8 +3,8 @@ import {useActionState} from 'react';
 import {directAdminAction} from '@/app/admin/communications/actions';
 export function DirectSettingsForm({settings}:{settings:{approval_required:boolean;email_enabled:boolean;sms_enabled:boolean;max_recipients:number}}){
  const [state,action,pending]=useActionState(directAdminAction,{});
- return <form action={action} className="admin-form"><input name="action" type="hidden" value="settings"/><h2>Simple sending policy</h2>
- <label><input type="checkbox" name="approval" defaultChecked={settings.approval_required}/> Require approval before sending (off by default)</label>
+ return <form action={action} className="admin-form"><input name="action" type="hidden" value="settings"/><h2>Sending settings</h2>
+ <label><input type="checkbox" name="approval" defaultChecked={settings.approval_required}/> Require approval before sending</label>
  <label><input type="checkbox" name="email" defaultChecked={settings.email_enabled}/> Allow email communications</label>
  <label><input type="checkbox" name="sms" defaultChecked={settings.sms_enabled}/> Allow SMS communications (also requires live Termii configuration)</label>
  <label>Maximum recipients per message<input name="max_recipients" type="number" min={1} max={50} defaultValue={settings.max_recipients}/></label>
@@ -32,5 +32,16 @@ export function DirectStaffForm({staff,rules}:{staff:{id:string;email:string}[];
  <button className="btn secondary" disabled={pending}>Save staff access</button>
  {state.error&&<p role="alert" className="feedback-error">{state.error}</p>}{state.success&&<p role="status" className="feedback-success">{state.success}</p>}
  <p className="muted">Currently restricted: {rules.filter(r=>!r.can_send).length} staff. A separate explicit denial in the role/permission system also takes effect.</p>
+ </form>;
+}
+
+export function DirectHistoryStaffForm({staff,rules}:{staff:{id:string;email:string}[];rules:{user_id:string;can_manage_history?:boolean}[]}){
+ const [state,action,pending]=useActionState(directAdminAction,{});
+ return <form action={action} className="admin-form"><input name="action" type="hidden" value="history"/>
+ <h3>Message history management</h3>
+ <label>Staff member<select name="user" required defaultValue=""><option value="">Choose staff</option>{staff.map(s=><option key={s.id} value={s.id}>{s.email}{rules.find(r=>r.user_id===s.id)?.can_manage_history?' (permitted)':''}</option>)}</select></label>
+ <label>Permission<select name="can_manage_history" defaultValue="no"><option value="no">No archive or delete access</option><option value="yes">Can archive and delete unsent drafts</option></select></label>
+ <button className="btn secondary" disabled={pending}>Save permission</button>
+ {state.error&&<p className="feedback-error" role="alert">{state.error}</p>}{state.success&&<p className="feedback-success" role="status">{state.success}</p>}
  </form>;
 }

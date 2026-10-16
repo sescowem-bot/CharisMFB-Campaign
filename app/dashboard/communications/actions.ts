@@ -27,15 +27,15 @@ export async function createDirectMessage(_:DirectState,form:FormData):Promise<D
   if(message?.status!=='queued')return {id,success:'This message already exists. Review its delivery status before submitting again.'};
   try{
    const result=await sendDirectBatch(3,{org,message:id});
-   return {id,success:result.outcomes.disabled?'Message queued. Live delivery is currently disabled; an administrator must activate it.':`Message submitted. ${result.outcomes.accepted||0} accepted by provider; remaining recipients are processed by the scheduled worker. Open Delivery history to track outcomes.`};
-  }catch{return {id,success:'Message reserved, but immediate dispatch could not be confirmed. Check its delivery record and the provider before retrying.'};}
+   return {id,success:result.outcomes.disabled?'Message queued. Live delivery is currently disabled; an administrator must activate it.':`Message processed. ${result.outcomes.accepted||0} accepted by provider. Check the delivery record for queued or failed recipients.`};
+  }catch{return {id,success:'Message saved. Delivery status is not confirmed; check History before trying again.'};}
  }catch(e){return {error:e instanceof z.ZodError?'Complete the message, audience and channel details.':e instanceof Error?e.message:'Message could not be created.'};}
 }
 export async function approveDirectMessage(_:DirectState,form:FormData):Promise<DirectState>{
  try{const account=await currentAccount();if(!account)throw Error('Sign in first');const db=await supabaseServer();const org=account.workspace.id,id=z.uuid().parse(form.get('message_id'));
   const {error}=await db.rpc('charis_direct_approve',{p_org:org,p_id:id});if(error)throw Error(error.message);
   revalidatePath('/dashboard/communications');
-  try{const result=await sendDirectBatch(3,{org,message:id});return {id,success:result.outcomes.disabled?'Approved and queued. Live sending is disabled.':`Approved. ${result.outcomes.accepted||0} recipients accepted by provider; the rest remain queued.`};}
+  try{const result=await sendDirectBatch(3,{org,message:id});return {id,success:result.outcomes.disabled?'Approved and queued. Live sending is disabled.':`Approved. ${result.outcomes.accepted||0} accepted by provider. See message history for the rest.`};}
   catch{return {id,success:'Approved and queued. Immediate provider submission could not be confirmed; review delivery status.'};}
  }catch(e){return {error:e instanceof Error?e.message:'Unable to approve message.'};}
 }

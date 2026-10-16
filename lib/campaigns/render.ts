@@ -1,5 +1,5 @@
 import {escapeHtml} from '../email/validation.ts';
-import {designSchema,type EmailDesign} from '../campaign/design.ts';
+import {designSchema,assertNoDemoLinks,type EmailDesign} from '../campaign/design.ts';
 export const campaignDesign=designSchema;
 export type Design=EmailDesign;
 export type PreviewContact={first_name?:string;last_name?:string;email?:string;attributes?:Record<string,string>};
@@ -17,6 +17,7 @@ export function personalize(text:string,contact:PreviewContact,company:string):s
 }
 export function renderCampaign(input:{design:unknown;subject:string;preheader?:string;company:string;address:string;contact?:PreviewContact;color?:string;unsubscribeUrl?:string;testPreview?:boolean}) {
  const design=campaignDesign.parse(input.design),contact=input.contact||{};
+ assertNoDemoLinks(design);
  const replace=(text:string)=>escapeHtml(personalize(text,contact,input.company));
  const color=/^#[a-f0-9]{6}$/i.test(input.color||'')?input.color:'#40239a';
  const style=design.style||'classic';

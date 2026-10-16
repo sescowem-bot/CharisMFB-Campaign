@@ -2,13 +2,14 @@
 
 import {useState, type CSSProperties} from 'react';
 import Image from 'next/image';
-import type {EmailBlock, EmailDesign} from '@/lib/campaign/design';
+import {verifiedBrandWebsite,type EmailBlock,type EmailDesign} from '@/lib/campaign/design';
 
 type Shape = Extract<EmailBlock,{type:'shape'}>;
 export function shapePreviewStyle(b:Shape):CSSProperties {
  return {background:b.color,color:b.textColor||'#ffffff',borderRadius:b.shape==='circle'?'50%':b.shape==='pill'?999:b.shape==='panel'?12:b.shape==='rectangle'?0:4,padding:b.shape==='rule'?3:b.padding??22,width:`${b.widthPercent??100}%`,minHeight:b.shape==='rule'?6:b.minHeight||undefined,fontSize:b.fontSize||16,lineHeight:1.5,fontWeight:600,border:`${b.borderWidth||0}px solid ${b.borderColor||b.color}`,textAlign:b.align||'left',marginLeft:b.align==='right'||b.align==='center'?'auto':0,marginRight:b.align==='center'?'auto':0,whiteSpace:'pre-wrap',overflowWrap:'anywhere',boxSizing:'border-box'};
 }
-export function EmailDesignCanvas({design,onChange,assets,brandName,brandColor}:{design:EmailDesign;onChange:(design:EmailDesign)=>void;assets:{id:string;file_name:string;public_url:string}[];brandName:string;brandColor:string}) {
+export function EmailDesignCanvas({design,onChange,assets,brandName,brandColor,websiteUrl=''}:{design:EmailDesign;onChange:(design:EmailDesign)=>void;assets:{id:string;file_name:string;public_url:string}[];brandName:string;brandColor:string;websiteUrl?:string}) {
+ const website=verifiedBrandWebsite(websiteUrl);
  const [selected,setSelected]=useState(0);
  const [dragged,setDragged]=useState<number|null>(null);
  const [mobile,setMobile]=useState(false);
@@ -22,13 +23,14 @@ export function EmailDesignCanvas({design,onChange,assets,brandName,brandColor}:
   let item:EmailBlock;
   if(type==='shape')item={type,text:'Your message here',shape:'rectangle',color:'#40239A',textColor:'#ffffff',padding:22,align:'center'};
   else if(type==='image'){if(!assets.length)return;item={type,text:'Charis graphic',url:assets[0].public_url,width:'full'};}
-  else if(type==='button')item={type,text:'Learn more',url:'https://example.com'};
+  else if(type==='button'){if(!website)return;item={type,text:'Learn more',url:website};}
   else if(type==='divider')item={type,text:''};
   else item={type,text:type==='heading'?'Your heading':'Write your message here.'};
   onChange({...design,blocks:[...design.blocks,item]});setSelected(design.blocks.length);
  }
  return <section className="visual-studio" aria-label="Email design canvas">
-  <div className="visual-studio-toolbar"><div className="visual-studio-tools" aria-label="Insert section">{(['heading','paragraph','shape','image','button','divider'] as const).map(type=><button type="button" key={type} disabled={design.blocks.length>=30||(type==='image'&&!assets.length)} onClick={()=>add(type)}>+ {type}</button>)}</div><div role="group" aria-label="Preview width"><button type="button" aria-pressed={!mobile} onClick={()=>setMobile(false)}>Desktop</button><button type="button" aria-pressed={mobile} onClick={()=>setMobile(true)}>Mobile</button></div></div>
+  <div className="visual-studio-toolbar"><div className="visual-studio-tools" aria-label="Insert section">{(['heading','paragraph','shape','image','button','divider'] as const).map(type=><button type="button" key={type} disabled={design.blocks.length>=30||(type==='image'&&!assets.length)||(type==='button'&&!website)} onClick={()=>add(type)}>+ {type}</button>)}</div><div role="group" aria-label="Preview width"><button type="button" aria-pressed={!mobile} onClick={()=>setMobile(false)}>Desktop</button><button type="button" aria-pressed={mobile} onClick={()=>setMobile(true)}>Mobile</button></div></div>
+  {!website&&<p className="notice">Set your official website in Brand &amp; media before adding a linked button. Custom links can still be edited in existing designs.</p>}
   <div className="visual-studio-layout">
    <div className="visual-studio-surface"><div className={`visual-email-paper charis-email-${design.style||'classic'}`} style={{maxWidth:mobile?360:600}}>
     <div className="visual-email-brand" style={{background:design.style==='minimal'?'white':brandColor,color:design.style==='minimal'?brandColor:'white'}}>{brandName}</div>
@@ -43,7 +45,7 @@ export function EmailDesignCanvas({design,onChange,assets,brandName,brandColor}:
    <aside className="visual-properties" aria-label="Selected section properties"><h3>Section {index+1}</h3><p className="muted">Select a section to edit it.</p>
     {block&&<><div className="visual-property-actions"><button type="button" disabled={design.blocks.length>=30} onClick={()=>{const blocks=[...design.blocks];blocks.splice(index+1,0,{...block});onChange({...design,blocks});setSelected(index+1);}}>Duplicate</button><button type="button" disabled={design.blocks.length===1} onClick={()=>{onChange({...design,blocks:design.blocks.filter((_,i)=>i!==index)});setSelected(Math.max(0,index-1));}}>Remove</button></div>
     {block.type!=='divider'&&!(block.type==='shape'&&block.shape==='rule')&&<label>{block.type==='image'?'Image description':'Text'}<textarea value={block.text} maxLength={block.type==='image'?160:block.type==='shape'||block.type==='button'?200:5000} rows={4} onChange={e=>update({text:e.target.value})}/></label>}
-    {block.type==='button'&&<label>Link<input type="url" value={block.url} onChange={e=>update({url:e.target.value})}/></label>}
+    {block.type==='button'&&<label>Button destination (HTTPS)<input type="url" value={block.url} onChange={e=>update({url:e.target.value})}/><small className="muted">Customer-facing link: {block.url||'Not set'}</small></label>}
     {block.type==='image'&&<><label>Image<select value={block.url} onChange={e=>update({url:e.target.value})}>{assets.map(a=><option key={a.id} value={a.public_url}>{a.file_name}</option>)}</select></label><label>Width<select value={block.width} onChange={e=>update({width:e.target.value as 'full'|'medium'|'small'})}><option value="full">Full</option><option value="medium">Medium</option><option value="small">Small</option></select></label></>}
     {block.type==='shape'&&<><label>Shape<select value={block.shape} onChange={e=>update({shape:e.target.value as Shape['shape']})}>{['rectangle','circle','pill','panel','banner','rule'].map(s=><option key={s} value={s}>{s==='circle'?'Oval / circle':s}</option>)}</select></label><div className="visual-color-fields"><label>Fill<input type="color" value={block.color} onChange={e=>update({color:e.target.value})}/></label><label>Text<input type="color" value={block.textColor||'#ffffff'} onChange={e=>update({textColor:e.target.value})}/></label><label>Border<input type="color" value={block.borderColor||block.color} onChange={e=>update({borderColor:e.target.value})}/></label></div>
      <label>Alignment<select value={block.align||'left'} onChange={e=>update({align:e.target.value as Shape['align']})}>{['left','center','right'].map(a=><option key={a}>{a}</option>)}</select></label>

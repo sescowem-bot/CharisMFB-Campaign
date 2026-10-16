@@ -6,6 +6,7 @@ import {sendSavedCampaignTest} from '@/lib/campaigns/test-send';
 import {emailServiceDb,refreshDomain} from '@/lib/email/server';
 import {campaignDesign,renderCampaign} from '@/lib/campaigns/render';
 import {assertApprovedEmailImages} from '@/lib/campaign/approved-media';
+import {assertNoDemoLinks} from '@/lib/campaign/design';
 export type CampaignResult={error?:string;success?:string;id?:string};
 export async function campaignAction(_:CampaignResult,form:FormData):Promise<CampaignResult> {
  try {
@@ -15,7 +16,7 @@ export async function campaignAction(_:CampaignResult,form:FormData):Promise<Cam
   const revision=z.coerce.number().int().nonnegative().parse(form.get('revision')||0);
   if(action==='save') {
    const {data:allowed}=await db.rpc('can_edit_campaigns',{p_org:org});if(!allowed)throw new Error('Campaign editing access required.');
-   const design=campaignDesign.parse(JSON.parse(String(form.get('design'))));
+   const design=campaignDesign.parse(JSON.parse(String(form.get('design'))));assertNoDemoLinks(design);
    await assertApprovedEmailImages(org,design);
    const subject=z.string().trim().min(1).max(200).refine(s=>!/[\r\n]/.test(s)).parse(form.get('subject'));
    renderCampaign({design,subject,company:'Your company',address:'Preview address'});
