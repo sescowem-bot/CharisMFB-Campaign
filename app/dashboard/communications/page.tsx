@@ -1,63 +1,33 @@
 import Link from 'next/link';
 import {redirect} from 'next/navigation';
-import {Mail,MessageSquareText,ClipboardCheck,Send,ArrowRight,FileCheck2,Landmark,CalendarClock} from 'lucide-react';
+import {Mail,MessageSquare,Send,Settings2} from 'lucide-react';
 import {WorkspaceShell} from '@/components/workspace-shell';
 import {supabaseServer} from '@/lib/supabase/server';
 import {currentAccount} from '@/lib/auth/account';
+import {DirectApprovalForm} from '@/components/direct-approval-form';
 export const dynamic='force-dynamic';
-type RecentMessage={id:string;label:string;kind:'Email'|'SMS';status:string;updated_at:string;href:string};
-function StatusLabel({status}:{status:string}){
- const display:Record<string,string>={draft:'Draft',pending_approval:'Awaiting approval',approved:'Approved',queued:'Queued',rejected:'Needs changes',sent:'Sent',archived:'Archived'};
- return <span className="status-chip">{display[status]||status.replaceAll('_',' ')}</span>;
-}
+export const maxDuration=120;
+const names:Record<string,string>={queued:'Queued',pending_approval:'Awaiting approval',sending:'Processing',completed:'Processed',paused:'Needs review',cancelled:'Cancelled'};
 export default async function Communications(){
- const account=await currentAccount();if(!account)redirect('/login');
- const canRead=account.permissions.includes('templates.manage')||account.permissions.includes('campaigns.create')||account.permissions.includes('campaigns.view')||account.permissions.includes('service_notices.view')||account.permissions.includes('service_notices.create')||account.permissions.includes('service_notices.approve')||account.permissions.includes('loans.view')||account.permissions.includes('loans.manage')||account.permissions.includes('loans.repayments')||account.permissions.some(p=>p.startsWith('credit_reminders.'));
- if(!canRead)redirect('/dashboard');
- const org=account.workspace.id;
- const db=await supabaseServer();
- const hasMarketing=account.permissions.includes('campaigns.view');
- const hasDesign=account.permissions.includes('templates.manage');
- const [{data:emails,error:emailError},{data:sms,error:smsError}]=await Promise.all([
-  hasMarketing?db.from('campaign_drafts').select('id,name,status,updated_at').eq('organization_id',org).order('updated_at',{ascending:false}).limit(35):Promise.resolve({data:[],error:null}),
-  hasMarketing?db.from('charis_sms_campaigns').select('id,title,status,updated_at').eq('organization_id',org).order('updated_at',{ascending:false}).limit(35):Promise.resolve({data:[],error:null})
+ const account=await currentAccount();if(!account)redirect('/login');const org=account.workspace.id,db=await supabaseServer();
+ const [{data:canSend},{data:isAdmin},{data:messages,error},{data:settings}]=await Promise.all([
+  db.rpc('charis_direct_can_send',{p_org:org}),db.rpc('charis_direct_is_admin',{p_org:org}),
+  db.from('charis_direct_messages').select('id,title,subject,channel,purpose,status,recipient_count,created_by,created_at').eq('organization_id',org).order('created_at',{ascending:false}).limit(50),
+  db.from('charis_direct_settings').select('approval_required').eq('organization_id',org).maybeSingle()
  ]);
- const recent:RecentMessage[]=[...(emails||[]).map(c=>({id:c.id,label:c.name,kind:'Email' as const,status:c.status,updated_at:c.updated_at,href:`/dashboard/campaigns?org=${org}&id=${c.id}`})),
-  ...(sms||[]).map(c=>({id:c.id,label:c.title,kind:'SMS' as const,status:c.status,updated_at:c.updated_at,href:`/dashboard/sms?org=${org}`}))]
-  .sort((a,b)=>new Date(b.updated_at).getTime()-new Date(a.updated_at).getTime()).slice(0,40);
- const pending=recent.filter(c=>c.status==='pending_approval').length;
- const approved=recent.filter(c=>c.status==='approved').length;
- const canCreate=account.permissions.includes('campaigns.create');
- const hasService=account.permissions.some(p=>['service_notices.view','service_notices.create','service_notices.approve'].includes(p));
- const hasCredit=account.permissions.some(p=>['loans.view','loans.manage','loans.repayments'].includes(p));
- const hasReminder=account.permissions.some(p=>['credit_reminders.view','credit_reminders.create','credit_reminders.approve','credit_reminders.queue'].includes(p));
- const canApprove=account.permissions.includes('campaigns.approve');
- const canSend=account.permissions.includes('campaigns.send');
- const routes=[
-  {title:'Email campaigns',icon:<Mail size={22}/>,description:'Compose branded communications with recipient selection and delivery tracking.',href:`/dashboard/campaigns?org=${org}`,allowed:hasMarketing},
-  {title:'Design studio',icon:<Mail size={22}/>,description:'Create and edit bank-approved branded email templates.',href:`/dashboard/templates?org=${org}`,allowed:hasDesign},
-  {title:'SMS communications',icon:<MessageSquareText size={22}/>,description:'Prepare short customer notices with staff approval and controlled provider settings.',href:`/dashboard/sms?org=${org}`,allowed:hasMarketing},
-  {title:'Account-service notices',icon:<FileCheck2 size={22}/>,description:'Prepare and independently review customer-specific non-promotional account notices. Delivery remains disabled.',href:'/dashboard/communications/service',allowed:hasService},
-  {title:'Credit repayment reminders',icon:<CalendarClock size={22}/>,description:'Select loan customers, prepare professional repayment reminders, review decisions and stage approved messages without sending.',href:'/dashboard/credit-reminders',allowed:hasReminder},
-  {title:'Loan register',icon:<Landmark size={22}/>,description:'Review allocated customer loans, balances and repayment records.',href:'/dashboard/loans',allowed:hasCredit},
-  {title:'Approval inbox',icon:<ClipboardCheck size={22}/>,description:'Review submitted communications under the bank’s assigned permissions.',href:`/dashboard/approvals?org=${org}`,allowed:canApprove},
-  {title:'Delivery queue',icon:<Send size={22}/>,description:'Review approved email dispatch and delivery outcomes.',href:`/dashboard/delivery?org=${org}`,allowed:canSend}
- ];
- return <WorkspaceShell title="Communications" subtitle="One place to prepare, review and follow Charis customer communications." org={org}
-  actions={canCreate?<Link className="btn" href={`/dashboard/campaigns?org=${org}&create=1`}>Create email campaign</Link>:undefined}>
-  {hasMarketing&&<div className="audience-kpis"><div className="audience-kpi"><span>Recent email campaigns</span><strong>{emails?.length||0}</strong></div>
-   <div className="audience-kpi"><span>Recent SMS records</span><strong>{sms?.length||0}</strong></div>
-   <div className="audience-kpi"><span>Awaiting approval (recent)</span><strong>{pending}</strong></div><div className="audience-kpi"><span>Approved (recent)</span><strong>{approved}</strong></div></div>}
-  {(emailError||smsError)&&<p role="alert" className="feedback-error">Some communications could not be loaded. Please contact an administrator.</p>}
-  <div className="admin-columns">{routes.filter(r=>r.allowed).map(r=><section className="panel" key={r.title}>
-   <div className="workspace-heading"><span aria-hidden="true">{r.icon}</span><h2>{r.title}</h2></div>
-   <p className="muted">{r.description}</p><Link href={r.href} className="btn secondary">Open workspace <ArrowRight size={16}/></Link>
-  </section>)}</div>
-  {hasMarketing&&<section className="panel"><div className="workspace-heading"><h2>Recent promotional communications</h2><Link href={`/dashboard/campaigns?org=${org}`}>All email campaigns</Link></div>
-   {recent.length?<div className="table-scroll"><table className="admin-table"><thead><tr><th>Communication</th><th>Channel</th><th>Status</th><th>Last updated</th><th>Open</th></tr></thead><tbody>
-    {recent.map(c=><tr key={`${c.kind}:${c.id}`}><td>{c.label}</td><td>{c.kind}</td><td><StatusLabel status={c.status}/></td><td>{new Date(c.updated_at).toLocaleString('en-NG')}</td><td><Link href={c.href}>View</Link></td></tr>)}
-   </tbody></table></div>:<p className="muted">No communications have been created yet. Create an email campaign or SMS draft to begin.</p>}
-  </section>}
-  <p className="muted">Saving or approving a draft does not automatically send a message. Dispatch remains subject to bank permissions, recipient eligibility and enabled delivery configuration.</p>
+ const canApprove=account.permissions.includes('campaigns.approve')||isAdmin===true;
+ return <WorkspaceShell title="Communications" subtitle="Write a bank message, select customers and send. Your delivery history is here." actions={canSend?<Link href="/dashboard/communications/new" className="btn"><Send size={16}/> New message</Link>:undefined}>
+  <section className="direct-welcome panel"><div><h2>Make customer communication simple.</h2><p className="muted">No compulsory review queue. Staff send with their assigned access; the bank controls providers and optional approvals in Settings.</p></div>
+   {canSend&&<Link href="/dashboard/communications/new" className="btn">Compose a message →</Link>}</section>
+  <div className="direct-quicklinks"><Link href="/dashboard/communications/new"><Mail size={19}/> Email or SMS</Link>{isAdmin&&<Link href="/admin/communications"><Settings2 size={19}/> Communication settings</Link>}
+   {account.permissions.includes('templates.manage')&&<Link href={`/dashboard/templates?org=${org}`}>Design templates</Link>}
+  </div>
+  {settings?.approval_required&&<p className="notice">The bank currently requires message approval. An authorised administrator can turn it off in Communication settings.</p>}
+  <section className="panel"><h2>Message history</h2>{error&&<p role="alert" className="feedback-error">Direct message history is unavailable. Confirm SQL 047 is installed.</p>}
+  {messages?.length?<div className="table-scroll"><table className="admin-table"><thead><tr><th>Message</th><th>Channel</th><th>Recipients</th><th>Status</th><th>Date</th><th>Action</th></tr></thead><tbody>
+   {messages.map(m=><tr key={m.id}><td><strong>{m.title}</strong><small style={{display:'block'}}>{m.subject}</small></td><td>{m.channel==='email'?<Mail size={17}/>:<MessageSquare size={17}/>}</td><td>{m.recipient_count}</td><td><span className="status-chip">{names[m.status]||m.status}</span></td><td>{new Date(m.created_at).toLocaleString('en-NG')}</td><td>{m.status==='pending_approval'&&canApprove&&m.created_by!==account.id?<DirectApprovalForm id={m.id}/>:<Link href={`/dashboard/communications/history?id=${m.id}`}>Details</Link>}</td></tr>)}
+  </tbody></table></div>:!error&&<p className="muted">No direct messages yet. Select New message to begin.</p>}</section>
+  <details className="panel"><summary>Older campaign tools</summary><p className="muted">Existing promotional campaigns, draft designs, approval history and legacy queue records remain available during the upgrade.</p>
+   <div className="actions"><Link className="btn secondary" href={`/dashboard/campaigns?org=${org}`}>Legacy Campaign Studio</Link><Link className="btn secondary" href={`/dashboard/delivery?org=${org}`}>Legacy queue</Link><Link className="btn secondary" href={`/dashboard/approvals?org=${org}`}>Legacy approvals</Link>{account.permissions.includes('service_notices.view')&&<Link className="btn secondary" href="/dashboard/communications/service">Account service notices</Link>}{account.permissions.includes('campaigns.view')&&<Link className="btn secondary" href={`/dashboard/sms?org=${org}`}>SMS communications (legacy)</Link>}</div></details>
  </WorkspaceShell>;
 }

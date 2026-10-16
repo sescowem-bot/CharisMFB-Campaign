@@ -1,13 +1,14 @@
 import type {Provider} from '../email/validation.ts';
 import {mailbox,senderName,matchesDomain} from '../email/validation.ts';
 export type SendResult={status:'accepted'|'failed'|'unknown'|'retry';message?:string;reason:string};
-export async function sendQueuedEmail(input:{provider:Provider;key:string;mailjetSecret?:string;campaignId?:string;id:string;name:string;from:string;replyTo:string;domain:string;to:string;subject:string;html:string;unsubscribe:string},transport:typeof fetch=fetch):Promise<SendResult> {
+export async function sendQueuedEmail(input:{provider:Provider;key:string;mailjetSecret?:string;campaignId?:string;id:string;name:string;from:string;replyTo:string;domain:string;to:string;subject:string;html:string;unsubscribe?:string},transport:typeof fetch=fetch):Promise<SendResult> {
  if(!input.key)throw new Error('Provider key missing');
  if(!matchesDomain(input.from,input.domain))throw new Error('Sender domain mismatch');
  const name=senderName(input.name),from=mailbox(input.from),to=mailbox(input.to),replyTo=mailbox(input.replyTo);
  if(!input.subject.trim()||input.subject.length>200||/[\r\n]/.test(input.subject))throw new Error('Invalid subject');
- const unsubscribe=new URL(input.unsubscribe);if(unsubscribe.protocol!=='https:')throw new Error('HTTPS unsubscribe URL required');
- const listHeaders={'List-Unsubscribe':`<${unsubscribe.href}>`,'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'};
+ const unsubscribe=input.unsubscribe?new URL(input.unsubscribe):null;
+ if(unsubscribe&&unsubscribe.protocol!=='https:')throw new Error('HTTPS unsubscribe URL required');
+ const listHeaders:Record<string,string>=unsubscribe?{'List-Unsubscribe':`<${unsubscribe.href}>`,'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'}:{};
  const body=input.provider==='resend'?{
   from:`${name} <${from}>`,to:[to],reply_to:replyTo,subject:input.subject,html:input.html,
   headers:listHeaders,tags:[{name:'delivery_id',value:input.id}]

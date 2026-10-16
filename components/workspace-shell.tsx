@@ -4,6 +4,7 @@ import type {ReactNode} from 'react';
 import {Activity,ArrowRight,Bell,CalendarClock,ClipboardCheck,FileText,Landmark,LayoutDashboard,Mail,Menu,Settings2,ShieldCheck,Users} from 'lucide-react';
 import {currentAccount} from '@/lib/auth/account';
 import {currentVerifiedUser} from '@/lib/auth/current-user';
+import {supabaseServer} from '@/lib/supabase/server';
 import {charisBrandAssets} from '@/lib/charis-brand-assets';
 import {SignOutForm} from '@/components/signout-form';
 import {NavLink} from '@/components/nav-link';
@@ -19,7 +20,8 @@ export async function WorkspaceShell({title,subtitle,actions,children}:{
   const canAdmin=Boolean(account?.owner||canAny('staff.manage','access.manage','departments.manage','branches.manage','providers.manage','settings.manage','audit.view'));
   const org=account?.workspace?.id||'';
   const forBank=(path:string)=>`${path}?org=${encodeURIComponent(org)}`;
-  const canCommunicate=canAny('templates.manage','campaigns.view','campaigns.create','service_notices.view','service_notices.create','service_notices.approve','credit_reminders.view','credit_reminders.create');
+  const directAllowed=account?await (async()=>{try{const db=await supabaseServer();const {data}=await db.rpc('charis_direct_can_send',{p_org:account.workspace.id});return data===true;}catch{return false;}})():false;
+  const canCommunicate=directAllowed||canAny('templates.manage','campaigns.view','campaigns.create','service_notices.view','service_notices.create','service_notices.approve','credit_reminders.view','credit_reminders.create');
   const canCredit=canAny('loans.view','loans.manage','loans.repayments','credit_reminders.view','credit_reminders.create','credit_reminders.approve','credit_reminders.queue','credit_reminders.dispatch','credit_followups.view','credit_followups.create','credit_followups.manage');
   const liveSending=process.env.EMAIL_DELIVERY_ENABLED==='true';
   const email=verifiedUser?.email||'';
@@ -37,9 +39,11 @@ export async function WorkspaceShell({title,subtitle,actions,children}:{
         {canCommunicate&&<>
           <div className="sidebar-label">Communications</div>
           <NavLink href="/dashboard/communications"><Mail size={18}/> Communications</NavLink>
-          {permitted('campaigns.approve')&&<NavLink href={forBank('/dashboard/approvals')}><ClipboardCheck size={18}/> Approvals</NavLink>}
-          {permitted('campaigns.send')&&<NavLink href={forBank('/dashboard/delivery')}><Activity size={18}/> Delivery status</NavLink>}
           {permitted('templates.manage')&&<NavLink href={forBank('/dashboard/templates')}><FileText size={18}/> Design studio</NavLink>}
+          {(permitted('campaigns.approve')||permitted('campaigns.send'))&&<details className="charis-advanced-nav"><summary>Legacy campaign tools</summary>
+            {permitted('campaigns.approve')&&<NavLink href={forBank('/dashboard/approvals')}><ClipboardCheck size={18}/> Approvals</NavLink>}
+            {permitted('campaigns.send')&&<NavLink href={forBank('/dashboard/delivery')}><Activity size={18}/> Delivery status</NavLink>}
+          </details>}
         </>}
         {canAny('customers.view','customers.manage')&&<>
           <div className="sidebar-label">Customers</div>

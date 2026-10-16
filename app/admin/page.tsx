@@ -19,6 +19,7 @@ export default async function Administration(){
  const sections=[
   {title:'People & access',description:'Invite colleagues, assign responsibilities and control which actions they can perform.',href:access?'/admin/access':`/dashboard/team?org=${org}`,icon:Users,show:access||staff},
   {title:'Departments & branches',description:'Maintain the organisational structure and authorised staff assignments.',href:'/dashboard/departments',icon:Building2,show:departments},
+  {title:'Communication settings',description:'Optional approvals, service senders and staff sending access.',href:'/admin/communications',icon:Mail,show:isOwner||has('settings.manage')},
   {title:'Email providers',description:'Manage verified senders, Resend, Brevo, Mailjet and SendGrid from one place.',href:'/admin/providers',icon:Mail,show:providers},
   {title:'Brand & media',description:'Approved logo, styles and images for bank communications.',href:`/dashboard/branding?org=${org}`,icon:Palette,show:branding},
   {title:'Audit history',description:'Review authorised changes, approvals and access decisions.',href:'/admin/audit',icon:ScrollText,show:audit}
