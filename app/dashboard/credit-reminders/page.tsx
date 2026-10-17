@@ -38,7 +38,7 @@ export default async function CreditReminderCentre({searchParams}:{searchParams:
  const [{data:dueLoanRows,error:dueLoansError},{data:duePeople,error:duePeopleError},{data:dueBalances,error:dueBalancesError}]=await Promise.all([
    candidateLoanIds.length?db.from('charis_loans').select('id,loan_reference,status,due_on,contact_id').eq('organization_id',org).in('id',candidateLoanIds):Promise.resolve({data:[],error:null}),
    (dueCandidates||[]).length?db.from('contacts').select('id,first_name,last_name').eq('organization_id',org).in('id',[...new Set((dueCandidates||[]).map(c=>c.contact_id))]):Promise.resolve({data:[],error:null}),
-   candidateLoanIds.length?db.from('charis_loan_balances').select('loan_id,outstanding').eq('organization_id',org).in('loan_id',candidateLoanIds):Promise.resolve({data:[]})
+   candidateLoanIds.length?db.from('charis_loan_balances').select('loan_id,outstanding').eq('organization_id',org).in('loan_id',candidateLoanIds):Promise.resolve({data:[],error:null})
  ]);
  const dueDataError=Boolean(dueError||dueLoansError||duePeopleError||dueBalancesError);
  const dueLoans=new Map((dueLoanRows||[]).map(l=>[l.id,l]));
