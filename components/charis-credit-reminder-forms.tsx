@@ -3,17 +3,17 @@ import {useActionState,useEffect,useMemo,useState} from 'react';
 import {createCreditReminder,transitionCreditReminder,saveCreditReminderPolicy} from '@/app/dashboard/credit-reminders/actions';
 import {creditReminderPreview,DEFAULT_CREDIT_REMINDER} from '@/lib/credit-reminder-format';
 export type SelectableLoan={id:string;customerId:string;reference:string;customer:string;first_name:string;due:string;outstanding:number;email:boolean;sms:boolean};
-export function CreditReminderComposer({loans,initialLoan,initialKey}:{loans:SelectableLoan[];initialLoan?:string;initialKey:string}){
+export function CreditReminderComposer({loans,initialLoan,initialKey,initialChannel='email',initialCandidate}:{loans:SelectableLoan[];initialLoan?:string;initialKey:string;initialChannel?:'email'|'sms';initialCandidate?:string}){
  const [result,action,pending]=useActionState(createCreditReminder,{});
- const [selected,setSelected]=useState<string[]>(()=>loans.some(l=>l.id===initialLoan&&l.email)?[initialLoan!]:[]);
- const [channel,setChannel]=useState<'email'|'sms'>('email');
+ const [selected,setSelected]=useState<string[]>(()=>loans.some(l=>l.id===initialLoan&&(initialChannel==='email'?l.email:l.sms))?[initialLoan!]:[]);
+ const [channel,setChannel]=useState<'email'|'sms'>(initialChannel);
  const [message,setMessage]=useState(DEFAULT_CREDIT_REMINDER);
  const [key,setKey]=useState(initialKey);
  useEffect(()=>{if(result.success){setKey(crypto.randomUUID());setSelected([]);}},[result]);
  const available=useMemo(()=>loans.filter(l=>channel==='email'?l.email:l.sms),[channel,loans]);
  const one=loans.find(l=>l.id===selected[0]);
  return <form action={action} className="admin-form">
-  <input type="hidden" name="key" value={key}/>
+  <input type="hidden" name="key" value={key}/>{initialCandidate&&<input type="hidden" name="candidate" value={channel===initialChannel&&initialLoan&&selected.includes(initialLoan)?initialCandidate:''}/>}
   <label>Delivery channel<select name="channel" value={channel} onChange={e=>{setChannel(e.target.value as 'email'|'sms');setSelected([]);setKey(crypto.randomUUID());}}><option value="sms">SMS</option><option value="email">Email</option></select></label>
   <label>Internal reminder title / email subject<input name="subject" required minLength={3} maxLength={140} defaultValue="Repayment reminder — Charis Microfinance Bank"/></label>
   <fieldset className="credit-selection"><legend>Select loan customers ({selected.length} selected, maximum 50; one loan per customer in each batch)</legend>

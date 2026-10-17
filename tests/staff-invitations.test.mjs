@@ -20,7 +20,10 @@ test('invitations become memberships only after confirmed matching login',()=>{
  assert.match(migration,/IF v_email IS NULL OR v_confirmed IS NULL THEN RETURN 0/);
  assert.match(migration,/i\.email=v_email AND i\.status='pending' AND i\.expires_at>now\(\)/);
  assert.match(migration,/ON CONFLICT\(organization_id,user_id\) DO NOTHING/);
- assert.match(read('app/dashboard/layout.tsx'),/team_invitation_accept/);
+ // Invitations are accepted once at verified sign-in, not on every staff navigation.
+ assert.match(read('components/auth-form.tsx'),/client\.rpc\('team_invitation_accept'\)/);
+ assert.match(read('app/auth/callback/route.ts'),/team_invitation_accept/);
+ assert.doesNotMatch(read('app/dashboard/layout.tsx'),/team_invitation_accept/);
 });
 test('staff can invite, cancel and change existing members through Charis screens',()=>{
  assert.match(page,/InviteStaffForm/);

@@ -241,3 +241,58 @@ body{font-family:var(--platform-font,system-ui,sans-serif)}.btn:not(.secondary),
 @media(max-width:600px){.direct-quicklinks a{width:100%}.direct-contact-list{grid-template-columns:1fr}.direct-provider-grid{grid-template-columns:1fr}.direct-welcome .btn{width:100%;text-align:center}}
 
 .charis-advanced-nav{margin:5px 4px 8px;padding:5px 0;border-top:1px solid #ece8f4}.charis-advanced-nav summary{padding:9px 12px;font-size:12px;font-weight:650;color:#77718e;cursor:pointer}.charis-advanced-nav a{margin-left:8px}
+
+/* Release 052: compact, touch-friendly collapsible staff navigation. */
+.charis-nav-section{margin:3px 0;border:0;min-width:0}
+.charis-nav-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;min-height:44px;cursor:pointer;list-style:none;border-radius:10px;color:#6d6687;font-size:11px;font-weight:750;letter-spacing:.075em;text-transform:uppercase;user-select:none}
+.charis-nav-heading::-webkit-details-marker{display:none}
+.charis-nav-heading svg{transition:transform .18s ease;flex:none}
+.charis-nav-section[open]>.charis-nav-heading svg{transform:rotate(180deg)}
+.charis-nav-heading:hover,.charis-nav-heading:focus-visible{background:#f5f1fd;color:#40239a}
+.charis-nav-children{border-left:2px solid #eae4f5;margin:2px 0 8px 15px;padding-left:7px;display:flex;flex-direction:column;gap:2px}
+.charis-nav-children>a{font-size:13px!important;min-height:42px}
+.charis-nav-children>a.active::before{display:none}
+.charis-staff-quick-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.charis-staff-quick-actions .btn{min-height:44px}
+#new-contact{scroll-margin-top:95px}
+@media(max-width:980px){.charis-nav-heading{min-height:48px}.charis-nav-children>a{min-height:46px}}
+@media(max-width:600px){.charis-staff-quick-actions .btn{width:100%}.charis-nav-heading{font-size:12px}}
+
+/* Route transition placeholders: no JavaScript animations or third-party library. */
+.charis-route-loading{display:grid;gap:1rem;max-width:1100px;width:100%;min-height:55vh;padding:1.5rem 0;margin:0 auto}
+.charis-loading-title,.charis-loading-panel,.charis-loading-row{background:linear-gradient(90deg,#eeeef3 15%,#f7f7fa 50%,#eeeef3 85%);background-size:200% 100%;border-radius:12px}
+.charis-loading-title{height:2rem;max-width:280px}
+.charis-loading-panel{height:12rem}
+.charis-loading-row{height:3.5rem}
+@media(prefers-reduced-motion:no-preference){.charis-loading-title,.charis-loading-panel,.charis-loading-row{animation:charis-skeleton 1.4s ease-in-out infinite}@keyframes charis-skeleton{to{background-position-x:-200%}}}
+@media(max-width:640px){.charis-route-loading{padding:1rem 0}.charis-loading-panel{height:9rem}}
+
+/* 054: compact and accessible customer picker, without full-directory hydration. */
+.direct-selection-summary{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 2px}
+.direct-selection-chip{min-height:40px;max-width:100%;padding:7px 11px;border:1px solid #d9d1ec;border-radius:999px;background:#f5f1fc;color:#392281;overflow-wrap:anywhere;font-size:13px}
+.direct-contact-panel [role="status"]{margin:8px 0 0;font-size:12px}
+@media(max-width:640px){
+ .direct-composer{padding:14px!important}
+ .direct-simple-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+ .direct-simple-steps span{font-size:11px;text-align:center;padding:9px 3px}
+ .direct-contact-panel{padding:10px}
+ .direct-contact-row{min-height:48px}
+ .charis-loan-batch .actions{flex-direction:column;align-items:stretch}
+ .charis-loan-batch .actions>*{width:100%;max-width:none!important}
+ .charis-loan-batch .actions button{width:100%}
+}
+/* Release 055 unified campaign composer */
+.direct-wizard .direct-simple-steps{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px}
+.direct-wizard .direct-simple-steps span{padding:10px 13px;border-radius:9px;background:#f2f2f8;color:#514763;font-weight:600;flex:1;min-width:100px;text-align:center}
+.direct-wizard .direct-simple-steps span.current{background:#40239a;color:white}
+.direct-wizard .direct-layout-control{display:flex;align-items:end;gap:14px;flex-wrap:wrap}
+.direct-wizard .direct-layout-control label{flex:1;min-width:220px}
+.direct-wizard .direct-editor{border:1px solid #e4e4ee;border-radius:12px;padding:16px;margin:14px 0}
+.direct-wizard .direct-block-editor{background:#fafafd;border:1px solid #e6e4ed;border-radius:9px;padding:12px;margin:9px 0}
+.direct-wizard .direct-block-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;text-transform:capitalize}
+.direct-wizard .direct-block-top button{border:1px solid #dad6e6;border-radius:6px;background:white;padding:6px 10px;min-height:34px;margin-left:4px;cursor:pointer}
+.direct-wizard .direct-review{border:1px solid #e2e1e9;border-radius:10px;padding:16px;margin:12px 0}
+.direct-wizard .direct-review p{margin:6px 0}
+.direct-wizard .direct-review-copy{white-space:pre-wrap;border-top:1px solid #eee;padding-top:12px;max-height:220px;overflow:auto}
+.direct-wizard .direct-wizard-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+@media(max-width:600px){.direct-wizard .direct-simple-steps{gap:4px}.direct-wizard .direct-simple-steps span{min-width:0;font-size:12px;padding:9px 3px}.direct-wizard .direct-editor{padding:10px}.direct-wizard .direct-layout-control{display:block}.direct-wizard .direct-wizard-actions .btn{flex:1}}

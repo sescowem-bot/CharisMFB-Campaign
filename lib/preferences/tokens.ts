@@ -33,39 +33,20 @@ export async function validPreferenceToken(token:string){
  if(error||!data)return false;
  return Boolean(data.used_at || new Date(data.expires_at).getTime()>Date.now());
 }
-async function syncResendOptout(hash:string){
- const key=process.env.RESEND_API_KEY;
- if(!key)return;
- const db=emailServiceDb();
- const {data:link}=await db.from('charis_email_preference_tokens').select('email,resend_sync_status,used_at').eq('token_hash',hash).maybeSingle();
- if(!link?.used_at || ['synced','not_found'].includes(link.resend_sync_status))return;
- try{
-  const res=await fetch('https://api.resend.com/contacts/'+encodeURIComponent(link.email),{
-   method:'PATCH',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},
-   body:JSON.stringify({unsubscribed:true}),cache:'no-store',signal:AbortSignal.timeout(9000)
-  });
-  const state=res.ok?'synced':res.status===404?'not_found':'error';
-  await db.from('charis_email_preference_tokens').update({resend_sync_status:state,...(res.ok?{resend_synced_at:new Date().toISOString()}:{})}).eq('token_hash',hash);
- }catch{
-  await db.from('charis_email_preference_tokens').update({resend_sync_status:'error'}).eq('token_hash',hash);
- }
-}
-/** Scheduled retry of Resend contact synchronisation after local bank suppression.
- * Provider outages never roll back the customer's completed opt-out.
- */
+/** Old links still work; 051 stores the latest preference in a single ordered sync queue. */
+export {syncPendingSubscriptionChanges} from './sync';
+import {syncPendingSubscriptionChanges} from './sync';
 export async function retryPendingResendOptouts(limit=5){
- if(!process.env.RESEND_API_KEY)return {attempted:0};
- const {data,error}=await emailServiceDb().from('charis_email_preference_tokens')
-  .select('token_hash').not('used_at','is',null).in('resend_sync_status',['pending','error'])
-  .order('created_at',{ascending:true}).limit(Math.min(10,Math.max(1,limit)));
- if(error||!data)return {attempted:0};
- for(const link of data)await syncResendOptout(link.token_hash);
- return {attempted:data.length};
+ return syncPendingSubscriptionChanges(limit);
 }
 export async function applyPreferenceOptout(token:string){
  const hash=tokenHash(token);if(!hash)return 'invalid';
- const {data,error}=await emailServiceDb().rpc('charis_customer_email_optout',{p_token_hash:hash});
+ const db=emailServiceDb();
+ const {data,error}=await db.rpc('charis_customer_email_optout',{p_token_hash:hash});
  if(error||!['done','expired','invalid'].includes(data))return 'unavailable';
- if(data==='done')await syncResendOptout(hash).catch(()=>{});
+ if(data==='done'){
+  const {data:link}=await db.from('charis_email_preference_tokens').select('organization_id,email').eq('token_hash',hash).maybeSingle();
+  if(link)await syncPendingSubscriptionChanges(1,{org:link.organization_id,email:link.email}).catch(()=>{});
+ }
  return data as 'done'|'expired'|'invalid';
 }

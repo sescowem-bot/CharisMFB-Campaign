@@ -1,0 +1,24 @@
+name: Charis credit due scan
+on:
+  schedule:
+    # 06:10 Africa/Lagos daily (UTC+1). Candidate detection ONLY.
+    - cron: '10 5 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scan:
+    # Off unless the owner explicitly enables the GitHub variable after migration & review.
+    if: ${{ vars.CHARIS_CREDIT_AUTO_SCAN_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Build due reminder review list
+        env:
+          APP_URL: ${{ vars.CHARIS_APP_URL }}
+          WORKER_KEY: ${{ secrets.EMAIL_WORKER_SECRET }}
+        run: |
+          test -n "$APP_URL" && test -n "$WORKER_KEY"
+          curl --fail --silent --show-error --max-time 25 \
+            -X POST "$APP_URL/api/worker/credit-reminders" \
+            -H "Authorization: Bearer $WORKER_KEY"

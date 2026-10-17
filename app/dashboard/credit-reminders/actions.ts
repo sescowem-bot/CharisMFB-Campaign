@@ -18,17 +18,22 @@ export async function createCreditReminder(_:CreditReminderResult,form:FormData)
   const values=z.object({
    loans:z.array(z.uuid()).min(1).max(50),channel:z.enum(['email','sms']),
    subject:z.string().trim().min(3).max(140),message:z.string().trim().min(15).max(800),
-   key:z.uuid(),reconciled:z.literal('yes')
-  }).parse({loans:form.getAll('loans').map(String),channel:form.get('channel'),subject:form.get('subject'),message:form.get('message'),key:form.get('key'),reconciled:form.get('reconciled')});
+   key:z.uuid(),candidate:z.uuid().optional(),reconciled:z.literal('yes')
+  }).parse({loans:form.getAll('loans').map(String),channel:form.get('channel'),subject:form.get('subject'),message:form.get('message'),key:form.get('key'),candidate:form.get('candidate')?String(form.get('candidate')):undefined,reconciled:form.get('reconciled')});
   if(new Set(values.loans).size!==values.loans.length)throw Error('Select each loan once.');
   const {db,org}=await allowed('credit_reminders.create');
-  const {error}=await db.rpc('charis_credit_reminder_create',{
+  const {data:batchId,error}=await db.rpc('charis_credit_reminder_create',{
    p_org:org,p_loans:values.loans,p_channel:values.channel,p_subject:values.subject,
    p_template:values.message,p_key:values.key,p_reconciled:true
   });
   if(error)throw Error(error.message);
+  let linked=true;
+  if(values.candidate&&batchId){
+   const {error:linkError}=await db.rpc('charis_credit_auto_resolve_056',{p_org:org,p_id:values.candidate,p_action:'drafted',p_batch:batchId});
+   linked=!linkError;
+  }
   revalidatePath('/dashboard/credit-reminders');
-  return {success:'Credit reminder batch saved as a draft. No email or SMS has been sent.'};
+  return {success:linked?'Reminder draft created. No message sent.':'Reminder draft created, but the due-list item could not be updated. Check reminder history.'};
  }catch(error){return fail(error);}
 }
 export async function transitionCreditReminder(_:CreditReminderResult,form:FormData):Promise<CreditReminderResult>{
@@ -41,6 +46,7 @@ export async function transitionCreditReminder(_:CreditReminderResult,form:FormD
   const {error}=await db.rpc('charis_credit_reminder_transition',{p_org:org,p_batch:v.id,p_action:v.decision,p_note:v.note});
   if(error)throw Error(error.message);
   revalidatePath('/dashboard/credit-reminders');
+  revalidatePath(`/dashboard/credit-reminders/${v.id}`);
   const notice:Record<typeof v.decision,string>={
    submit:'Submitted to the review queue. No messages were sent.',
    approve:'Reminder batch approved, but not sent.',

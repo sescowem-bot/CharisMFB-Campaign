@@ -20,17 +20,20 @@ export default async function LoanRegister({searchParams}:{searchParams:Promise<
   .eq('organization_id',org).order('created_at',{ascending:false}).range((page-1)*25,page*25-1);
  if(q)query=query.ilike('loan_reference',`%${q}%`);
  if(status!=='all')query=query.eq('status',status);
- const {data:loans,error,count}=await query;
- const rows=(loans||[]) as LoanRow[];
- const ids=rows.map(l=>l.id),contactIds=[...new Set(rows.map(l=>l.contact_id))];
- const [{data:payments,error:balanceError},{data:names},{data:matchingCustomers}]=await Promise.all([
-  ids.length?db.from('charis_loan_balances').select('loan_id,amount_paid,outstanding').eq('organization_id',org).in('loan_id',ids):Promise.resolve({data:[],error:null}),
-  contactIds.length?db.from('contacts').select('id,first_name,last_name,email').eq('organization_id',org).in('id',contactIds):Promise.resolve({data:[]}),
+ // Customer picker and loan list are independent; fetch both in one round-trip window.
+ const [{data:loans,error,count},{data:matchingCustomers}]=await Promise.all([
+  query,
   (account.permissions.includes('loans.manage')&&account.permissions.includes('customers.view'))?(()=>{
    let c=db.from('contacts').select('id,first_name,last_name,email').eq('organization_id',org).is('archived_at',null).order('created_at',{ascending:false}).limit(40);
    if(customer)c=c.or(`first_name.ilike.%${customer}%,last_name.ilike.%${customer}%,email.ilike.%${customer}%`);
    return c;
   })():Promise.resolve({data:[]})
+ ]);
+ const rows=(loans||[]) as LoanRow[];
+ const ids=rows.map(l=>l.id),contactIds=[...new Set(rows.map(l=>l.contact_id))];
+ const [{data:payments,error:balanceError},{data:names}]=await Promise.all([
+  ids.length?db.from('charis_loan_balances').select('loan_id,amount_paid,outstanding').eq('organization_id',org).in('loan_id',ids):Promise.resolve({data:[],error:null}),
+  contactIds.length?db.from('contacts').select('id,first_name,last_name,email').eq('organization_id',org).in('id',contactIds):Promise.resolve({data:[]})
  ]);
  const paid=new Map<string,number>();for(const p of payments||[])paid.set(p.loan_id,Number(p.amount_paid));
  const lookup=new Map((names||[]).map(c=>[c.id,[c.first_name,c.last_name].filter(Boolean).join(' ')||c.email||'Customer']));

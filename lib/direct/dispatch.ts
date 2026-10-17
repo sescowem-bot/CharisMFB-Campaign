@@ -4,9 +4,10 @@ import {escapeHtml,mailbox} from '@/lib/email/validation';
 import {sendQueuedEmail} from '@/lib/delivery/transport';
 import type {Provider} from '@/lib/email/validation';
 import {reservePreferenceLink} from '@/lib/preferences/tokens';
+import {renderCampaign} from '@/lib/campaigns/render';
 
 type Item={id:string;organization_id:string;message_id:string;contact_id:string;recipient_email:string|null;recipient_phone:string|null};
-type Message={id:string;organization_id:string;subject:string;body:string;channel:'email'|'sms';purpose:string;status:string};
+type Message={id:string;organization_id:string;subject:string;body:string;design:unknown|null;channel:'email'|'sms';purpose:string;status:string};
 const charisOrg=()=>process.env.SINGLE_COMPANY_ORG_ID||'';
 const preparedOrigin=()=>{const origin=new URL(process.env.NEXT_PUBLIC_APP_URL||'');if(origin.protocol!=='https:'||origin.pathname!=='/'||origin.username||origin.password||origin.search||origin.hash)throw Error('Set NEXT_PUBLIC_APP_URL to an HTTPS origin without a path');return origin;};
 function smsRecipient(phone:string){const raw=phone.replace(/[^0-9]/g,'');const n=raw.startsWith('0')?'234'+raw.slice(1):raw;if(!/^234[789][0-9]{9}$/.test(n))throw Error('invalid_sms_destination');return n;}
@@ -40,8 +41,8 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
    const row=item as Item;
    if(row.organization_id!==charisOrg())throw Error('invalid_organization');
    const [{data:msg,error:msgError},{data:contact,error:contactError},{data:settings}]=await Promise.all([
-    db.from('charis_direct_messages').select('id,organization_id,subject,body,channel,purpose,status').eq('id',row.message_id).single(),
-    db.from('contacts').select('id,email,phone,archived_at').eq('organization_id',row.organization_id).eq('id',row.contact_id).single(),
+    db.from('charis_direct_messages').select('id,organization_id,subject,body,design,channel,purpose,status').eq('id',row.message_id).single(),
+    db.from('contacts').select('id,email,phone,first_name,last_name,archived_at').eq('organization_id',row.organization_id).eq('id',row.contact_id).single(),
     db.from('charis_direct_settings').select('email_enabled,sms_enabled').eq('organization_id',row.organization_id).single()
    ]);
    if(msgError||!msg||contactError||!contact||!settings)throw Error('source_record_missing');
@@ -68,7 +69,20 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
     const preference=await reservePreferenceLink({org:row.organization_id,contact:row.contact_id,email:row.recipient_email});
     const preferenceFooter=`<p style="font-size:12px;color:#64748b"><a href="${escapeHtml(preference)}" style="color:#40239a">${m.purpose==='general_notice'?'Unsubscribe from optional updates':'Manage optional email preferences'}</a></p>`;
     const textBody=escapeHtml(m.body).replace(/\r?\n/g,'<br/>');
-    const html=`<!doctype html><html><body style="margin:0;background:#f5f6fa;padding:28px;font-family:Arial,sans-serif"><main style="max-width:640px;margin:auto;background:white;border:1px solid #e4e8f2;padding:28px"><h2 style="color:#41259a;margin-top:0">Charis Microfinance Bank</h2><div style="font-size:15px;line-height:1.7;color:#243047">${textBody}</div><hr style="border:0;border-top:1px solid #e5e7eb;margin-top:30px"><p style="font-size:12px;color:#64748b">This is an official bank service communication. Do not share your PIN, password or OTP by email.</p>${preferenceFooter}</main></body></html>`;
+    let html=`<!doctype html><html><body style="margin:0;background:#f5f6fa;padding:28px;font-family:Arial,sans-serif"><main style="max-width:640px;margin:auto;background:white;border:1px solid #e4e8f2;padding:28px"><h2 style="color:#41259a;margin-top:0">Charis Microfinance Bank</h2><div style="font-size:15px;line-height:1.7;color:#243047">${textBody}</div><hr style="border:0;border-top:1px solid #e5e7eb;margin-top:30px"><p style="font-size:12px;color:#64748b">This is an official bank service communication. Do not share your PIN, password or OTP by email.</p>${preferenceFooter}</main></body></html>`;
+    let renderedSubject=m.subject;
+    if(m.design){
+     const {data:brand,error:brandError}=await db.from('organization_branding').select('display_name,postal_address,primary_color').eq('organization_id',row.organization_id).maybeSingle();
+     if(brandError||!brand)throw Error('bank_branding_unavailable');
+     const rendered=renderCampaign({
+      design:m.design,subject:m.subject,company:brand.display_name||'Charis Microfinance Bank',
+      address:brand.postal_address||'',color:brand.primary_color||'#40239a',
+      contact:{first_name:contact.first_name||'Customer',last_name:contact.last_name||''},
+      unsubscribeUrl:preference,
+      preferenceLabel:m.purpose==='general_notice'?'Unsubscribe from optional updates':'Manage optional email preferences'
+     });
+     html=rendered.html;renderedSubject=rendered.subject;
+    }
     for(const pref of prefs){
      provider=pref.provider;
      const {data:sender,error:senderError}=await db.from('sender_identities').select('id,domain_id,from_name,from_email,reply_to,is_active').eq('organization_id',row.organization_id).eq('id',pref.sender_id).single();
@@ -86,7 +100,7 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
       const day=new Date().toISOString().slice(0,10)+'T00:00:00.000Z';
       const [{count:used},{count:legacyUsed}]=await Promise.all([db.from('charis_direct_recipients').select('id',{head:true,count:'exact'}).eq('provider',provider).in('status',['accepted','failed','unknown']).gte('updated_at',day),db.from('delivery_quota_reservations').select('id',{head:true,count:'exact'}).eq('provider',provider).gte('reserved_at',day)]);
       if((used||0)+(legacyUsed||0)>=providerLimit.daily_limit)continue;
-      const result=await sendQueuedEmail({provider:provider as Provider,key,mailjetSecret:process.env.MAILJET_SECRET_KEY,id:row.id,name:sender.from_name,from:sender.from_email,replyTo:sender.reply_to||sender.from_email,domain:mailbox(sender.from_email).split('@')[1],to:row.recipient_email,subject:m.subject,html,unsubscribe:m.purpose==='general_notice'?preference.replace('/unsubscribe?','/api/preferences/unsubscribe?'):undefined});
+      const result=await sendQueuedEmail({provider:provider as Provider,key,mailjetSecret:process.env.MAILJET_SECRET_KEY,id:row.id,name:sender.from_name,from:sender.from_email,replyTo:sender.reply_to||sender.from_email,domain:mailbox(sender.from_email).split('@')[1],to:row.recipient_email,subject:renderedSubject,html,unsubscribe:m.purpose==='general_notice'?preference.replace('/unsubscribe?','/api/preferences/unsubscribe?'):undefined});
       status=result.status==='retry'?'failed':result.status;reason=result.reason;providerId=result.message||null;
       if(status==='accepted'||status==='unknown')break;
       // Definitive rejection only; never fail over after a potentially accepted submission.

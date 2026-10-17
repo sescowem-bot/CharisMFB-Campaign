@@ -22,6 +22,10 @@ export function AuthForm({mode}:{mode:'login'|'register'}) {
    } else {
     const {error}=await client.auth.signInWithPassword({email,password});
     if(error)throw error;
+    // Claim any verified outstanding staff invitation once on sign-in, rather
+    // than repeating this database write on every dashboard navigation.
+    // Existing members can still sign in if the invitation RPC is unavailable.
+    await client.rpc('team_invitation_accept');
     // A full navigation uses the newly written Supabase SSR cookies immediately.
     window.location.replace('/dashboard');
    }

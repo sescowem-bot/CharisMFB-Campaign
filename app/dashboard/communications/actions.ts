@@ -1,41 +1,107 @@
- 'use server';
+'use server';
 import {revalidatePath} from 'next/cache';
 import {z} from 'zod';
 import {currentAccount} from '@/lib/auth/account';
 import {supabaseServer} from '@/lib/supabase/server';
 import {sendDirectBatch} from '@/lib/direct/dispatch';
+import {readDirectDesign,checkDirectDesign,campaignParagraphs} from '@/lib/direct/campaign-design';
+import {renderCampaign} from '@/lib/campaigns/render';
+import type {EmailDesign} from '@/lib/campaign/design';
 export type DirectState={error?:string;success?:string;id?:string};
+
+/** The schedule is entered explicitly in Nigeria's WAT (+01:00), not the server's timezone. */
+function requestedSchedule(mode:'now'|'later',raw:string):string|null {
+ if(mode==='now')return null;
+ if(process.env.CHARIS_SCHEDULING_ENABLED!=='true')throw Error('Scheduled campaigns are not enabled yet.');
+ if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw))throw Error('Select a sending date and time (Nigeria time).');
+ const when=new Date(raw+':00+01:00');
+ // Reject impossible calendar dates and times (JavaScript otherwise normalises 31 February).
+ if(!Number.isFinite(when.getTime())||new Date(when.getTime()+60*60_000).toISOString().slice(0,16)!==raw)
+  throw Error('Enter a valid date and time in Nigeria time.');
+ if(when.getTime()<Date.now()+6*60_000||when.getTime()>Date.now()+30*86400_000)
+  throw Error('Choose a time at least 6 minutes ahead and within 30 days.');
+ return when.toISOString();
+}
+
 export async function createDirectMessage(_:DirectState,form:FormData):Promise<DirectState>{
  try{
-  const account=await currentAccount();if(!account)throw Error('Verified staff sign-in required');
+  const account=await currentAccount();if(!account)throw Error('Sign in to create a campaign.');
   const org=account.workspace.id,db=await supabaseServer();
   const {data:permitted,error:permissionError}=await db.rpc('charis_direct_can_send',{p_org:org});
-  if(permissionError||permitted!==true)throw Error('Your account does not have communication sending access.');
-  const parsed=z.object({token:z.uuid(),title:z.string().trim().min(2).max(120),subject:z.string().trim().min(3).max(180),body:z.string().trim().min(10).max(2000),channel:z.enum(['email','sms']),purpose:z.enum(['service_notice','account_update','general_notice']),product:z.enum(['general','savings','current','fixed_deposit','loans','mobile_app','other']),audience:z.enum(['selected','list','all'])}).parse({
-   token:form.get('token'),title:form.get('title'),subject:form.get('subject'),body:form.get('body'),channel:form.get('channel'),purpose:form.get('purpose'),product:form.get('product'),audience:form.get('audience')
+  if(permissionError||permitted!==true)throw Error('You do not have permission to send campaigns.');
+  const parsed=z.object({token:z.uuid(),subject:z.string().trim().min(3).max(180),body:z.string().trim().min(10).max(2000),channel:z.enum(['email','sms']),purpose:z.enum(['service_notice','account_update','general_notice']),product:z.enum(['general','savings','current','fixed_deposit','loans','mobile_app','other']),audience:z.enum(['selected','list','all']),mode:z.enum(['now','later'])}).parse({
+   token:form.get('token'),subject:form.get('subject'),body:form.get('body'),channel:form.get('channel'),purpose:form.get('purpose'),product:form.get('product'),audience:form.get('audience'),mode:form.get('mode')
   });
-  if(process.env.CHARIS_SIMPLE_SENDING_ENABLED!=='true'||process.env.EMAIL_DELIVERY_ENABLED!=='true')throw Error('Live communications are not activated yet. Ask the administrator to complete the one-time sending setup. No message has been created.');
-  if(parsed.channel==='sms'&&process.env.CHARIS_CUSTOMER_SMS_ENABLED!=='true')throw Error('Customer SMS is not activated in Vercel. No message was created.');
-  if(parsed.channel==='email'){const {count,error:routesError}=await db.from('charis_direct_provider_prefs').select('provider',{head:true,count:'exact'}).eq('organization_id',org).eq('enabled',true);if(routesError||!count)throw Error('No service email sender has been authorised yet. Ask the administrator to select a verified sender once in Communication settings.');}
+  const scheduledAt=requestedSchedule(parsed.mode,String(form.get('send_at')||''));
+  if(process.env.CHARIS_SIMPLE_SENDING_ENABLED!=='true'||process.env.EMAIL_DELIVERY_ENABLED!=='true')
+   throw Error('Campaign sending is not enabled yet.');
+  if(parsed.channel==='sms'&&process.env.CHARIS_CUSTOMER_SMS_ENABLED!=='true')throw Error('Customer SMS is not enabled yet.');
+  if(parsed.channel==='email'){
+   const {count,error:routesError}=await db.from('charis_direct_provider_prefs').select('provider',{head:true,count:'exact'}).eq('organization_id',org).eq('enabled',true);
+   if(routesError||!count)throw Error('No email sender is available. Contact your administrator.');
+  }
+  let design:EmailDesign|null=null;
+  const designInput=String(form.get('design')||'');
+  if(parsed.channel==='email'&&designInput){
+   design=readDirectDesign(designInput);
+   const {data:brand,error:brandError}=await db.from('organization_branding').select('display_name,website_url,postal_address,primary_color').eq('organization_id',org).maybeSingle();
+   if(brandError||!brand)throw Error('Bank branding is unavailable.');
+   checkDirectDesign(design,brand.website_url,parsed.subject);
+   if(campaignParagraphs(design)!==parsed.body)throw Error('Email content changed. Review the message and try again.');
+   const images=design.blocks.filter(b=>b.type==='image').map(b=>b.url);
+   if(images.length){
+    const {data:media,error:mediaError}=await db.from('charis_media_assets').select('public_url').eq('organization_id',org).in('public_url',images);
+    const approved=new Set((media||[]).map(x=>x.public_url));
+    if(mediaError||images.some(u=>!approved.has(u)))throw Error('Use images from the bank media library only.');
+   }
+   // Validate the sample rendering before any recipient records are reserved.
+   renderCampaign({design,subject:parsed.subject,company:brand.display_name||'Charis Microfinance Bank',address:brand.postal_address||'',color:brand.primary_color||'#40239a',contact:{first_name:'Customer',last_name:'Example'},testPreview:true});
+  }
+  if(parsed.channel==='sms'&&designInput)throw Error('Email layouts cannot be used for SMS.');
   const recipients=String(form.get('contact_ids')||'').split(',').filter(Boolean).map(id=>z.uuid().parse(id));
   const group=form.get('list_id')?z.uuid().parse(form.get('list_id')):null;
-  const {data:id,error}=await db.rpc('charis_direct_create',{p_org:org,p_key:parsed.token,p_title:parsed.title,p_subject:parsed.subject,p_body:parsed.body,p_purpose:parsed.purpose,p_product:parsed.product,p_channel:parsed.channel,p_audience:parsed.audience,p_contact_ids:recipients,p_list:group});
-  if(error||!id)throw Error(error?.message||'Unable to reserve recipients. No messages were sent.');
-  const {data:message}=await db.from('charis_direct_messages').select('status').eq('organization_id',org).eq('id',id).maybeSingle();
+  const {data:id,error}=await db.rpc('charis_direct_create_v2',{
+   p_org:org,p_key:parsed.token,p_title:parsed.subject.slice(0,120),p_subject:parsed.subject,p_body:parsed.body,
+   p_purpose:parsed.purpose,p_product:parsed.product,p_channel:parsed.channel,p_audience:parsed.audience,
+   p_contact_ids:recipients,p_list:group,p_design:design,p_scheduled_at:scheduledAt
+  });
+  if(error||!id)throw Error(error?.message||'Campaign could not be saved. No messages were sent.');
+  const {data:message,error:messageError}=await db.from('charis_direct_messages').select('status,scheduled_at').eq('organization_id',org).eq('id',id).maybeSingle();
+  if(messageError||!message)return {id,success:'Campaign saved. Its status could not be confirmed. Open Campaigns before taking further action.'};
   revalidatePath('/dashboard/communications');
-  if(message?.status==='pending_approval')return {id,success:'Saved for approval because the bank has enabled approval. Nothing has been sent.'};
-  if(message?.status!=='queued')return {id,success:'This message already exists. Review its delivery status before submitting again.'};
+  if(message?.status==='pending_approval')return {id,success:scheduledAt?'Scheduled campaign saved for approval.':'Campaign saved for approval.'};
+  if(message?.scheduled_at&&new Date(message.scheduled_at).getTime()>Date.now())return {id,success:'Campaign scheduled. View Campaigns to track it.'};
+  if(message?.status!=='queued')return {id,success:'Campaign already exists. Check its status before sending again.'};
   try{
    const result=await sendDirectBatch(3,{org,message:id});
-   return {id,success:result.outcomes.disabled?'Message queued. Live delivery is currently disabled; an administrator must activate it.':`Message processed. ${result.outcomes.accepted||0} accepted by provider. Check the delivery record for queued or failed recipients.`};
-  }catch{return {id,success:'Message saved. Delivery status is not confirmed; check History before trying again.'};}
- }catch(e){return {error:e instanceof z.ZodError?'Complete the message, audience and channel details.':e instanceof Error?e.message:'Message could not be created.'};}
+   if(result.outcomes.disabled)return {id,success:'Campaign saved. Sending is currently disabled.'};
+   const accepted=result.outcomes.accepted||0,failed=result.outcomes.failed||0,uncertain=result.outcomes.unknown||0;
+   if(uncertain)return {id,success:`${accepted} accepted by provider. Delivery needs review. Do not send the campaign again.`};
+   if(failed&&!accepted)return {id,success:'Campaign created, but the initial delivery attempts failed. Open delivery status.'};
+   return {id,success:`${accepted} accepted by provider${failed?`, ${failed} failed`:''}. Open delivery status for the remaining recipients.`};
+  }catch{return {id,success:'Campaign saved. Delivery is not confirmed; check its status before trying again.'};}
+ }catch(e){return {error:e instanceof z.ZodError?'Complete the required campaign details.':e instanceof SyntaxError?'Invalid email design.':e instanceof Error?e.message:'Unable to create campaign.'};}
 }
 export async function approveDirectMessage(_:DirectState,form:FormData):Promise<DirectState>{
  try{const account=await currentAccount();if(!account)throw Error('Sign in first');const db=await supabaseServer();const org=account.workspace.id,id=z.uuid().parse(form.get('message_id'));
   const {error}=await db.rpc('charis_direct_approve',{p_org:org,p_id:id});if(error)throw Error(error.message);
   revalidatePath('/dashboard/communications');
-  try{const result=await sendDirectBatch(3,{org,message:id});return {id,success:result.outcomes.disabled?'Approved and queued. Live sending is disabled.':`Approved. ${result.outcomes.accepted||0} accepted by provider. See message history for the rest.`};}
-  catch{return {id,success:'Approved and queued. Immediate provider submission could not be confirmed; review delivery status.'};}
- }catch(e){return {error:e instanceof Error?e.message:'Unable to approve message.'};}
+  const {data:message}=await db.from('charis_direct_messages').select('scheduled_at').eq('organization_id',org).eq('id',id).maybeSingle();
+  if(message?.scheduled_at&&new Date(message.scheduled_at).getTime()>Date.now())return {id,success:'Campaign approved and scheduled.'};
+  try{const result=await sendDirectBatch(3,{org,message:id});
+   if(result.outcomes.disabled)return {id,success:'Approved. Sending is currently disabled.'};
+   if(result.outcomes.unknown)return {id,success:'Approved, but a delivery outcome needs review. Do not resubmit.'};
+   return {id,success:`Approved. ${result.outcomes.accepted||0} accepted by provider; ${result.outcomes.failed||0} failed. Check delivery history.`};}
+  catch{return {id,success:'Approved and queued. Review delivery status before resubmitting.'};}
+ }catch(e){return {error:e instanceof Error?e.message:'Unable to approve campaign.'};}
+}
+export async function cancelScheduledCampaign(_:DirectState,form:FormData):Promise<DirectState>{
+ try{
+  const account=await currentAccount();if(!account)throw Error('Sign in first');
+  const id=z.uuid().parse(form.get('message_id'));const db=await supabaseServer();
+  const {error}=await db.rpc('charis_direct_cancel_scheduled',{p_org:account.workspace.id,p_id:id});
+  if(error)throw Error(error.message);
+  revalidatePath('/dashboard/communications');revalidatePath('/dashboard/communications/history');
+  return {id,success:'Scheduled campaign cancelled.'};
+ }catch(e){return {error:e instanceof Error?e.message:'Unable to cancel campaign.'};}
 }

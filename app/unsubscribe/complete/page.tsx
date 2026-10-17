@@ -10,6 +10,7 @@ export default async function Complete(){
  <Image alt="Charis Microfinance Bank" src="/charis-official-logo.png" width={170} height={65} style={{objectFit:'contain'}}/>
  <h1 style={{color:'#2c1a61'}}>Preferences updated</h1>
  <p style={{lineHeight:1.7,color:'#475569'}}>You have unsubscribed from optional updates and promotions. Essential service, account and security notifications may continue.</p>
+ <p><Link href="/subscribe" style={{color:'#40239a'}}>Subscribe again</Link></p>
  {website&&<Link href={website} style={{display:'inline-block',background:'#40239a',borderRadius:10,color:'white',padding:'13px 20px',textDecoration:'none'}}>Return to Charis website</Link>}
  </section></main>;
 }

@@ -11,7 +11,7 @@ export async function GET(request:Request){
  if(query.length<2)return NextResponse.json({contacts:[]});
  const {data,error}=await db.from('contacts').select('id,first_name,last_name,email,phone')
  .eq('organization_id',org).is('archived_at',null)
- .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`).limit(50);
+ .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`).order('created_at',{ascending:false}).limit(40);
  if(error)return NextResponse.json({error:'Customer directory unavailable'},{status:503});
  return NextResponse.json({contacts:data||[]},{headers:{'Cache-Control':'no-store'}});
 }
