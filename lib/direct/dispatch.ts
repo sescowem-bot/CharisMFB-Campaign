@@ -91,7 +91,7 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
      const {data:sender,error:senderError}=await db.from('sender_identities').select('id,domain_id,from_name,from_email,reply_to,is_active').eq('organization_id',row.organization_id).eq('id',pref.sender_id).single();
      if(senderError||!sender?.is_active)continue;
      const {data:domain,error:domainError}=await db.from('sending_domains').select('provider,verification_status,charis_connected,domain').eq('organization_id',row.organization_id).eq('id',sender.domain_id).single();
-     if(domainError||domain?.provider!==provider||!domain.charis_connected||domain.verification_status!=='verified')continue;
+     if(domainError||!domain||domain.provider!==provider||!domain.charis_connected||domain.verification_status!=='verified')continue;
      let transportStarted=false;
      try{
       const domainKey=row.organization_id+':'+sender.domain_id;

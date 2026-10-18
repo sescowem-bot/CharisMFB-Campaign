@@ -29,7 +29,7 @@ export async function directEmailReadiness(org:string):Promise<DirectReadiness>{
   if(senderError||!sender?.is_active)continue;
   const {data:domain,error:domainError}=await db.from('sending_domains')
    .select('provider,verification_status,charis_connected').eq('organization_id',org).eq('id',sender.domain_id).maybeSingle();
-  if(domainError||domain?.provider!==pref.provider||domain.verification_status!=='verified'||domain.charis_connected!==true)continue;
+  if(domainError||!domain||domain.provider!==pref.provider||domain.verification_status!=='verified'||domain.charis_connected!==true)continue;
   choices.push({provider:pref.provider as Provider,sender_id:sender.id,priority:pref.priority});
  }
  return choices.length?{ready:true,reason:'ready',providers:choices}:{ready:false,reason:'provider_disabled',providers:[]};
