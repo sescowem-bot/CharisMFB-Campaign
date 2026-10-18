@@ -4,6 +4,7 @@ import {z} from 'zod';
 import {currentAccount} from '@/lib/auth/account';
 import {supabaseServer} from '@/lib/supabase/server';
 import {sendDirectBatch} from '@/lib/direct/dispatch';
+import {emailServiceDb} from '@/lib/email/server';
 import {readDirectDesign,checkDirectDesign,campaignParagraphs} from '@/lib/direct/campaign-design';
 import {renderCampaign} from '@/lib/campaigns/render';
 import type {EmailDesign} from '@/lib/campaign/design';
@@ -37,8 +38,20 @@ export async function createDirectMessage(_:DirectState,form:FormData):Promise<D
    throw Error('Campaign sending is not enabled yet.');
   if(parsed.channel==='sms'&&process.env.CHARIS_CUSTOMER_SMS_ENABLED!=='true')throw Error('Customer SMS is not enabled yet.');
   if(parsed.channel==='email'){
-   const {count,error:routesError}=await db.from('charis_direct_provider_prefs').select('provider',{head:true,count:'exact'}).eq('organization_id',org).eq('enabled',true);
-   if(routesError||!count)throw Error('No email sender is available. Contact your administrator.');
+   // Staff are authorised above. Under SQL 047, the provider preferences table
+   // is readable only by communication admins; a staff-scoped SELECT falsely
+   // returns zero enabled senders. Check availability using the server-only
+   // service client, returning no sensitive provider details to the browser.
+   let enabledProviders=0;
+   try {
+    const {count,error:providerError}=await emailServiceDb()
+     .from('charis_direct_provider_prefs')
+     .select('provider',{head:true,count:'exact'})
+     .eq('organization_id',org).eq('enabled',true);
+    if(providerError)throw providerError;
+    enabledProviders=count||0;
+   }catch{throw Error('Email sending configuration could not be checked. Contact your administrator.');}
+   if(!enabledProviders)throw Error('No service email sender is enabled. In Communication Settings, select a verified sender and enable it for service emails.');
   }
   let design:EmailDesign|null=null;
   const designInput=String(form.get('design')||'');
