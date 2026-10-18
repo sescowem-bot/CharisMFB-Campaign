@@ -8,15 +8,21 @@ test('provider preferences are admin-only under SQL 047 RLS',()=>{
 });
 test('user sending permission is checked before server-only provider lookup',()=>{
  const auth=action.indexOf("db.rpc('charis_direct_can_send'");
- const prefs=action.indexOf(".from('charis_direct_provider_prefs')");
+ const prefs=action.indexOf('directEmailReadiness(org)');
  assert.ok(auth>0 && prefs>auth);
 });
-test('server-side read bypasses false empty staff RLS response',()=>{
- assert.match(action,/import \{emailServiceDb\} from '@\/lib\/email\/server'/);
- assert.match(action,/await emailServiceDb\(\)[\s\S]*?\.from\('charis_direct_provider_prefs'\)/);
- assert.doesNotMatch(action,/await db\.from\('charis_direct_provider_prefs'\)/);
+test('server-only sender readiness checks provider, sender, domain and enabled status',()=>{
+ const helper=readFileSync(new URL('../lib/direct/readiness.ts',import.meta.url),'utf8');
+ assert.match(action,/import \{directEmailReadiness,directWorkerIsHealthy\}/);
+ assert.match(helper,/emailServiceDb\(\)/);
+ for(const table of ['charis_direct_provider_prefs','email_provider_settings','sender_identities','sending_domains'])
+  assert.ok(helper.includes(table),table);
+ assert.doesNotMatch(action,/await db.from\('charis_direct_provider_prefs'\)/);
 });
-test('missing provider and lookup failure are differentiated',()=>{
- assert.match(action,/Email sending configuration could not be checked/);
- assert.match(action,/No service email sender is enabled/);
+test('missing schema and unusable senders fail closed before reserving a campaign',()=>{
+ assert.match(action,/readiness.reason==='schema_missing'/);
+ assert.match(action,/No verified service email sender is ready/);
+ const preflight=action.indexOf('directEmailReadiness(org)');
+ const create=action.indexOf("db.rpc('charis_direct_create_v2'");
+ assert.ok(preflight>0&&create>preflight);
 });

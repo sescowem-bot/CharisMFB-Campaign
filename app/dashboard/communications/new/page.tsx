@@ -6,6 +6,7 @@ import {canSendDirect} from '@/lib/auth/direct-send-access';
 import {supabaseServer} from '@/lib/supabase/server';
 import {WorkspaceShell} from '@/components/workspace-shell';
 import {DirectCompose} from '@/components/direct-compose';
+import {directWorkerIsHealthy} from '@/lib/direct/readiness';
 import {designSchema,resolveBrandLinks,assertNoDemoLinks} from '@/lib/campaign/design';
 export const dynamic='force-dynamic';
 export const maxDuration=120;
@@ -23,6 +24,7 @@ export default async function NewCommunication(){
  ]);
  if(!allowed)redirect('/dashboard');
  if(settingsError||!settings)return <WorkspaceShell title="Create Campaign"><p role="alert" className="feedback-error">Communication settings are unavailable.</p></WorkspaceShell>;
+ const schedulingReady=process.env.CHARIS_SCHEDULING_ENABLED==='true'&&await directWorkerIsHealthy();
  const templates=(allTemplates||[]).flatMap(t=>{
   if(!['general','announcement'].includes(t.category))return [];
   const parsed=designSchema.safeParse(t.design);
@@ -37,6 +39,6 @@ export default async function NewCommunication(){
   {!settings.email_enabled&&!settings.sms_enabled?<p role="alert" className="feedback-error">Email and SMS are currently disabled.</p>:
    <DirectCompose token={randomUUID()} contacts={contacts||[]} groups={bankWide===true?groups||[]:[]} canBulk={bankWide===true} emailEnabled={settings.email_enabled} smsEnabled={settings.sms_enabled} maxRecipients={settings.max_recipients}
     templates={templates} templateStudioUrl={`/dashboard/templates?org=${org}`} brand={{name:branding?.display_name||'Charis Microfinance Bank',color:branding?.primary_color||'#40239a',address:branding?.postal_address||'',website:branding?.website_url||''}}
-    schedulingEnabled={process.env.CHARIS_SCHEDULING_ENABLED==='true'}/>}
+    schedulingEnabled={schedulingReady}/>}
  </WorkspaceShell>;
 }

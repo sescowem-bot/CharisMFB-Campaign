@@ -19,7 +19,6 @@ export async function WorkspaceShell({title,subtitle,actions,children}:{
   const permitted=(key:string)=>account?.permissions?.includes(key)===true;
   const canAny=(...keys:string[])=>keys.some(permitted);
   const canAdmin=Boolean(account?.owner||canAny('staff.manage','access.manage','departments.manage','branches.manage','providers.manage','settings.manage','audit.view'));
-  const org=account?.workspace?.id||'';
   const forBank=(path:string)=>path; // Middleware injects the verified Charis organisation internally.
   const directAllowed=account?await canSendDirect(account.workspace.id):false;
   const canCommunicate=directAllowed||canAny('templates.manage','campaigns.view','campaigns.create','service_notices.view','service_notices.create','service_notices.approve','credit_reminders.view','credit_reminders.create');

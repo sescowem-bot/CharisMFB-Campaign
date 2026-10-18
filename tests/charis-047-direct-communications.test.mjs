@@ -33,7 +33,7 @@ test('dispatch blocks on unknown provider outcomes and prevents unsafe replay',(
 });
 test('simple composer has recipient, message and submission fields',()=>{
  const s=read('components/direct-compose.tsx');
- for(const name of ['name="title"','name="subject"','name="purpose"','name="audience"','name="channel"','name="contact_ids"'])assert.ok(s.includes(name),name);
+ for(const name of ['name="subject"','name="purpose"','name="audience"','name="channel"','name="contact_ids"'])assert.ok(s.includes(name),name);
  assert.match(s,/Send now/);
 });
 test('worker endpoint includes direct delivery independently of legacy worker flag',()=>{
@@ -43,7 +43,7 @@ test('worker endpoint includes direct delivery independently of legacy worker fl
 
 test('direct staff action requires enabling sending and service sender preflight',()=>{
  const s=read('app/dashboard/communications/actions.ts');
- assert.match(s,/CHARIS_SIMPLE_SENDING_ENABLED/);assert.match(s,/EMAIL_DELIVERY_ENABLED/);assert.match(s,/charis_direct_provider_prefs/);assert.match(s,/charis_direct_create/);
+ assert.match(s,/CHARIS_SIMPLE_SENDING_ENABLED/);assert.match(s,/EMAIL_DELIVERY_ENABLED/);assert.match(s,/directEmailReadiness/);assert.match(s,/charis_direct_create/);
 });
 test('directory search verifies authentication and communication permission',()=>{
  const s=read('app/api/direct/contacts/route.ts');

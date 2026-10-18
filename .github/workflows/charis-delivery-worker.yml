@@ -18,7 +18,8 @@ jobs:
           WORKER_KEY: ${{ secrets.EMAIL_WORKER_SECRET }}
         run: |
           test -n "$WORKER_KEY" && test -n "$APP_URL"
+          case "$APP_URL" in https://*) ;; *) echo 'CHARIS_APP_URL must use HTTPS'; exit 1;; esac
           curl --fail --silent --show-error --max-time 115 \
-            -X POST "$APP_URL/api/worker/delivery" \
+            -X POST "${APP_URL%/}/api/worker/delivery" \
             -H "Authorization: Bearer $WORKER_KEY" \
             -H 'Content-Type: application/json'

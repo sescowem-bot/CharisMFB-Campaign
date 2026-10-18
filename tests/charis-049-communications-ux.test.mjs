@@ -27,7 +27,7 @@ test('history permissions are delegated, audited, and destructive deletion is li
 });
 test('staff editor is concise, and recorded email status does not claim inbox delivery',()=>{
  const composer=file('components/direct-compose.tsx');const history=file('app/dashboard/communications/history/page.tsx');
- assert.match(composer,/name="title" value=\{subject.slice\(0,120\)\}/);
+ assert.doesNotMatch(composer,/name="title"/); // One subject, no duplicate title field.
  assert.match(composer,/:'Send now'/);
  assert.match(history,/not the same as delivered/);
 });

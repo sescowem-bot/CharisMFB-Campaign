@@ -26,6 +26,7 @@ export async function saveCreditAutoRules(_:AutoResult,form:FormData):Promise<Au
  }catch(e){return failure(e);}
 }
 export async function scanCreditAutoSuggestions(_:AutoResult,_form:FormData):Promise<AutoResult>{
+ void _;void _form;
  try{
   const {db,org}=await requireCreditPermission('credit_reminders.settings');
   const {data,error}=await db.rpc('charis_credit_auto_generate_056',{p_org:org});

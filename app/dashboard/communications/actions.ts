@@ -4,7 +4,7 @@ import {z} from 'zod';
 import {currentAccount} from '@/lib/auth/account';
 import {supabaseServer} from '@/lib/supabase/server';
 import {sendDirectBatch} from '@/lib/direct/dispatch';
-import {emailServiceDb} from '@/lib/email/server';
+import {directEmailReadiness,directWorkerIsHealthy} from '@/lib/direct/readiness';
 import {readDirectDesign,checkDirectDesign,campaignParagraphs} from '@/lib/direct/campaign-design';
 import {renderCampaign} from '@/lib/campaigns/render';
 import type {EmailDesign} from '@/lib/campaign/design';
@@ -30,37 +30,32 @@ export async function createDirectMessage(_:DirectState,form:FormData):Promise<D
   const org=account.workspace.id,db=await supabaseServer();
   const {data:permitted,error:permissionError}=await db.rpc('charis_direct_can_send',{p_org:org});
   if(permissionError||permitted!==true)throw Error('You do not have permission to send campaigns.');
-  const parsed=z.object({token:z.uuid(),subject:z.string().trim().min(3).max(180),body:z.string().trim().min(10).max(2000),channel:z.enum(['email','sms']),purpose:z.enum(['service_notice','account_update','general_notice']),product:z.enum(['general','savings','current','fixed_deposit','loans','mobile_app','other']),audience:z.enum(['selected','list','all']),mode:z.enum(['now','later'])}).parse({
+  const parsed=z.object({token:z.uuid(),subject:z.string().trim().min(3).max(180),body:z.string().trim().max(2000),channel:z.enum(['email','sms']),purpose:z.enum(['service_notice','account_update','general_notice']),product:z.enum(['general','savings','current','fixed_deposit','loans','mobile_app','other']),audience:z.enum(['selected','list','all']),mode:z.enum(['now','later'])}).parse({
    token:form.get('token'),subject:form.get('subject'),body:form.get('body'),channel:form.get('channel'),purpose:form.get('purpose'),product:form.get('product'),audience:form.get('audience'),mode:form.get('mode')
   });
   const scheduledAt=requestedSchedule(parsed.mode,String(form.get('send_at')||''));
+  if(scheduledAt&&!(await directWorkerIsHealthy()))throw Error('Scheduled sending is unavailable. Ask your administrator to check the delivery worker.');
   if(process.env.CHARIS_SIMPLE_SENDING_ENABLED!=='true'||process.env.EMAIL_DELIVERY_ENABLED!=='true')
    throw Error('Campaign sending is not enabled yet.');
   if(parsed.channel==='sms'&&process.env.CHARIS_CUSTOMER_SMS_ENABLED!=='true')throw Error('Customer SMS is not enabled yet.');
   if(parsed.channel==='email'){
-   // Staff are authorised above. Under SQL 047, the provider preferences table
-   // is readable only by communication admins; a staff-scoped SELECT falsely
-   // returns zero enabled senders. Check availability using the server-only
-   // service client, returning no sensitive provider details to the browser.
-   let enabledProviders=0;
-   try {
-    const {count,error:providerError}=await emailServiceDb()
-     .from('charis_direct_provider_prefs')
-     .select('provider',{head:true,count:'exact'})
-     .eq('organization_id',org).eq('enabled',true);
-    if(providerError)throw providerError;
-    enabledProviders=count||0;
-   }catch{throw Error('Email sending configuration could not be checked. Contact your administrator.');}
-   if(!enabledProviders)throw Error('No service email sender is enabled. In Communication Settings, select a verified sender and enable it for service emails.');
+   // Validate routing server-side without leaking admin settings to staff.
+   const readiness=await directEmailReadiness(org);
+   if(!readiness.ready)throw Error(readiness.reason==='schema_missing'
+    ?'Delivery tracking needs the latest database upgrade. Contact your administrator.'
+    :'No verified service email sender is ready. Contact your administrator.');
   }
   let design:EmailDesign|null=null;
+  // The validated design is the source of truth. Do not compare a separate hidden
+  // text field byte-for-byte: browser and editor whitespace can legitimately differ.
+  let finalBody=parsed.body;
   const designInput=String(form.get('design')||'');
   if(parsed.channel==='email'&&designInput){
    design=readDirectDesign(designInput);
    const {data:brand,error:brandError}=await db.from('organization_branding').select('display_name,website_url,postal_address,primary_color').eq('organization_id',org).maybeSingle();
    if(brandError||!brand)throw Error('Bank branding is unavailable.');
    checkDirectDesign(design,brand.website_url,parsed.subject);
-   if(campaignParagraphs(design)!==parsed.body)throw Error('Email content changed. Review the message and try again.');
+   finalBody=campaignParagraphs(design);
    const images=design.blocks.filter(b=>b.type==='image').map(b=>b.url);
    if(images.length){
     const {data:media,error:mediaError}=await db.from('charis_media_assets').select('public_url').eq('organization_id',org).in('public_url',images);
@@ -71,10 +66,12 @@ export async function createDirectMessage(_:DirectState,form:FormData):Promise<D
    renderCampaign({design,subject:parsed.subject,company:brand.display_name||'Charis Microfinance Bank',address:brand.postal_address||'',color:brand.primary_color||'#40239a',contact:{first_name:'Customer',last_name:'Example'},testPreview:true});
   }
   if(parsed.channel==='sms'&&designInput)throw Error('Email layouts cannot be used for SMS.');
+  if(finalBody.length<10||finalBody.length>2000||(parsed.channel==='sms'&&finalBody.length>480))
+   throw Error('Enter a valid message before continuing.');
   const recipients=String(form.get('contact_ids')||'').split(',').filter(Boolean).map(id=>z.uuid().parse(id));
   const group=form.get('list_id')?z.uuid().parse(form.get('list_id')):null;
   const {data:id,error}=await db.rpc('charis_direct_create_v2',{
-   p_org:org,p_key:parsed.token,p_title:parsed.subject.slice(0,120),p_subject:parsed.subject,p_body:parsed.body,
+   p_org:org,p_key:parsed.token,p_title:parsed.subject.slice(0,120),p_subject:parsed.subject,p_body:finalBody,
    p_purpose:parsed.purpose,p_product:parsed.product,p_channel:parsed.channel,p_audience:parsed.audience,
    p_contact_ids:recipients,p_list:group,p_design:design,p_scheduled_at:scheduledAt
   });

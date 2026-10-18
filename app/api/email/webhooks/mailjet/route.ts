@@ -2,7 +2,7 @@ import {NextResponse} from 'next/server';
 import {timingSafeEqual} from 'node:crypto';
 import {boundedText,bodyErrorResponse} from '@/lib/security/request';
 import {bearerMatches,mailjetEvent} from '@/lib/delivery/events';
-import {emailServiceDb} from '@/lib/email/server';
+import {recordProviderEvent} from '@/lib/delivery/record-events';
 export const runtime='nodejs';
 /** Configure Mailjet webhook with HTTP Basic Auth: username charis, password MAILJET_WEBHOOK_SECRET.
     A bearer header with the same secret is also supported for secured forwarding gateways. */
@@ -21,8 +21,7 @@ export async function POST(request:Request) {
  }
  if(!event)return NextResponse.json({received:true});
  try{
-  const {error}=await emailServiceDb().rpc('delivery_event',{p_provider:'mailjet',p_key:event.key,p_message:event.message,p_type:event.type,p_time:event.time});
-  if(error)throw error;
+  await recordProviderEvent('mailjet',event);
   return NextResponse.json({received:true});
  }catch{return NextResponse.json({error:'Event not recorded; retry later'},{status:503});}
 }

@@ -5,6 +5,7 @@ import {sendQueuedEmail} from '@/lib/delivery/transport';
 import type {Provider} from '@/lib/email/validation';
 import {reservePreferenceLink} from '@/lib/preferences/tokens';
 import {renderCampaign} from '@/lib/campaigns/render';
+import {directEmailReadiness} from '@/lib/direct/readiness';
 
 type Item={id:string;organization_id:string;message_id:string;contact_id:string;recipient_email:string|null;recipient_phone:string|null};
 type Message={id:string;organization_id:string;subject:string;body:string;design:unknown|null;channel:'email'|'sms';purpose:string;status:string};
@@ -29,6 +30,7 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
  const outcomes:Record<string,number>={};let processed=0;
  if(process.env.CHARIS_SIMPLE_SENDING_ENABLED!=='true'||process.env.EMAIL_DELIVERY_ENABLED!=='true')return {processed,outcomes:{disabled:1}};
  preparedOrigin();const db=emailServiceDb(),n=Math.min(Math.max(Math.floor(limit),1),6);
+ const checkedDomains=new Map<string,Promise<boolean>>();
  for(let i=0;i<n;i++){
   const {data:claimed,error:claimError}=await db.rpc('charis_direct_claim',{p_org:scope?.org||null,p_message:scope?.message||null});
   if(claimError)throw Error('Unable to claim communication safely: '+claimError.message);
@@ -61,8 +63,9 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
      if(optoutError)throw Error('preference_check_unavailable');
      if(optout)throw Error('optional_email_opted_out');
     }
-    const {data:prefs,error:prefsError}=await db.from('charis_direct_provider_prefs').select('provider,sender_id,priority').eq('organization_id',row.organization_id).eq('enabled',true).order('priority',{ascending:true});
-    if(prefsError||!prefs?.length)throw Error('No service-email provider configured. Ask an administrator to select a verified service sender.');
+    const readiness=await directEmailReadiness(row.organization_id);
+    if(!readiness.ready)throw Error('No verified service-email sender is ready.');
+    const prefs=readiness.providers;
     // One-time, bank-hosted preference URL. No personal data in the URL or token.
     // All manually composed direct emails respect suppressions.
     // Bank-mandated account/security notifications belong to a separate event workflow.
@@ -89,9 +92,15 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
      if(senderError||!sender?.is_active)continue;
      const {data:domain,error:domainError}=await db.from('sending_domains').select('provider,verification_status,charis_connected,domain').eq('organization_id',row.organization_id).eq('id',sender.domain_id).single();
      if(domainError||domain?.provider!==provider||!domain.charis_connected||domain.verification_status!=='verified')continue;
+     let transportStarted=false;
      try{
-      const verified=await refreshDomain(row.organization_id,sender.domain_id);
-      if(!verified.verified)continue;
+      const domainKey=row.organization_id+':'+sender.domain_id;
+      let verified=checkedDomains.get(domainKey);
+      if(!verified){
+       verified=refreshDomain(row.organization_id,sender.domain_id).then(result=>result.verified);
+       checkedDomains.set(domainKey,verified);
+      }
+      if(!await verified)continue;
       const key=process.env[provider==='resend'?'RESEND_API_KEY':provider==='brevo'?'BREVO_API_KEY':'MAILJET_API_KEY']||'';
       if(!key)continue;
       await providerFor(provider as Provider);
@@ -100,13 +109,16 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
       const day=new Date().toISOString().slice(0,10)+'T00:00:00.000Z';
       const [{count:used},{count:legacyUsed}]=await Promise.all([db.from('charis_direct_recipients').select('id',{head:true,count:'exact'}).eq('provider',provider).in('status',['accepted','failed','unknown']).gte('updated_at',day),db.from('delivery_quota_reservations').select('id',{head:true,count:'exact'}).eq('provider',provider).gte('reserved_at',day)]);
       if((used||0)+(legacyUsed||0)>=providerLimit.daily_limit)continue;
+      transportStarted=true;
       const result=await sendQueuedEmail({provider:provider as Provider,key,mailjetSecret:process.env.MAILJET_SECRET_KEY,id:row.id,name:sender.from_name,from:sender.from_email,replyTo:sender.reply_to||sender.from_email,domain:mailbox(sender.from_email).split('@')[1],to:row.recipient_email,subject:renderedSubject,html,unsubscribe:m.purpose==='general_notice'?preference.replace('/unsubscribe?','/api/preferences/unsubscribe?'):undefined});
       status=result.status==='retry'?'failed':result.status;reason=result.reason;providerId=result.message||null;
       if(status==='accepted'||status==='unknown')break;
       // Definitive rejection only; never fail over after a potentially accepted submission.
      }catch(e){
-      // Provider preparation can fail before submission. If uncertain, stop safely.
-      status='unknown';reason=e instanceof Error?'provider_preparation_or_response_uncertain':'provider_error_uncertain';break;
+      // A known preparation error happened before transport: try another configured route.
+      // Once submission could have begun, stop rather than risk duplicating a message.
+      if(!transportStarted){status='failed';reason='sender_preparation_failed';continue;}
+      status='unknown';reason=e instanceof Error?'provider_response_uncertain':'provider_error_uncertain';break;
      }
     }
    }else{
@@ -116,6 +128,11 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
   }catch(e){reason=e instanceof Error?e.message.slice(0,140):'unknown_preparation_error';status=['email_suppressed','optional_email_opted_out','customer_archived'].includes(reason)?'skipped':'failed';}
   const {error:finished}=await db.rpc('charis_direct_finish',{p_id:claimed,p_status:status,p_provider:provider,p_provider_id:providerId,p_error:reason});
   if(finished)throw Error('Delivery outcome was not saved. Reconcile with the provider before retrying.');
+  // A verified webhook might arrive before the provider ID was saved; replay it now.
+  if(providerId&&status==='accepted'){
+   const {error:reconcileError}=await db.rpc('charis_direct_reconcile_060',{p_recipient:claimed});
+   if(reconcileError)throw Error('Delivery event reconciliation unavailable. Check history before retrying.');
+  }
   outcomes[status]=(outcomes[status]||0)+1;
   if(status==='unknown')break;
  }

@@ -143,7 +143,7 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
   <div className="direct-wizard-actions">
    {step>0&&<button type="button" className="btn secondary" disabled={pending} onClick={()=>setStep(s=>s-1)}>Back</button>}
    {step<2?<button type="button" className="btn" disabled={step===0?!messageReady:!recipientsReady} onClick={()=>setStep(s=>Math.min(2,s+1))}>Continue</button>:
-    <button type="submit" className="btn" disabled={pending||!messageReady||!recipientsReady||!scheduleReady}>{pending?'Saving…':mode==='later'?'Schedule campaign':'Send campaign'}</button>}
+    <button type="submit" className="btn" disabled={pending||!!state.id||!messageReady||!recipientsReady||!scheduleReady}>{pending?'Saving…':mode==='later'?'Schedule campaign':'Send campaign'}</button>}
   </div>
   {state.error&&<p role="alert" className="feedback-error">{state.error}</p>}
   {state.success&&<div role="status" className="notice"><strong>{state.success}</strong> {state.id&&<Link className="inline-link" href={`/dashboard/communications/history?id=${state.id}`}>View status →</Link>}</div>}
