@@ -13,18 +13,18 @@ export const maxDuration=120;
 export default async function NewCommunication(){
  const account=await currentAccount();if(!account)redirect('/login');
  const org=account.workspace.id,db=await supabaseServer();
- const [allowed,{data:settings,error:settingsError},{data:bankWide},{data:contacts,error:contactError},{data:groups},{data:branding},{data:allTemplates}]=await Promise.all([
+ const [allowed,{data:settings,error:settingsError},{data:bankWide},{data:contacts,error:contactError},{data:groups},{data:branding},{data:allTemplates},schedulingReady]=await Promise.all([
   canSendDirect(org),
   db.from('charis_direct_settings').select('approval_required,email_enabled,sms_enabled,max_recipients').eq('organization_id',org).maybeSingle(),
   db.rpc('charis_is_bankwide',{p_org:org}),
   db.from('contacts').select('id,first_name,last_name,email,phone').eq('organization_id',org).is('archived_at',null).order('created_at',{ascending:false}).limit(35),
   db.from('contact_lists').select('id,name').eq('organization_id',org).order('name').limit(100),
   db.from('organization_branding').select('display_name,primary_color,postal_address,website_url').eq('organization_id',org).maybeSingle(),
-  db.from('email_templates').select('id,name,subject,design,category').or(`organization_id.eq.${org},organization_id.is.null`).in('status',['draft','approved']).order('created_at',{ascending:false}).limit(20)
+  db.from('email_templates').select('id,name,subject,design,category').or(`organization_id.eq.${org},organization_id.is.null`).in('status',['draft','approved']).order('created_at',{ascending:false}).limit(20),
+  process.env.CHARIS_SCHEDULING_ENABLED==='true'?directWorkerIsHealthy():Promise.resolve(false)
  ]);
  if(!allowed)redirect('/dashboard');
  if(settingsError||!settings)return <WorkspaceShell title="Create Campaign"><p role="alert" className="feedback-error">Communication settings are unavailable.</p></WorkspaceShell>;
- const schedulingReady=process.env.CHARIS_SCHEDULING_ENABLED==='true'&&await directWorkerIsHealthy();
  const templates=(allTemplates||[]).flatMap(t=>{
   if(!['general','announcement'].includes(t.category))return [];
   const parsed=designSchema.safeParse(t.design);
@@ -33,12 +33,12 @@ export default async function NewCommunication(){
   try{assertNoDemoLinks(design);}catch{return [];}
   return [{id:t.id,name:t.name,subject:t.subject,design}];
  });
- return <WorkspaceShell title="Create Campaign" subtitle="Message · Recipients · Send" actions={<Link href="/dashboard/communications" className="btn secondary">All Campaigns</Link>}>
+ return <WorkspaceShell title="Create Campaign" subtitle="Message · Recipients · Preview · Confirm" actions={<Link href="/dashboard/communications" className="btn secondary">All Campaigns</Link>}>
   {contactError&&<p role="alert" className="feedback-error">Customer directory is temporarily unavailable.</p>}
   {settings.approval_required&&<p className="notice">Campaign approval is enabled.</p>}
   {!settings.email_enabled&&!settings.sms_enabled?<p role="alert" className="feedback-error">Email and SMS are currently disabled.</p>:
    <DirectCompose token={randomUUID()} contacts={contacts||[]} groups={bankWide===true?groups||[]:[]} canBulk={bankWide===true} emailEnabled={settings.email_enabled} smsEnabled={settings.sms_enabled} maxRecipients={settings.max_recipients}
     templates={templates} templateStudioUrl={`/dashboard/templates?org=${org}`} brand={{name:branding?.display_name||'Charis Microfinance Bank',color:branding?.primary_color||'#40239a',address:branding?.postal_address||'',website:branding?.website_url||''}}
-    schedulingEnabled={schedulingReady}/>}
+    schedulingEnabled={schedulingReady} approvalRequired={settings.approval_required}/>}
  </WorkspaceShell>;
 }

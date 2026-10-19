@@ -1,5 +1,5 @@
 'use client';
-import {useActionState,useEffect,useMemo,useState} from 'react';
+import {useActionState,useEffect,useMemo,useRef,useState} from 'react';
 import Link from 'next/link';
 import {createDirectMessage} from '@/app/dashboard/communications/actions';
 import {designSchema,resolveBrandLinks,type EmailBlock,type EmailDesign} from '@/lib/campaign/design';
@@ -9,12 +9,15 @@ import {campaignParagraphs,checkDirectDesign} from '@/lib/direct/campaign-design
 type Contact={id:string;first_name:string|null;last_name:string|null;email:string|null;phone:string|null};
 type Group={id:string;name:string};
 type Template={id:string;name:string;subject:string;design:EmailDesign};
-export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,templateStudioUrl,brand,schedulingEnabled}:{
+export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false}:{
  token:string;contacts:Contact[];groups:Group[];canBulk:boolean;emailEnabled:boolean;smsEnabled:boolean;maxRecipients:number;
  templates:Template[];templateStudioUrl:string;brand:{name:string;color:string;address:string;website:string};schedulingEnabled:boolean;
 }){
  const [state,submit,pending]=useActionState(createDirectMessage,{});
  const [step,setStep]=useState(0);
+ const stepNavRef=useRef<HTMLElement|null>(null);
+ useEffect(()=>{if(step>0)stepNavRef.current?.scrollIntoView({behavior:'smooth',block:'start'});},[step]);
+ const [confirmed,setConfirmed]=useState(false);
  const [channel,setChannel]=useState<'email'|'sms'>(emailEnabled?'email':'sms');
  const [purpose,setPurpose]=useState('general_notice');
  const [product,setProduct]=useState('general');
@@ -48,15 +51,20 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
  const filtered=(search.length<2?contacts:results).filter(c=>search.length<2||`${c.first_name||''} ${c.last_name||''} ${c.email||''} ${c.phone||''}`.toLowerCase().includes(search.toLowerCase())).slice(0,40);
  const richBody=design?campaignParagraphs(design):body;
  const composedBody=channel==='email'&&design?richBody:body.trim();
+ // Lightweight validation while editing; render the full HTML preview only on step 3.
+ const designError=useMemo(()=>{
+  if(!design||channel!=='email')return '';
+  try{checkDirectDesign(design,brand.website,subject);return '';}
+  catch(e){return e instanceof Error?e.message:'Check the email design.';}
+ },[design,brand.website,subject,channel]);
  const preview=useMemo(()=>{
-  if(!design||channel!=='email')return {html:'',error:''};
+  if(step!==2||!design||channel!=='email'||designError)return {html:'',error:designError};
   try{
-   checkDirectDesign(design,brand.website,subject);
-   const rendered=renderCampaign({design,subject:subject||'Message preview',company:brand.name,address:brand.address,color:brand.color,contact:{first_name:'Customer',last_name:'Example'},testPreview:true});
+   const rendered=renderCampaign({design,subject,company:brand.name,address:brand.address,color:brand.color,contact:{first_name:'Customer',last_name:'Example'},testPreview:true});
    return {html:rendered.html,error:''};
-  }catch(e){return {html:'',error:e instanceof Error?e.message:'Design is incomplete.'};}
- },[design,brand,subject,channel]);
- const messageReady=subject.trim().length>=3&&subject.trim().length<=180&&composedBody.trim().length>=10&&composedBody.trim().length<=2000&&!preview.error;
+  }catch(e){return {html:'',error:e instanceof Error?e.message:'Preview could not be loaded.'};}
+ },[step,design,subject,brand.name,brand.address,brand.color,channel,designError]);
+ const messageReady=subject.trim().length>=3&&subject.trim().length<=180&&composedBody.trim().length>=10&&composedBody.trim().length<=2000&&!designError;
  const recipientsReady=audience==='selected'?chosen.length>0:audience==='list'?Boolean(groupId):canBulk;
  const scheduleReady=mode==='now'||(schedulingEnabled&&sendAt.trim().length>0);
  function selectTemplate(id:string){
@@ -86,9 +94,15 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
     {type:'button',text:'Visit Charis',url:brand.website};
    return {...d,blocks:[...d.blocks,newBlock]};});
  }
- return <form action={submit} className="admin-form direct-composer direct-wizard" style={{maxWidth:'none'}} onSubmit={e=>{
-  if(step!==2||!messageReady||!recipientsReady||!scheduleReady){e.preventDefault();setStep(s=>Math.min(2,s+1));}
- }}>
+ return <form action={submit} className="admin-form direct-composer direct-wizard" style={{maxWidth:'none'}}
+  onKeyDown={e=>{if(e.key==='Enter'&&['INPUT','SELECT'].includes((e.target as HTMLElement).tagName))e.preventDefault();}}
+  onSubmit={e=>{
+   const submitter=(e.nativeEvent as SubmitEvent).submitter;
+   if(step!==3||!confirmed||!messageReady||!recipientsReady||!scheduleReady||pending||!!state.id||
+      submitter?.getAttribute('name')!=='commit_send'||submitter?.getAttribute('value')!=='yes'){
+    e.preventDefault();
+   }
+  }}>
   <input type="hidden" name="token" value={token}/>
   <input type="hidden" name="subject" value={subject}/>
   <input type="hidden" name="body" value={composedBody}/>
@@ -101,7 +115,7 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
   <input type="hidden" name="design" value={channel==='email'&&design?JSON.stringify(design):''}/>
   <input type="hidden" name="mode" value={mode}/>
   <input type="hidden" name="send_at" value={mode==='later'?sendAt:''}/>
-  <nav aria-label="Campaign steps" className="direct-simple-steps">{['Message','Recipients','Review & send'].map((label,index)=><span key={label} className={step===index?'current':''} aria-current={step===index?'step':undefined}>{index+1}. {label}</span>)}</nav>
+  <nav ref={stepNavRef} aria-label="Campaign steps" className="direct-simple-steps">{['Message','Recipients','Preview','Confirm & send'].map((label,index)=><span key={label} className={step===index?'current':''} aria-current={step===index?'step':undefined}>{index+1}. {label}</span>)}</nav>
   <section style={{display:step===0?'block':'none'}} aria-label="Create message">
    <div className="form-two"><label>Channel<select value={channel} onChange={e=>{if(e.target.value==='sms'&&design){setBody(richBody);setDesign(null);setTemplateId('');}setChannel(e.target.value as 'email'|'sms');setChosen([]);setSelectedDetails({});setAudience('selected');}}>
     {emailEnabled&&<option value="email">Email</option>}{smsEnabled&&<option value="sms">SMS</option>}</select></label>
@@ -117,7 +131,7 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
      {block.type==='image'&&<small className="muted">Bank-approved image · {block.text}</small>}
     </div>)}
      <div className="actions"><button type="button" className="btn secondary" onClick={()=>addBlock('paragraph')}>+ Paragraph</button><button type="button" className="btn secondary" onClick={()=>addBlock('heading')}>+ Heading</button>{Boolean(brand.website)&&<button type="button" className="btn secondary" onClick={()=>addBlock('button')}>+ Button</button>}<button type="button" className="btn secondary" onClick={()=>addBlock('divider')}>+ Divider</button></div>
-     {preview.error?<p role="alert" className="feedback-error">{preview.error}</p>:<details><summary>Preview email</summary><iframe title="Email preview" sandbox="" srcDoc={preview.html} style={{border:'1px solid #e2e8f0',borderRadius:8,width:'100%',height:470}}/></details>}
+     {designError&&<p role="alert" className="feedback-error">{designError}</p>}<p className="muted">Full email preview is available in step 3.</p>
     </div>}
   </section>
   <section style={{display:step===1?'block':'none'}} aria-label="Choose recipients">
@@ -133,17 +147,41 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
    {audience==='list'&&<label>Contact group<select value={groupId} onChange={e=>setGroupId(e.target.value)}><option value="">Choose group</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></label>}
    {audience==='all'&&<p className="muted">The system checks recipient eligibility and your access. If the audience exceeds {maxRecipients}, choose a smaller group.</p>}
   </section>
-  <section style={{display:step===2?'block':'none'}} aria-label="Review campaign">
-   <h3>Review campaign</h3>
-   <div className="direct-review"><p><strong>Channel:</strong> {channel.toUpperCase()}</p><p><strong>Subject:</strong> {subject}</p><p><strong>Recipients:</strong> {audience==='selected'?`${chosen.length} contacts`:audience==='list'?groups.find(g=>g.id===groupId)?.name||'Group':'Eligible contacts (within limit)'}</p><p><strong>Layout:</strong> {templateId?templates.find(t=>t.id===templateId)?.name:'Simple message'}</p><p className="direct-review-copy">{composedBody}</p></div>
-   <label>Send when<select value={mode} onChange={e=>setMode(e.target.value as 'now'|'later')}><option value="now">Send now</option>{schedulingEnabled&&<option value="later">Schedule for later</option>}</select></label>
-   {mode==='later'&&<label>Send on (Nigeria time · WAT)<input type="datetime-local" value={sendAt} onChange={e=>setSendAt(e.target.value)}/></label>}
-   <small className="muted">{mode==='later'?'Messages will be processed after the selected time by the delivery worker.':'Provider acceptance and final delivery are tracked separately.'}</small>
+  <section style={{display:step===2?'block':'none'}} aria-label="Preview campaign">
+   <h3>Preview campaign</h3>
+   <p className="muted">Review the message and recipients. Nothing will be sent on this step.</p>
+   <div className="direct-review">
+    <p><strong>Channel:</strong> {channel.toUpperCase()}</p>
+    <p><strong>Subject:</strong> {subject}</p>
+    <p><strong>Recipients:</strong> {audience==='selected'?`${chosen.length} selected`:audience==='list'?groups.find(g=>g.id===groupId)?.name||'Selected group':'All eligible contacts (within limit)'}</p>
+    {audience==='selected'&&<ul aria-label="Selected recipients">{chosen.slice(0,12).map(id=><li key={id}>{[selectedDetails[id]?.first_name,selectedDetails[id]?.last_name].filter(Boolean).join(' ')||selectedDetails[id]?.email||'Selected customer'}</li>)}{chosen.length>12&&<li>And {chosen.length-12} more</li>}</ul>}
+   </div>
+   {channel==='email'&&design ? (preview.error?<p className="feedback-error" role="alert">{preview.error}</p>:
+    <iframe title="Campaign email preview" loading="lazy" sandbox="" srcDoc={preview.html} style={{border:'1px solid #e2e8f0',borderRadius:8,width:'100%',height:460,background:'#ffffff'}}/>) :
+    <div className="direct-review" style={{background:'#fff',whiteSpace:'pre-wrap'}} aria-label="Message preview">
+     {channel==='email'&&<p><strong>{brand.name}</strong></p>}
+     <p>{composedBody}</p>
+    </div>}
+   <p className="muted">Use Back to make changes, or Continue to confirm.</p>
+  </section>
+  <section style={{display:step===3?'block':'none'}} aria-label="Confirm campaign">
+   <h3>Confirm campaign</h3>
+   <div className="direct-review">
+    <p><strong>Message:</strong> {subject}</p>
+    <p><strong>Channel:</strong> {channel.toUpperCase()}</p>
+    <p><strong>Recipients:</strong> {audience==='selected'?`${chosen.length} selected contacts`:audience==='list'?groups.find(g=>g.id===groupId)?.name||'Selected group':'All eligible contacts (within limit)'}</p>
+   </div>
+   <label>When to send<select value={mode} onChange={e=>{setConfirmed(false);setMode(e.target.value as 'now'|'later');}}><option value="now">Send now</option>{schedulingEnabled&&<option value="later">Schedule for later</option>}</select></label>
+   {mode==='later'&&<label>Send on (Nigeria time · WAT)<input type="datetime-local" value={sendAt} onChange={e=>{setConfirmed(false);setSendAt(e.target.value);}}/></label>}
+   <label className="direct-send-confirm"><input type="checkbox" name="confirmed" value="yes" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>
+    I have reviewed the message and recipients, and I authorise this campaign to be {mode==='later'?'scheduled':'submitted'}.
+   </label>
+   <p className="muted">{approvalRequired?'The campaign will go for approval before sending.':mode==='later'?'It will be queued for your selected time.':'Messages will be submitted when you click Confirm & Send.'}</p>
   </section>
   <div className="direct-wizard-actions">
-   {step>0&&<button type="button" className="btn secondary" disabled={pending} onClick={()=>setStep(s=>s-1)}>Back</button>}
-   {step<2?<button type="button" className="btn" disabled={step===0?!messageReady:!recipientsReady} onClick={()=>setStep(s=>Math.min(2,s+1))}>Continue</button>:
-    <button type="submit" className="btn" disabled={pending||!!state.id||!messageReady||!recipientsReady||!scheduleReady}>{pending?'Saving…':mode==='later'?'Schedule campaign':'Send campaign'}</button>}
+   {step>0&&<button type="button" className="btn secondary" disabled={pending||!!state.id} onClick={()=>{setConfirmed(false);setStep(s=>s-1);}}>Back</button>}
+   {step<3?<button type="button" className="btn" disabled={pending||!!state.id||(step===0?!messageReady:step===1?!recipientsReady:!!preview.error)} onClick={()=>{setConfirmed(false);setStep(s=>Math.min(3,s+1));}}>{step===2?'Continue to confirmation':'Continue'}</button>:
+    <button type="submit" name="commit_send" value="yes" className="btn" disabled={pending||!!state.id||!confirmed||!messageReady||!recipientsReady||!scheduleReady}>{pending?'Submitting…':approvalRequired?'Confirm & Submit for Approval':mode==='later'?'Confirm & Schedule':'Confirm & Send'}</button>}
   </div>
   {state.error&&<p role="alert" className="feedback-error">{state.error}</p>}
   {state.success&&<div role="status" className="notice"><strong>{state.success}</strong> {state.id&&<Link className="inline-link" href={`/dashboard/communications/history?id=${state.id}`}>View status →</Link>}</div>}

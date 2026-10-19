@@ -26,6 +26,9 @@ function requestedSchedule(mode:'now'|'later',raw:string):string|null {
 
 export async function createDirectMessage(_:DirectState,form:FormData):Promise<DirectState>{
  try{
+  // A wizard step, Enter key or programmatic form submit must never send a campaign.
+  if(form.get('confirmed')!=='yes'||form.get('commit_send')!=='yes')
+   throw Error('Review the campaign and confirm sending before submitting.');
   const account=await currentAccount();if(!account)throw Error('Sign in to create a campaign.');
   const org=account.workspace.id,db=await supabaseServer();
   const {data:permitted,error:permissionError}=await db.rpc('charis_direct_can_send',{p_org:org});

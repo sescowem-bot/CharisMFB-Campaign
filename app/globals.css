@@ -296,3 +296,9 @@ body{font-family:var(--platform-font,system-ui,sans-serif)}.btn:not(.secondary),
 .direct-wizard .direct-review-copy{white-space:pre-wrap;border-top:1px solid #eee;padding-top:12px;max-height:220px;overflow:auto}
 .direct-wizard .direct-wizard-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
 @media(max-width:600px){.direct-wizard .direct-simple-steps{gap:4px}.direct-wizard .direct-simple-steps span{min-width:0;font-size:12px;padding:9px 3px}.direct-wizard .direct-editor{padding:10px}.direct-wizard .direct-layout-control{display:block}.direct-wizard .direct-wizard-actions .btn{flex:1}}
+
+/* Release 063: explicit four-step campaign confirmation. */
+.direct-wizard .direct-send-confirm{display:flex;flex-direction:row;align-items:flex-start;gap:12px;padding:15px;border:1px solid #d7c9f6;border-radius:12px;background:#f8f6ff;cursor:pointer}
+.direct-wizard .direct-send-confirm input[type="checkbox"]{width:20px;height:20px;min-width:20px;margin:1px 0 0;accent-color:#40239a}
+.direct-wizard [aria-label="Preview campaign"] iframe{max-width:100%;display:block}
+@media(max-width:600px){.direct-wizard .direct-simple-steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.direct-wizard .direct-simple-steps span{min-width:0}.direct-wizard .direct-send-confirm{padding:12px}}

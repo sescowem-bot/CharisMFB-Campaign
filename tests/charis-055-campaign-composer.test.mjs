@@ -15,13 +15,13 @@ test('Release 055 builds on all previously delivered subscription and staff UX f
  }
  assert.match(page,/\.limit\(35\)/);
 });
-test('Campaign workflow has 3 steps, supports templates, searchable recipients and preview',()=>{
- assert.match(composer,/\['Message','Recipients','Review & send'\]/);
+test('Campaign workflow has 4 explicit steps, supports templates, searchable recipients and preview',()=>{
+ assert.match(composer,/\['Message','Recipients','Preview','Confirm & send'\]/);
  assert.match(composer,/\.map\(\(label,index\)/);
  assert.match(composer,/selectTemplate/);
  assert.match(composer,/renderCampaign\(/);
  assert.match(composer,/api\/direct\/contacts/);
- assert.match(composer,/Send campaign/);
+ assert.match(composer,/Confirm & Send/);
  assert.match(composer,/scheduleReady/);
 });
 test('Direct campaign scheduling is opt-in and WAT time is offset-aware',()=>{
