@@ -27,6 +27,8 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
  const [query,setQuery]=useState('');const [body,setBody]=useState('');const [subject,setSubject]=useState('');
  const [design,setDesign]=useState<EmailDesign|null>(null);
  const [templateId,setTemplateId]=useState('');
+ const [previewDevice,setPreviewDevice]=useState<'desktop'|'mobile'>('desktop');
+ const [previewRevision,setPreviewRevision]=useState(0);
  const [mode,setMode]=useState<'now'|'later'>('now');
  const [sendAt,setSendAt]=useState('');
  const [results,setResults]=useState<Contact[]>([]);
@@ -157,7 +159,16 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
     {audience==='selected'&&<ul aria-label="Selected recipients">{chosen.slice(0,12).map(id=><li key={id}>{[selectedDetails[id]?.first_name,selectedDetails[id]?.last_name].filter(Boolean).join(' ')||selectedDetails[id]?.email||'Selected customer'}</li>)}{chosen.length>12&&<li>And {chosen.length-12} more</li>}</ul>}
    </div>
    {channel==='email'&&design ? (preview.error?<p className="feedback-error" role="alert">{preview.error}</p>:
-    <iframe title="Campaign email preview" loading="lazy" sandbox="" srcDoc={preview.html} style={{border:'1px solid #e2e8f0',borderRadius:8,width:'100%',height:460,background:'#ffffff'}}/>) :
+    <div aria-label="Campaign email preview display">
+     <div className="actions" role="group" aria-label="Preview display">
+      <button type="button" className="btn secondary" aria-pressed={previewDevice==='desktop'} onClick={()=>setPreviewDevice('desktop')}>Desktop</button>
+      <button type="button" className="btn secondary" aria-pressed={previewDevice==='mobile'} onClick={()=>setPreviewDevice('mobile')}>Mobile</button>
+      <button type="button" className="btn secondary" onClick={()=>setPreviewRevision(n=>n+1)}>Reload preview</button>
+     </div>
+     <div style={{display:'flex',justifyContent:'center',overflowX:'auto',background:'#edf1f7',padding:'12px 0'}}>
+      <iframe key={previewDevice+previewRevision} title="Campaign email preview" loading="eager" sandbox="" srcDoc={preview.html} style={{border:'1px solid #e2e8f0',borderRadius:8,width:previewDevice==='mobile'?375:'100%',maxWidth:previewDevice==='mobile'?375:720,height:560,background:'#ffffff'}}/>
+     </div>
+    </div>) :
     <div className="direct-review" style={{background:'#fff',whiteSpace:'pre-wrap'}} aria-label="Message preview">
      {channel==='email'&&<p><strong>{brand.name}</strong></p>}
      <p>{composedBody}</p>
