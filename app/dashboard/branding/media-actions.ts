@@ -1,5 +1,6 @@
 'use server';
 import {randomUUID} from 'node:crypto';
+import {optimizeCampaignMedia} from '@/lib/campaign/media-processing';
 import {revalidatePath,revalidateTag} from 'next/cache';
 import {z} from 'zod';
 import {supabaseServer} from '@/lib/supabase/server';
@@ -38,14 +39,25 @@ export async function uploadCharisMedia(_:MediaResult,form:FormData):Promise<Med
   const type=mediaType(bytes);
   if(!type||type.mime!==file.type)throw new Error('Invalid image format. Use a genuine PNG, JPG or WebP image.');
   if(kind==='favicon'&&file.size>512*1024)throw new Error('Favicon must be smaller than 512 KB.');
+  // Optimise campaign media server-side. Logos and favicons retain their original format.
+  const crop=z.enum(['none','square','banner']).parse(String(form.get('crop')||'none'));
+  let uploadBytes=bytes;
+  let outputType=type;
+  if(kind==='media'){
+   try{
+    const processed=await optimizeCampaignMedia(bytes,crop);
+    uploadBytes=new Uint8Array(processed.bytes);
+    outputType={mime:processed.mime,ext:processed.ext};
+   }catch(e){throw new Error(e instanceof Error?'Unable to process image: '+e.message:'Unable to process this image.');}
+  }
   const name=(file.name||'image').replace(/[^\w. ()-]/g,'_').slice(0,160)||'image';
-  const path=`${org}/${kind}/${randomUUID()}.${type.ext}`;
+  const path=`${org}/${kind}/${randomUUID()}.${outputType.ext}`;
   const service=emailServiceDb();
-  const {error:upload}=await service.storage.from(bucket).upload(path,bytes,{contentType:type.mime,upsert:false,cacheControl:'3600'});
+  const {error:upload}=await service.storage.from(bucket).upload(path,uploadBytes,{contentType:outputType.mime,upsert:false,cacheControl:'3600'});
   if(upload)throw new Error(`Image upload failed. Confirm Migration 018 and Storage bucket exist. ${upload.message}`);
   const {data:{publicUrl}}=service.storage.from(bucket).getPublicUrl(path);
   try{
-   const {error}=await service.from('charis_media_assets').insert({organization_id:org,file_name:name,object_path:path,public_url:publicUrl,mime_type:type.mime,bytes:file.size,created_by:user.id});
+   const {error}=await service.from('charis_media_assets').insert({organization_id:org,file_name:name,object_path:path,public_url:publicUrl,mime_type:outputType.mime,bytes:uploadBytes.length,created_by:user.id});
    if(error)throw new Error(error.message);
    if(kind!=='media'){
     const column=kind==='logo'?'logo_path':'favicon_url';
