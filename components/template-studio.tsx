@@ -4,7 +4,7 @@ import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {uploadCharisMedia} from '@/app/dashboard/branding/media-actions';
 import {saveTemplate} from '@/app/dashboard/actions';
-import {createStarterDesign,resolveBrandLinks,verifiedBrandWebsite,type EmailDesign} from '@/lib/campaign/design';
+import {createStarterDesign,resolveBrandLinks,verifiedBrandWebsite,designSchema,type EmailDesign} from '@/lib/campaign/design';
 import {charisTemplatePresets} from '@/lib/campaign/template-presets';
 import {EmailDesignCanvas} from '@/components/email-design-canvas';
 import {renderCampaign} from '@/lib/campaigns/render';
@@ -28,6 +28,47 @@ export function TemplateStudio({org,initial,brandName='Charis Microfinance Bank'
  const [category,setCategory]=useState(initial?.category||'general');
  const [description,setDescription]=useState(initial?.description||'');
  const [presetId,setPresetId]=useState('');
+ // Browser-only recovery for design drafts; server remains authoritative until Save template.
+ const draftKey=`charis-template-draft:${org}:${initial?.id||'new'}`;
+ const [recovery,setRecovery]=useState<null|{name:string;subject:string;category:string;description:string;design:EmailDesign}>(null);
+ const [draftStatus,setDraftStatus]=useState('');
+ const [recoveryChecked,setRecoveryChecked]=useState(false);
+ useEffect(()=>{
+  try {
+   const raw=localStorage.getItem(draftKey);
+   if(raw){
+    const value=JSON.parse(raw) as {name?:unknown;subject?:unknown;category?:unknown;description?:unknown;design?:unknown};
+    const result=designSchema.safeParse(value.design);
+    if(result.success&&typeof value.name==='string'&&typeof value.subject==='string'&&typeof value.category==='string'&&typeof value.description==='string')
+     setRecovery({name:value.name,subject:value.subject,category:value.category,description:value.description,design:result.data});
+   }
+  }catch{/* Storage may be unavailable or a draft may be corrupt. */}
+  setRecoveryChecked(true);
+ },[draftKey]);
+ useEffect(()=>{
+  if(!recoveryChecked||recovery||state.success)return;
+  const timer=setTimeout(()=>{
+   try {
+    localStorage.setItem(draftKey,JSON.stringify({name,subject,category,description,design}));
+    setDraftStatus('Unsaved changes backed up on this browser.');
+   }catch{setDraftStatus('Browser draft backup unavailable. Save the template to keep your changes.');}
+  },1200);
+  return ()=>clearTimeout(timer);
+ },[draftKey,recoveryChecked,recovery,name,subject,category,description,design,state.success]);
+ useEffect(()=>{
+  if(!state.success)return;
+  try{localStorage.removeItem(draftKey);}catch{/* Optional browser backup */}
+  setDraftStatus('Saved to Template Library.');
+ },[state.success,draftKey]);
+ function restoreDraft(){
+  if(!recovery)return;
+  setName(recovery.name);setSubject(recovery.subject);setCategory(recovery.category);setDescription(recovery.description);
+  change(recovery.design);setRecovery(null);setDraftStatus('Recovered your unsaved draft. Save it to the library.');
+ }
+ function discardDraft(){
+  try{localStorage.removeItem(draftKey);}catch{/* Optional browser backup */}
+  setRecovery(null);setDraftStatus('');
+ }
  const [showRenderedPreview,setShowRenderedPreview]=useState(false);
  const [mobilePreview,setMobilePreview]=useState(false);
  const renderedPreview=useMemo(()=>{
@@ -42,6 +83,8 @@ export function TemplateStudio({org,initial,brandName='Charis Microfinance Bank'
   <form className="admin-form" action={action}>
    <input type="hidden" name="organization_id" value={org}/><input type="hidden" name="template_id" value={state.templateId||savedId}/><input type="hidden" name="design" value={JSON.stringify(design)}/>
    <div className="visual-studio-heading"><div><h2>Template Studio</h2><p className="muted">Create a clear, branded message for your customers.</p></div><button className="btn" disabled={pending}>{pending?'Saving…':'Save template'}</button></div>
+   {recovery&&<div className="notice" role="status"><strong>Unsaved design found on this browser.</strong> Restore it or keep the current saved template. <button type="button" className="btn secondary" onClick={restoreDraft}>Restore draft</button> <button type="button" onClick={discardDraft}>Discard backup</button></div>}
+   {draftStatus&&<p className="muted" role="status">{draftStatus}</p>}
    <div className="visual-template-details"><label>Template name<input name="name" value={name} onChange={e=>setName(e.target.value)} required maxLength={120}/></label><label>Subject line<input name="subject" value={subject} onChange={e=>setSubject(e.target.value)} maxLength={200}/></label><label>Category<select name="category" value={category} onChange={e=>setCategory(e.target.value)}><option value="general">General</option><option value="newsletter">Newsletter</option><option value="announcement">Announcement</option><option value="promotion">Promotion</option><option value="event">Event</option></select></label></div>
    <details className="visual-template-options"><summary>Layout and template options</summary><div className="visual-template-details"><label>Description<input name="description" maxLength={500} value={description} onChange={e=>setDescription(e.target.value)}/></label><label>Email layout<select value={design.style||'classic'} onChange={e=>change({...design,style:e.target.value as EmailDesign['style']})}>{['classic','modern','minimal','announcement'].map(s=><option key={s}>{s}</option>)}</select></label><label>Starting design<select value={presetId} onChange={e=>setPresetId(e.target.value)}><option value="">Choose a design</option>{charisTemplatePresets.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><button type="button" disabled={!presetId} onClick={applyPreset}>Apply design</button></div></details>
    <div className="visual-history"><button type="button" disabled={!history.past.length} onClick={undo}>Undo design change</button><button type="button" disabled={!history.future.length} onClick={redo}>Redo</button><span>{design.blocks.length} / 30 sections</span></div>
