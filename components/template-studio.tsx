@@ -1,5 +1,6 @@
 'use client';
 import {useActionState,useEffect,useMemo,useRef,useState} from 'react';
+import {Undo2,Redo2,Eye,Save,Images} from 'lucide-react';
 import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {uploadCharisMedia} from '@/app/dashboard/branding/media-actions';
@@ -21,7 +22,7 @@ export function TemplateStudio({org,initial,brandName='Charis Microfinance Bank'
  useEffect(()=>{if(uploadResult.success)router.refresh();},[uploadResult.success,router]);
  const [history,setHistory]=useState<{past:EmailDesign[];present:EmailDesign;future:EmailDesign[]}>({past:[],present:resolveBrandLinks(initial?.design||newDesign||createStarterDesign(website),website),future:[]});
  const design=history.present;
- function change(next:EmailDesign){setHistory(h=>({past:[...h.past,h.present].slice(-80),present:next,future:[]}));}
+ function change(next:EmailDesign){setHistory(h=>JSON.stringify(next)===JSON.stringify(h.present)?h:{past:[...h.past,h.present].slice(-80),present:next,future:[]});}
  function undo(){setHistory(h=>h.past.length?{past:h.past.slice(0,-1),present:h.past[h.past.length-1],future:[h.present,...h.future]}:h);}
  function redo(){setHistory(h=>h.future.length?{past:[...h.past,h.present],present:h.future[0],future:h.future.slice(1)}:h);}
  const [state,action,pending]=useActionState(saveTemplate,{});
@@ -89,15 +90,22 @@ export function TemplateStudio({org,initial,brandName='Charis Microfinance Bank'
   <form className="admin-form" action={action}>
    <input type="hidden" name="organization_id" value={org}/><input type="hidden" name="template_id" value={state.templateId||savedId}/><input type="hidden" name="design" value={JSON.stringify(design)}/>
    <div className="charis-editor-heading"><div><span className="charis-eyebrow">CHARIS TEMPLATE DESIGNER</span><h2>{mode==='edit'?'Edit your template':'Create a new email template'}</h2><p>Make your design, inspect the final email, then save it to the library.</p></div>
-    <div className="charis-editor-actions"><button type="button" className="btn secondary" onClick={()=>{if(imageLibraryRef.current){imageLibraryRef.current.open=true;imageLibraryRef.current.scrollIntoView({behavior:'smooth',block:'start'});}}}>Image library</button><button type="button" className="btn secondary" onClick={()=>setShowRenderedPreview(true)}>Preview email</button>
-     <button type="submit" className="btn" disabled={pending}>{pending?'Saving…':mode==='edit'?'Save changes':'Save template'}</button></div>
+    <div className="charis-editor-actions charis-editor-top-actions">
+     <div className="charis-editor-history-tools" role="group" aria-label="Undo and redo design changes">
+      <button type="button" className="btn secondary" disabled={!history.past.length} onClick={undo} title="Go back one design change" aria-label="Undo last design change"><Undo2 size={17}/> Undo</button>
+      <button type="button" className="btn secondary" disabled={!history.future.length} onClick={redo} title="Go forward one design change" aria-label="Redo design change"><Redo2 size={17}/> Redo</button>
+     </div>
+     <button type="button" className="btn secondary" onClick={()=>{if(imageLibraryRef.current){imageLibraryRef.current.open=true;imageLibraryRef.current.scrollIntoView({behavior:'smooth',block:'start'});}}}><Images size={16}/> Images</button>
+     <button type="button" className="btn secondary" onClick={()=>setShowRenderedPreview(true)}><Eye size={16}/> Preview</button>
+     <button type="submit" className="btn" disabled={pending}><Save size={16}/>{pending?'Saving…':mode==='edit'?'Save changes':'Save template'}</button>
+    </div>
    </div>
    {recovery&&<div className="notice" role="status"><strong>Unsaved design found on this browser.</strong> Restore it or keep the current saved template. <button type="button" className="btn secondary" onClick={restoreDraft}>Restore draft</button> <button type="button" onClick={discardDraft}>Discard backup</button></div>}
    {draftStatus&&<p className="muted" role="status">{draftStatus}</p>}
    <section className="charis-editor-details"><h3>1. Template information</h3><div className="visual-template-details"><label>Template name<input name="name" value={name} onChange={e=>setName(e.target.value)} required maxLength={120}/></label><label>Subject line<input name="subject" value={subject} onChange={e=>setSubject(e.target.value)} maxLength={200}/></label><label>Category<select name="category" value={category} onChange={e=>setCategory(e.target.value)}><option value="general">General</option><option value="newsletter">Newsletter</option><option value="announcement">Announcement</option><option value="promotion">Promotion</option><option value="event">Event</option></select></label></div></section>
    <details className="visual-template-options"><summary>More settings · description, layout and starter design</summary><div className="visual-template-details"><label>Description<input name="description" maxLength={500} value={description} onChange={e=>setDescription(e.target.value)}/></label><label>Email layout<select value={design.style||'classic'} onChange={e=>change({...design,style:e.target.value as EmailDesign['style']})}>{['classic','modern','minimal','announcement'].map(s=><option key={s}>{s}</option>)}</select></label><label>Starting design<select value={presetId} onChange={e=>setPresetId(e.target.value)}><option value="">Choose a design</option>{charisTemplatePresets.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><button type="button" disabled={!presetId} onClick={applyPreset}>Apply design</button></div></details>
    <p className="charis-workflow-hint"><strong>2. Design your message</strong> · Click a section on the canvas to edit it, or add a heading, picture, button, banner or shape from the left panel.</p>
-   <div className="visual-history"><button type="button" disabled={!history.past.length} onClick={undo}>Undo design change</button><button type="button" disabled={!history.future.length} onClick={redo}>Redo</button><span>{design.blocks.length} / 30 sections</span></div>
+   <p className="charis-editor-undo-tip" role="status">{design.blocks.length} of 30 sections · Use <strong>Undo / Redo</strong> above to reverse any design change. Draft recovery stays enabled.</p>
    <div className="charis-mode-switch" role="group" aria-label="Choose template editor">
     <button type="button" aria-pressed={editorMode==='grapes'} onClick={()=>setEditorMode('grapes')}>Drag-and-drop editor</button>
     <button type="button" aria-pressed={editorMode==='classic'} onClick={()=>setEditorMode('classic')}>Detailed section editor</button>

@@ -37,8 +37,12 @@ export function renderCampaign(input:{design:unknown;subject:string;preheader?:s
    const width=b.width==='small'?180:b.width==='medium'?360:544;
    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:12px 0"><img src="${escapeHtml(b.url)}" alt="${replace(b.text)}" width="${width}" style="width:100%;max-width:${width}px;height:auto;display:block;border:0"/></td></tr></table>`;
   }
+  if(b.shape==='circle'){
+   const diameter=Math.round(104+(b.widthPercent??100)*1.12);
+   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0"><tr><td align="${b.align||'left'}"><table role="presentation" width="${diameter}" cellpadding="0" cellspacing="0" style="width:${diameter}px;max-width:100%"><tr><td width="${diameter}" height="${diameter}" bgcolor="${b.color}" align="center" valign="middle" style="width:${diameter}px;height:${diameter}px;border-radius:50%;background:${b.color};color:${b.textColor||'#ffffff'};font-size:${b.fontSize||16}px;line-height:1.45;font-weight:600;overflow-wrap:anywhere;border:${b.borderWidth||0}px solid ${b.borderColor||b.color}">${replace(b.text)}</td></tr></table></td></tr></table>`;
+  }
   if(b.shape==='rule')return `<div style="height:5px;background:${b.color};font-size:0;line-height:5px">&nbsp;</div>`;
-  const rounding=b.shape==='circle'?'50%':b.shape==='pill'?'999px':b.shape==='panel'?'12px':b.shape==='rectangle'?'0':'4px';
+  const rounding=b.shape==='pill'?'999px':b.shape==='panel'?'12px':b.shape==='rectangle'?'0':'4px';
   const padding=b.padding!==undefined?`${b.padding}px`:b.shape==='pill'?'10px 22px':'22px 24px';
   const width=b.widthPercent??100;
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0"><tr><td align="${b.align||'left'}"><table role="presentation" width="${width}%" cellpadding="0" cellspacing="0"><tr><td bgcolor="${b.color}" align="${b.align||'left'}" style="background:${b.color};padding:${padding};border-radius:${rounding};color:${b.textColor||'#ffffff'};font-size:${b.fontSize||16}px;line-height:1.5;font-weight:600;white-space:pre-wrap;overflow-wrap:anywhere;${b.minHeight?`height:${b.minHeight}px;`:''}border:${b.borderWidth||0}px solid ${b.borderColor||b.color}">${replace(b.text)}</td></tr></table></td></tr></table>`;

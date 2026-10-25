@@ -97,3 +97,37 @@
 .charis-gjs-host .gjs-pn-panels,.charis-gjs-host .gjs-toolbar,.charis-gjs-host .gjs-toolbar-container{display:none!important}
 .charis-gjs-host .gjs-editor-cont{border:0!important}
 .charis-gjs-inspector-actions button{display:inline-flex;align-items:center;justify-content:center;gap:5px}
+
+ /* Layout and actions improved for the bank's 1366–1680px workspace. */
+.charis-editor-heading{position:sticky;top:72px;z-index:12;box-shadow:0 6px 18px #20143e0d}
+.charis-editor-top-actions{justify-content:flex-end}
+.charis-editor-history-tools{display:flex;gap:6px;padding-right:9px;margin-right:4px;border-right:1px solid #e9e3f1}
+.charis-editor-top-actions .btn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.charis-editor-top-actions .btn:disabled{opacity:.36;cursor:not-allowed}
+.charis-editor-undo-tip{margin:9px 0 14px;color:#625976;font-size:12px}
+.charis-gjs-workspace{grid-template-columns:clamp(142px,15%,185px) minmax(0,1fr) clamp(205px,22%,250px)}
+.charis-gjs-host{overflow:hidden}
+.charis-gjs-stage{min-width:0;padding:12px;background:#f4f1f9}
+.charis-gjs-device-tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.charis-gjs-expand{display:inline-flex;align-items:center;gap:6px;border:1px solid #e4ddeb;border-radius:9px;background:#fff;padding:8px 11px;color:#4c2c98;font-size:12px;font-weight:700;cursor:pointer}
+.charis-gjs-workspace-focus{grid-template-columns:minmax(0,1fr)}
+.charis-gjs-workspace-focus .charis-gjs-palette,.charis-gjs-workspace-focus .charis-gjs-inspector{display:none}
+.charis-gjs-delete{background:#fff5f4!important;color:#aa332f!important;border-color:#f3d5d0!important}
+.charis-gjs-delete:hover{background:#ffe9e6!important}
+.charis-gjs-help{margin-top:-5px!important}
+.charis-gjs-stage-note{font-size:11px}
+.charis-gjs-host iframe{max-width:100%}
+@media(max-width:1100px){
+ .charis-gjs-workspace{grid-template-columns:150px minmax(0,1fr) 215px}
+ .charis-editor-heading{top:55px}
+}
+@media(max-width:920px){.charis-gjs-workspace{grid-template-columns:1fr}.charis-editor-heading{position:static}}
+@media(max-width:680px){.charis-editor-history-tools{padding:0;border:0;margin:0}.charis-editor-top-actions{justify-content:flex-start}.charis-editor-top-actions .btn{padding:9px 12px}}
+
+.charis-gjs-inspector{max-height:610px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.charis-gjs-inspector-actions{margin:11px 0 15px}
+.charis-gjs-quick-sizes{background:#f9f7fe;border:1px solid #eee7f8;border-radius:10px;padding:12px 11px;margin:0 0 15px}
+.charis-gjs-quick-sizes label{margin:4px 0 12px}
+.charis-gjs-quick-sizes label:last-child{margin-bottom:0}
+.charis-gjs-quick-sizes input[type=range]{padding:0;border:0;accent-color:#40239a}
+@media(max-width:920px){.charis-gjs-inspector{max-height:none;overflow:visible}}

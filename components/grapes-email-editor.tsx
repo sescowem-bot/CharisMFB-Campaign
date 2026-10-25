@@ -1,7 +1,7 @@
 'use client';
 
 import {useEffect,useRef,useState} from 'react';
-import {Type,AlignLeft,Image as ImageIcon,Square,PanelTop,Circle,RectangleHorizontal,Minus,MousePointerClick,MoveUp,MoveDown,Copy,Trash2,Monitor,Smartphone,GripVertical,Shapes} from 'lucide-react';
+import {Type,AlignLeft,Image as ImageIcon,Square,PanelTop,Circle,RectangleHorizontal,Minus,MousePointerClick,MoveUp,MoveDown,Copy,Trash2,Monitor,Smartphone,GripVertical,Shapes,Maximize2,Minimize2} from 'lucide-react';
 import './template-studio-premium.css';
 import type {Editor} from 'grapesjs';
 import {designSchema,verifiedBrandWebsite,type EmailBlock,type EmailDesign} from '@/lib/campaign/design';
@@ -29,9 +29,13 @@ function markup(block:EmailBlock,index:number):string {
  if(block.type==='button')return `<section ${attr} style="padding:10px 0"><div style="background:#40239a;color:#fff;padding:14px 20px;display:inline-block">${text}</div></section>`;
  if(block.type==='image')return `<section ${attr} style="padding:10px 0"><img src="${escapeHtml(block.url)}" alt="${text}" style="display:block;width:100%;max-width:${block.width==='small'?180:block.width==='medium'?360:544}px;height:auto"></section>`;
  const width=block.widthPercent??100;
+ const height=block.minHeight||0;
+ const pad=block.padding??22;
+ if(block.shape==='rule')return `<section ${attr} style="width:${width}%;max-width:100%;height:6px;min-height:6px;background:${block.color};font-size:1px;margin:14px 0"></section>`;
  const rounding=block.shape==='pill'?'999px':block.shape==='circle'?'50%':block.shape==='panel'?'12px':block.shape==='rectangle'?'0':'7px';
- if(block.shape==='rule')return `<section ${attr} style="background:${block.color};height:6px;min-height:6px;font-size:1px"></section>`;
- return `<section ${attr} style="background:${block.color};color:${block.textColor||'#ffffff'};text-align:${block.align||'left'};padding:${block.padding??22}px;width:${width}%;border-radius:${rounding};border:${block.borderWidth||0}px solid ${block.borderColor||block.color};box-sizing:border-box;min-height:${block.minHeight||0}px;max-width:100%;margin:8px 0"><div style="font-size:${block.fontSize||16}px;line-height:1.5;overflow-wrap:anywhere">${text}</div></section>`;
+ const circle=block.shape==='circle';
+ const size=Math.round(104+width*1.12);
+ return `<section ${attr} style="background:${block.color};color:${block.textColor||'#ffffff'};text-align:${circle?'center':block.align||'left'};padding:${circle?'0':pad+'px'};width:${circle?size+'px':width+'%'};height:${circle?size+'px':'auto'};border-radius:${rounding};border:${block.borderWidth||0}px solid ${block.borderColor||block.color};box-sizing:border-box;min-height:${circle?size:height}px;max-width:100%;margin:${circle?(block.align==='center'?'12px auto':block.align==='right'?'12px 0 12px auto':'12px 0'):'12px 0'};overflow-wrap:anywhere;word-break:break-word;display:${circle?'flex':'block'};align-items:${circle?'center':'initial'};justify-content:${circle?'center':'initial'}"><div style="font-size:${block.fontSize||16}px;line-height:1.45;overflow-wrap:anywhere;padding:${circle?'0 10px':'0'};max-width:100%">${text}</div></section>`;
 }
 
 /**
@@ -44,12 +48,14 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
  const instance=useRef<Editor|null>(null);
  const current=useRef(design);
  const sent=useRef('');
+ const applyingExternal=useRef(false);
  const onChangeRef=useRef(onChange);
  const assetsRef=useRef(assets);
  const [error,setError]=useState('');
  const [ready,setReady]=useState(false);
  const [selectedIndex,setSelectedIndex]=useState(0);
  const [device,setDevice]=useState<'Desktop'|'Mobile'>('Desktop');
+ const [focusCanvas,setFocusCanvas]=useState(false);
  const addBlockRef=useRef<((type:EmailBlock['type'],shape?:Extract<EmailBlock,{type:'shape'}>['shape'])=>void)|null>(null);
  const website=verifiedBrandWebsite(websiteUrl);
  useEffect(()=>{onChangeRef.current=onChange;},[onChange]);
@@ -59,7 +65,9 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
   current.current=design;
   if(instance.current&&version!==sent.current){
    sent.current=version;
-   instance.current.setComponents(design.blocks.map((b,i)=>markup(b,i)).join(''));
+   applyingExternal.current=true;
+   try{instance.current.setComponents(design.blocks.map((b,i)=>markup(b,i)).join(''));}
+   finally{applyingExternal.current=false;}
   }
  },[design]);
  useEffect(()=>{
@@ -81,7 +89,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
      panels:{defaults:[]},
      deviceManager:{devices:[{id:'Desktop',name:'Desktop',width:''},{id:'Mobile',name:'Mobile',width:'375px'}]},
      components:current.current.blocks.map((b,i)=>markup(b,i)).join(''),
-     style:'html{background:#f1edf8;}body{background:#fff;color:#13233b;font-family:Arial,sans-serif;box-sizing:border-box;padding:28px 30px;max-width:600px;min-height:730px;margin:18px auto;box-shadow:0 7px 26px #30135720} section[data-charis-type]{margin:12px 0;cursor:pointer}section[data-charis-type]:hover{outline:1px dashed #9d83e3}h2,p{overflow-wrap:anywhere}',
+     style:'html{background:#f1edf8;max-width:100%;overflow-x:hidden}body{width:calc(100% - 24px)!important;max-width:600px!important;background:#fff;color:#13233b;font-family:Arial,sans-serif;box-sizing:border-box;padding:26px 22px;min-height:730px;margin:12px auto!important;box-shadow:0 7px 26px #30135720;overflow-wrap:anywhere;word-break:break-word}section[data-charis-type]{margin:12px 0;cursor:pointer;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere;word-break:break-word}section[data-charis-type] *{box-sizing:border-box;max-width:100%;overflow-wrap:anywhere;word-break:break-word}section[data-charis-type] h2,section[data-charis-type] p{white-space:pre-wrap!important;overflow-wrap:anywhere!important;word-break:break-word!important;line-height:1.5;margin:0}section[data-charis-type]:hover{outline:1px dashed #9d83e3}',
     });
     if(cancelled){editor.destroy();return;}
     instance.current=editor;
@@ -93,7 +101,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
      const count=editor.getWrapper()?.components().length||0;
      if(count>=30){setError('Maximum 30 sections per template.');return;}
      const created=editor.addComponents(markup(base,-1));
-     if(created.length)editor.select(created[0]);
+     if(created.length){editor.select(created[0]);setSelectedIndex(Math.min(count,29));}
     };
     addBlockRef.current=addBlock;
     (['heading','paragraph','shape','image','button','divider'] as const).filter(type=>type!=='button'||!!website).filter(type=>type!=='image'||assetsRef.current.length>0).forEach(type=>{
@@ -104,7 +112,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
      });
     });
     const sync=()=>{
-     if(cancelled)return;
+     if(cancelled||applyingExternal.current)return;
      const root=editor.getWrapper()?.components();
      if(!root)return;
      const prior=current.current;
@@ -149,6 +157,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
      }
     };
     const queue=()=>{
+     if(applyingExternal.current)return;
      if(pending)clearTimeout(pending);
      pending=setTimeout(sync,300);
     };
@@ -172,6 +181,16 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
  const update=(changes:Partial<EmailBlock>)=>{
   onChange({...design,blocks:design.blocks.map((block,i)=>i===selectedIndex?{...block,...changes} as EmailBlock:block)});
  };
+ const removeSelected=()=>{
+  if(design.blocks.length<=1)return;
+  onChange({...design,blocks:design.blocks.filter((_,i)=>i!==selectedIndex)});
+  setSelectedIndex(Math.max(0,selectedIndex-1));
+ };
+ const duplicateSelected=()=>{
+  if(!active||design.blocks.length>=30)return;
+  const blocks=[...design.blocks];blocks.splice(selectedIndex+1,0,structuredClone(active));
+  onChange({...design,blocks});setSelectedIndex(selectedIndex+1);
+ };
  const move=(offset:number)=>{
   const target=selectedIndex+offset;
   if(target<0||target>=design.blocks.length)return;
@@ -194,12 +213,12 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
  return <section className="charis-gjs" aria-label="Professional email design editor">
   <div className="charis-gjs-top">
    <div><h3>Email designer</h3><p>Compose your template with editable blocks. Final output is email-safe HTML.</p></div>
-   <div className="charis-gjs-devices" role="group" aria-label="Canvas device">
+   <div className="charis-gjs-device-tools"><button type="button" className="charis-gjs-expand" onClick={()=>setFocusCanvas(x=>!x)} aria-pressed={focusCanvas}>{focusCanvas?<Minimize2 size={15}/>:<Maximize2 size={15}/>} {focusCanvas?"Show tools":"Expand canvas"}</button><div className="charis-gjs-devices" role="group" aria-label="Canvas device">
     <button type="button" aria-pressed={device==='Desktop'} onClick={()=>{setDevice('Desktop');instance.current?.setDevice('Desktop');}}><Monitor size={15}/> Desktop</button>
     <button type="button" aria-pressed={device==='Mobile'} onClick={()=>{setDevice('Mobile');instance.current?.setDevice('Mobile');}}><Smartphone size={15}/> Mobile</button>
-   </div>
+   </div></div>
   </div>
-  <div className="charis-gjs-workspace">
+  <div className={"charis-gjs-workspace"+(focusCanvas?" charis-gjs-workspace-focus":"")}>
    <aside className="charis-gjs-palette" aria-label="Add email elements">
     <div className="charis-gjs-title">Add elements</div>
     <div className="charis-gjs-group">{tiles.map(t=><button type="button" className="charis-gjs-tool" key={t.key}
@@ -211,14 +230,24 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
     <p style={{fontSize:11,lineHeight:1.6,color:'#787087',margin:'0 4px'}}>Choose a shape or section to add. Then select it on the canvas to change its text, colour, size and position.</p>
    </aside>
    <div className="charis-gjs-stage">
-    <div className="charis-gjs-stage-note"><GripVertical size={14}/> Click a section to edit · drag to reorder · {design.blocks.length}/30 blocks</div>
+    <div className="charis-gjs-stage-note"><GripVertical size={14}/> Click a section to edit · use arrows to reorder · {design.blocks.length}/30 blocks</div>
     <div ref={host} className="charis-gjs-host"/>
     {error&&<p role="alert" className="feedback-error">{error}</p>}
     {!ready&&!error&&<p role="status" className="muted">Loading visual canvas…</p>}
    </div>
    <aside className="charis-gjs-inspector" aria-label="Selected element settings">
-    <div className="charis-gjs-title">Element settings</div>
+    <div className="charis-gjs-title">Element settings</div><p className="charis-gjs-help">Select a section on the canvas, or edit its details below.</p>
     {active?<><h4>{active.type==='shape'?active.shape:active.type} · {selectedIndex+1}</h4><p>Edit the selected element. These options save with your template.</p>
+     <div className="charis-gjs-inspector-actions">
+      <button type="button" disabled={selectedIndex===0} onClick={()=>move(-1)}><MoveUp size={14}/> Move up</button>
+      <button type="button" disabled={selectedIndex===design.blocks.length-1} onClick={()=>move(1)}><MoveDown size={14}/> Move down</button>
+      <button type="button" disabled={design.blocks.length>=30} onClick={duplicateSelected}><Copy size={14}/> Duplicate</button>
+      <button type="button" className="charis-gjs-delete" aria-label="Delete selected section" disabled={design.blocks.length<=1} onClick={removeSelected}><Trash2 size={14}/> Delete section</button>
+     </div>
+     {active.type==='shape'&&<div className="charis-gjs-quick-sizes">
+      <label>{active.shape==='circle'?'Circle diameter':'Shape width'} · {active.widthPercent??100}%<input type="range" min="25" max="100" value={active.widthPercent??100} onChange={e=>update({widthPercent:Number(e.target.value)})}/></label>
+      {active.shape!=='circle'&&active.shape!=='rule'&&<label>Minimum height · {active.minHeight??0}px<input type="range" min="0" max="320" step="8" value={active.minHeight??0} onChange={e=>update({minHeight:Number(e.target.value)})}/></label>}
+     </div>}
      {active.type!=='divider'&&!(active.type==='shape'&&active.shape==='rule')&&<label>{active.type==='image'?'Image description':'Text content'}
       <textarea rows={4} value={active.text} maxLength={active.type==='shape'||active.type==='button'?200:active.type==='image'?160:5000} onChange={e=>update({text:e.target.value})}/>
      </label>}
@@ -233,16 +262,12 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
        <label>Text colour<input type="color" value={active.textColor||'#ffffff'} onChange={e=>update({textColor:e.target.value})}/></label></div>
       <label>Alignment<select value={active.align||'left'} onChange={e=>update({align:e.target.value as 'left'|'center'|'right'})}>
        <option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option></select></label>
-      <label>Width · {active.widthPercent??100}%<input type="range" min="25" max="100" value={active.widthPercent??100} onChange={e=>update({widthPercent:Number(e.target.value)})}/></label>
-      <label>Padding · {active.padding??22}px<input type="range" min="0" max="64" value={active.padding??22} onChange={e=>update({padding:Number(e.target.value)})}/></label>
+
+      {active.shape!=='circle'&&<label>Internal spacing · {active.padding??22}px<input type="range" min="0" max="64" value={active.padding??22} onChange={e=>update({padding:Number(e.target.value)})}/></label>}
+      <label>Border width · {active.borderWidth??0}px<input type="range" min="0" max="12" value={active.borderWidth??0} onChange={e=>update({borderWidth:Number(e.target.value)})}/></label>
       <label>Text size · {active.fontSize??16}px<input type="range" min="12" max="48" value={active.fontSize??16} onChange={e=>update({fontSize:Number(e.target.value)})}/></label>
      </>}
-     <div className="charis-gjs-inspector-actions">
-      <button type="button" disabled={selectedIndex===0} onClick={()=>move(-1)}><MoveUp size={14}/> Move up</button>
-      <button type="button" disabled={selectedIndex===design.blocks.length-1} onClick={()=>move(1)}><MoveDown size={14}/> Move down</button>
-      <button type="button" disabled={design.blocks.length>=30} onClick={()=>{const blocks=[...design.blocks];blocks.splice(selectedIndex+1,0,structuredClone(active));setSelectedIndex(selectedIndex+1);onChange({...design,blocks});}}><Copy size={14}/> Duplicate</button>
-      <button type="button" disabled={design.blocks.length<=1} onClick={()=>{onChange({...design,blocks:design.blocks.filter((_,i)=>i!==selectedIndex)});setSelectedIndex(Math.max(0,selectedIndex-1));}}><Trash2 size={14}/> Remove</button>
-     </div>
+
     </>:<div className="charis-gjs-empty">Select an element in your email to edit it.</div>}
     <div className="charis-gjs-divider"/>
     <p style={{fontSize:11}}>Brand · {brandName}<br/>Colour · {validHex(brandColor)?brandColor:'#40239A'}</p>
