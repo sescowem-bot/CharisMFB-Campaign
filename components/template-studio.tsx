@@ -89,7 +89,7 @@ export function TemplateStudio({org,initial,brandName='Charis Microfinance Bank'
  return <div className="template-studio-workspace charis-editor-shell">
   <form className="admin-form" action={action}>
    <input type="hidden" name="organization_id" value={org}/><input type="hidden" name="template_id" value={state.templateId||savedId}/><input type="hidden" name="design" value={JSON.stringify(design)}/>
-   <div className="charis-editor-heading"><div><span className="charis-eyebrow">CHARIS TEMPLATE DESIGNER</span><h2>{mode==='edit'?'Edit your template':'Create a new email template'}</h2><p>Make your design, inspect the final email, then save it to the library.</p></div>
+   <div className="charis-editor-heading"><div><span className="charis-eyebrow">CHARIS TEMPLATE DESIGNER</span><h2>{mode==='edit'?'Edit template':'Create email template'}</h2><p>Design, preview and save.</p></div>
     <div className="charis-editor-actions charis-editor-top-actions">
      <div className="charis-editor-history-tools" role="group" aria-label="Undo and redo design changes">
       <button type="button" className="btn secondary" disabled={!history.past.length} onClick={undo} title="Go back one design change" aria-label="Undo last design change"><Undo2 size={17}/> Undo</button>
