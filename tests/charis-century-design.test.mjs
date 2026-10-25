@@ -38,7 +38,9 @@ test('Template preview is Charis-branded while existing template persistence sta
  assert.match(f,/<EmailDesignCanvas design=\{design\}/);
  assert.match(f,/JSON.stringify\(design\)/);
  assert.match(f,/saveTemplate/);
- assert.match(read('app/dashboard/templates/page.tsx'),/organization_branding/);
+ assert.match(read('app/dashboard/templates/new/page.tsx'),/organization_branding/);
+ assert.match(read('app/dashboard/templates/[id]/edit/page.tsx'),/organization_branding/);
+ assert.match(read('app/dashboard/templates/page.tsx'),/TemplateGallery/);
 });
 
 test('Operations and SQL history are preserved and campaign paths remain visible',()=>{

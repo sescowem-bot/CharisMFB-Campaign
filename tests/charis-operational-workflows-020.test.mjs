@@ -22,7 +22,8 @@ test('testing only permits a verified member and never changes marketing eligibi
  assert.match(read('components/campaign-studio.tsx'),/Test recipient email/);
 });
 test('templates, audiences and approvals have clear navigation',()=>{
- assert.match(read('app/dashboard/templates/page.tsx'),/Create a new template/);
+ assert.match(read('components/template-gallery.tsx'),/Create new template/);
+ assert.match(read('app/dashboard/templates/page.tsx'),/TemplateGallery/);
  assert.match(read('app/dashboard/segments/page.tsx'),/&segment=\$\{s.id\}/);
  assert.match(read('app/dashboard/lists/page.tsx'),/&list=\$\{l.id\}/);
  assert.match(read('app/dashboard/approvals/page.tsx'),/Drafts do not enter the approval inbox/);

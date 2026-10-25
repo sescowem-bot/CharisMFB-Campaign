@@ -9,7 +9,8 @@ test('Campaign Studio loads saved brand website',()=>{
  assert.match(read('components/campaign-studio.tsx'),/resolveBrandLinks/);
 });
 test('Templates get the same bank-controlled website',()=>{
- assert.match(read('app/dashboard/templates/page.tsx'),/websiteUrl=\{branding\?\.website_url\|\|''\}/);
+ assert.match(read('app/dashboard/templates/new/page.tsx'),/websiteUrl=\{branding\?\.website_url\|\|''\}/);
+ assert.match(read('app/dashboard/templates/[id]/edit/page.tsx'),/websiteUrl=\{branding\?\.website_url\|\|''\}/);
  assert.match(read('components/template-studio.tsx'),/createStarterDesign\(website\)/);
 });
 test('No example.com CTA is hardcoded in editor defaults',()=>{

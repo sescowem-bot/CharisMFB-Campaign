@@ -1,2 +1,27 @@
-import Link from 'next/link';import {redirect} from 'next/navigation';import {companyAccess} from '@/lib/campaign/access';import {WorkspaceShell} from '@/components/workspace-shell';import {TemplateStudio} from '@/components/template-studio';import {designSchema} from '@/lib/campaign/design';
-export default async function Templates({searchParams}:{searchParams:Promise<{org?:string;edit?:string}>}){const {org,edit}=await searchParams;if(!org)redirect('/dashboard');const {db,user,canView,canEdit}=await companyAccess(org);if(!user)redirect('/login');if(!canView)redirect('/dashboard');const {data:branding}=await db.from('organization_branding').select('display_name,primary_color,website_url').eq('organization_id',org).maybeSingle();const {data:templates}=await db.from('email_templates').select('id,name,subject,description,category,design,status,updated_at,organization_id').or(`organization_id.eq.${org},organization_id.is.null`).order('created_at',{ascending:false});const {data:media}=await db.from('charis_media_assets').select('id,file_name,public_url').eq('organization_id',org).order('created_at',{ascending:false}).limit(100);const selected=(templates||[]).find(t=>t.id===edit&&t.organization_id===org);const parsed=selected?designSchema.safeParse(selected.design):null;const initial=selected&&parsed?.success?{...selected,design:parsed.data}:undefined;return <WorkspaceShell org={org} title="Email Template Library"><p className="muted">Start from one of 10 professional designs or create your own. Select a design, personalise the wording, then save it as an editable Charis template.</p>{canEdit&&<div className="actions"><Link className="btn" href={`/dashboard/templates?org=${org}`}>Create a new template</Link></div>}<div className="table-scroll"><table className="admin-table"><thead><tr><th>Template</th><th>Category</th><th>Ownership</th><th>Status</th><th>Action</th></tr></thead><tbody>{(templates||[]).map(t=><tr key={t.id}><td>{t.name}</td><td>{t.category}</td><td>{t.organization_id?'Company':'Platform'}</td><td>{t.status==='draft'?'Ready to use':t.status}</td><td>{t.organization_id&&canEdit?<Link href={`/dashboard/templates?org=${org}&edit=${t.id}`}>Edit</Link>:'View only'}</td></tr>)}</tbody></table></div>{!templates?.length&&<p className="muted">No templates yet. Create your first template below.</p>}{canEdit&&<TemplateStudio key={initial?.id||'new'} org={org} initial={initial} brandName={branding?.display_name||'Charis Microfinance Bank'} brandColor={branding?.primary_color||'#40239a'} websiteUrl={branding?.website_url||''} assets={media||[]}/>}</WorkspaceShell>}
+import {redirect} from 'next/navigation';
+import {companyAccess} from '@/lib/campaign/access';
+import {WorkspaceShell} from '@/components/workspace-shell';
+import {TemplateGallery} from '@/components/template-gallery';
+import {designSchema} from '@/lib/campaign/design';
+import {charisTemplatePresets} from '@/lib/campaign/template-presets';
+
+export default async function Templates({searchParams}:{searchParams:Promise<{org?:string;edit?:string}>}){
+ const {org,edit}=await searchParams;
+ if(!org)redirect('/dashboard');
+ if(edit)redirect(`/dashboard/templates/${edit}/edit`);
+ const {db,user,canView,canEdit}=await companyAccess(org);
+ if(!user)redirect('/login');
+ if(!canView)redirect('/dashboard');
+ const {data:rows,error}=await db.from('email_templates')
+  .select('id,name,subject,description,category,design,status,updated_at,organization_id')
+  .or(`organization_id.eq.${org},organization_id.is.null`)
+  .order('updated_at',{ascending:false}).limit(120);
+ const templates=(rows||[]).flatMap(t=>{
+  const parsed=designSchema.safeParse(t.design);
+  return parsed.success?[{id:t.id,name:t.name,description:t.description||'',category:t.category,subject:t.subject,status:t.status,design:parsed.data,owned:t.organization_id===org,updatedAt:t.updated_at}]:[];
+ });
+ return <WorkspaceShell org={org} title="Email Template Library">
+  {error&&<p role="alert" className="feedback-error">The template library could not be loaded. Please try again.</p>}
+  <TemplateGallery saved={templates} presets={charisTemplatePresets} canEdit={canEdit}/>
+ </WorkspaceShell>;
+}
