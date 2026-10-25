@@ -36,7 +36,7 @@ test('extra customer fields require bank access and protect account identifiers'
  assert.match(sql,/Store only the last four digits/);
  assert.match(sql,/REVOKE ALL ON FUNCTION/);
  assert.match(read('components/contact-import-wizard.tsx'),/extraColumns/);
- assert.match(read('lib/campaigns/render.ts'),/account_number\|account_no\|account_reference/);
+ assert.match(read('lib/campaign/customer-fields.ts'),/account_number','account_no','account_reference/);
 });
 test('only scoped and verified staff can create smart groups through the new API',()=>{
  const route=read('app/api/contacts/segments/route.ts');

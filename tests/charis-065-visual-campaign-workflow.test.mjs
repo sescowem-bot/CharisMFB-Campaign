@@ -23,12 +23,12 @@ test('Saved templates, supported starter layouts and bank-controlled media are l
 });
 test('Customer name insertion is restricted to approved variables and designed email content',()=>{
  const source=read('components/direct-compose.tsx');
- assert.match(source,/value="first_name"/);
- assert.match(source,/value="last_name"/);
- assert.match(source,/value="company_name"/);
+ assert.match(source,/customerFieldOptions/);
+ assert.match(source,/fieldChoices.map/);
+ assert.match(source,/Insert in message/);
  assert.match(source,/if\(!design\|\|channel!=='email'\)return/);
  const validation=read('lib/direct/campaign-design.ts');
- assert.match(validation,/\['first_name','last_name','company_name'\]/);
+ assert.match(validation,/allowedCustomerToken/);
 });
 test('Campaign delivery remains behind the explicit fourth-step confirmation and server permissions',()=>{
  const source=read('components/direct-compose.tsx');

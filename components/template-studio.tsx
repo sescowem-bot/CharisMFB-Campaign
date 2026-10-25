@@ -11,11 +11,14 @@ import {EmailDesignCanvas} from '@/components/email-design-canvas';
 import dynamic from 'next/dynamic';
 const GrapesEmailEditor=dynamic(()=>import('@/components/grapes-email-editor').then(mod=>mod.GrapesEmailEditor),{ssr:false,loading:()=> <p role="status" className="muted">Loading visual editor…</p>});
 import {renderCampaign} from '@/lib/campaigns/render';
+import {customerFieldOptions} from '@/lib/campaign/customer-fields';
 import './email-design-canvas.css';
 import './template-studio-premium.css';
 type MediaAsset={id:string;file_name:string;public_url:string};
-export function TemplateStudio({org,initial,brandName='Charis Microfinance Bank',brandColor='#40239a',websiteUrl='',assets=[],mode='create',newDesign}:{org:string;brandName?:string;brandColor?:string;websiteUrl?:string;assets?:MediaAsset[];mode?:'create'|'edit';newDesign?:EmailDesign;initial?:{id:string;name:string;subject:string;description:string;category:string;design:EmailDesign}}){
+export function TemplateStudio({org,initial,brandName='Charis Microfinance Bank',brandColor='#40239a',websiteUrl='',assets=[],mode='create',newDesign,availableFields=[]}:{org:string;brandName?:string;brandColor?:string;websiteUrl?:string;assets?:MediaAsset[];mode?:'create'|'edit';newDesign?:EmailDesign;availableFields?:string[];initial?:{id:string;name:string;subject:string;description:string;category:string;design:EmailDesign}}){
  const website=verifiedBrandWebsite(websiteUrl);
+ const fields=customerFieldOptions(availableFields);
+ const [fieldKey,setFieldKey]=useState('first_name');
  const imageLibraryRef=useRef<HTMLDetailsElement>(null);
  const router=useRouter();
  const [uploadResult,uploadAction,uploadPending]=useActionState(uploadCharisMedia,{});
@@ -77,14 +80,24 @@ export function TemplateStudio({org,initial,brandName='Charis Microfinance Bank'
   setRecovery(null);setDraftStatus('');
  }
  const [showRenderedPreview,setShowRenderedPreview]=useState(false);
+ const [targetBlock,setTargetBlock]=useState('auto');
+ function insertCustomerDetail(target:'subject'|'message'){
+  const token='{{'+fieldKey+'}}';
+  if(target==='subject'){setSubject(v=>(v+' '+token).trim().slice(0,200));return;}
+  const editable=design.blocks.map((b,i)=>b.type==='heading'||b.type==='paragraph'||b.type==='shape'||b.type==='button'?i:-1).filter(i=>i>=0);
+  const selected=targetBlock==='auto'?editable.find(i=>design.blocks[i]?.type==='paragraph')??editable[0]:Number(targetBlock);
+  if(selected===undefined)return;
+  change({...design,blocks:design.blocks.map((b,i)=>i===selected&&b.type!=='divider'&&b.type!=='image'?{...b,text:(b.text+' '+token).trim().slice(0,b.type==='shape'||b.type==='button'?200:5000)}:b)});
+ }
+
  const [mobilePreview,setMobilePreview]=useState(false);
  const renderedPreview=useMemo(()=>{
   if(!showRenderedPreview)return {html:'',error:''};
   try{
-   const result=renderCampaign({design,subject,company:brandName,address:'Charis Microfinance Bank',color:brandColor,contact:{first_name:'Customer',last_name:'Example',email:'customer@example.com'},testPreview:true});
+   const result=renderCampaign({design,subject,company:brandName,address:'Charis Microfinance Bank',color:brandColor,contact:{first_name:'Customer',last_name:'',email:'',attributes:Object.fromEntries(availableFields.map(k=>[k,k.includes('account')||k.startsWith('acct')?'1234':'Customer detail']))},testPreview:true});
    return {html:result.html,error:''};
   }catch(error){return {html:'',error:error instanceof Error?error.message:'Unable to render this email.'};}
- },[showRenderedPreview,design,subject,brandName,brandColor]);
+ },[showRenderedPreview,design,subject,brandName,brandColor,availableFields]);
  function applyPreset(){const preset=charisTemplatePresets.find(p=>p.id===presetId);if(preset)change(structuredClone(preset.design));}
  return <div className="template-studio-workspace charis-editor-shell">
   <form className="admin-form" action={action}>
@@ -103,6 +116,13 @@ export function TemplateStudio({org,initial,brandName='Charis Microfinance Bank'
    {recovery&&<div className="notice" role="status"><strong>Unsaved design found on this browser.</strong> Restore it or keep the current saved template. <button type="button" className="btn secondary" onClick={restoreDraft}>Restore draft</button> <button type="button" onClick={discardDraft}>Discard backup</button></div>}
    {draftStatus&&<p className="muted" role="status">{draftStatus}</p>}
    <section className="charis-editor-details"><h3>1. Template information</h3><div className="visual-template-details"><label>Template name<input name="name" value={name} onChange={e=>setName(e.target.value)} required maxLength={120}/></label><label>Subject line<input name="subject" value={subject} onChange={e=>setSubject(e.target.value)} maxLength={200}/></label><label>Category<select name="category" value={category} onChange={e=>setCategory(e.target.value)}><option value="general">General</option><option value="newsletter">Newsletter</option><option value="announcement">Announcement</option><option value="promotion">Promotion</option><option value="event">Event</option></select></label></div></section>
+   <div className="charis-merge-picker" aria-label="Insert customer information">
+    <div><strong>Personalise your message</strong><p>Choose a detail from your imported contacts. No codes or formulas needed. Each customer receives their own information.</p></div>
+    <label>Customer detail<select aria-label="Customer detail to insert" value={fieldKey} onChange={e=>setFieldKey(e.target.value)}>{fields.map(f=><option key={f.key} value={f.key}>{f.label}</option>)}</select></label>
+    <label>Message section<select aria-label="Choose message section" value={targetBlock} onChange={e=>setTargetBlock(e.target.value)}><option value="auto">First message paragraph</option>{design.blocks.map((b,i)=>b.type==='paragraph'||b.type==='heading'||b.type==='shape'||b.type==='button'?<option key={i} value={i}>{i+1}. {b.type==='heading'?'Heading':b.type==='paragraph'?'Paragraph':b.type==='shape'?'Shape':'Button'}</option>:null)}</select></label>
+    <button type="button" className="btn secondary" onClick={()=>insertCustomerDetail('message')}>Insert in message</button>
+    <button type="button" className="btn secondary" onClick={()=>insertCustomerDetail('subject')}>Insert in subject</button>
+   </div>
    <details className="visual-template-options"><summary>More settings · description, layout and starter design</summary><div className="visual-template-details"><label>Description<input name="description" maxLength={500} value={description} onChange={e=>setDescription(e.target.value)}/></label><label>Email layout<select value={design.style||'classic'} onChange={e=>change({...design,style:e.target.value as EmailDesign['style']})}>{['classic','modern','minimal','announcement'].map(s=><option key={s}>{s}</option>)}</select></label><label>Starting design<select value={presetId} onChange={e=>setPresetId(e.target.value)}><option value="">Choose a design</option>{charisTemplatePresets.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><button type="button" disabled={!presetId} onClick={applyPreset}>Apply design</button></div></details>
    <p className="charis-workflow-hint"><strong>2. Design your message</strong> · Click a section on the canvas to edit it, or add a heading, picture, button, banner or shape from the left panel.</p>
    <p className="charis-editor-undo-tip" role="status">{design.blocks.length} of 30 sections · Use <strong>Undo / Redo</strong> above to reverse any design change. Draft recovery stays enabled.</p>
@@ -110,9 +130,9 @@ export function TemplateStudio({org,initial,brandName='Charis Microfinance Bank'
     <button type="button" aria-pressed={editorMode==='grapes'} onClick={()=>setEditorMode('grapes')}>Drag-and-drop editor</button>
     <button type="button" aria-pressed={editorMode==='classic'} onClick={()=>setEditorMode('classic')}>Detailed section editor</button>
    </div>
-   {editorMode==='grapes'?<GrapesEmailEditor design={design} onChange={change} assets={assets} brandName={brandName} brandColor={brandColor} websiteUrl={website}/>:<EmailDesignCanvas design={design} onChange={change} assets={assets} brandName={brandName} brandColor={brandColor} websiteUrl={website}/>}
+   {editorMode==='grapes'?<GrapesEmailEditor design={design} onChange={change} assets={assets} brandName={brandName} brandColor={brandColor} websiteUrl={website} availableFields={availableFields}/>:<EmailDesignCanvas design={design} onChange={change} assets={assets} brandName={brandName} brandColor={brandColor} websiteUrl={website}/>}
    {showRenderedPreview&&<div className="charis-preview-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setShowRenderedPreview(false);}}><section role="dialog" aria-modal="true" aria-label="Actual rendered email preview" className="charis-preview-modal">
-    <div className="charis-preview-header"><div><h3>Final email preview</h3><p className="muted">Sample customer data · Emails are not sent from this screen.</p></div>
+    <div className="charis-preview-header"><div><h3>Final email preview</h3><p className="muted">Preview uses illustrative customer information. No email is sent.</p></div>
      <div className="charis-editor-actions"><button type="button" aria-pressed={!mobilePreview} onClick={()=>setMobilePreview(false)}>Desktop</button><button type="button" aria-pressed={mobilePreview} onClick={()=>setMobilePreview(true)}>Mobile</button><button type="button" onClick={()=>setShowRenderedPreview(false)}>Close ✕</button></div>
     </div>
     {renderedPreview.error?<p role="alert" className="feedback-error">{renderedPreview.error}</p>:<div className="charis-preview-body"><iframe key={mobilePreview?'mobile':'desktop'} title="Rendered email preview" sandbox="" srcDoc={renderedPreview.html} style={{width:mobilePreview?375:'100%',maxWidth:mobilePreview?375:720}}/></div>}

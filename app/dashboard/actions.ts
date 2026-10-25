@@ -3,6 +3,7 @@ import {revalidatePath} from 'next/cache';
 import {companyAccess} from '@/lib/campaign/access';
 import {designSchema,assertNoDemoLinks,verifiedBrandWebsite} from '@/lib/campaign/design';
 import {assertApprovedEmailImages} from '@/lib/campaign/approved-media';
+import {assertCustomerMergeText} from '@/lib/campaign/customer-fields';
 import {z} from 'zod';
 export type Result={error?:string;success?:string;templateId?:string};
 const orgSchema=z.string().uuid();
@@ -22,6 +23,8 @@ export async function saveTemplate(_:Result,form:FormData):Promise<Result>{
   const org=orgSchema.parse(form.get('organization_id'));const {db,canEdit}=await companyAccess(org);if(!canEdit)return {error:'Not authorized'};
   const design=designSchema.parse(JSON.parse(String(form.get('design')||'')));
   assertNoDemoLinks(design);
+  assertCustomerMergeText(String(form.get('subject')||''));
+  design.blocks.forEach(b=>assertCustomerMergeText(b.text));
   await assertApprovedEmailImages(org,design);
   const {data:templateId,error}=await db.rpc('save_email_template',{p_id:String(form.get('template_id')||'')||null,p_org:org,p_name:String(form.get('name')||''),p_subject:String(form.get('subject')||''),p_description:String(form.get('description')||''),p_category:String(form.get('category')||'general'),p_design:design});
   if(error)return {error:error.message};revalidatePath('/dashboard/templates');return {success:'Template saved.',templateId:String(templateId)};

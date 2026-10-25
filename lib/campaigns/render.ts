@@ -1,5 +1,6 @@
 import {escapeHtml} from '../email/validation.ts';
 import {designSchema,assertNoDemoLinks,type EmailDesign} from '../campaign/design.ts';
+import {safeCustomerAttribute,safeCustomerAttributeValue} from '../campaign/customer-fields.ts';
 export const campaignDesign=designSchema;
 export type Design=EmailDesign;
 export type PreviewContact={first_name?:string;last_name?:string;email?:string;attributes?:Record<string,string>};
@@ -8,7 +9,7 @@ export function personalize(text:string,contact:PreviewContact,company:string):s
  const rendered=text.replace(expression,(_,key:string)=>{
   if(key==='company_name')return company;
   if(['first_name','last_name','email'].includes(key))return String(contact[key as 'first_name'|'last_name'|'email']|| (key==='first_name'?'Customer':''));
-  if(/^attributes\.[a-z][a-z0-9_]{0,39}$/.test(key) && !['__proto__','constructor','prototype'].includes(key.split('.')[1])){const field=key.split('.')[1]; const value=contact.attributes?.[field]||''; return /^(account_number|account_no|account_reference)$/.test(field) && value.replace(/\D/g,'').length>4 ? `•••• ${value.replace(/\D/g,'').slice(-4)}` : value;}
+  if(key.startsWith('attributes.')&&safeCustomerAttribute(key.slice(11))){const field=key.slice(11);return safeCustomerAttributeValue(field,contact.attributes?.[field]||'');}
   throw new Error(`Unsupported personalization variable: ${key}`);
  });
  // Validate only original template syntax, never re-interpret customer-provided values.

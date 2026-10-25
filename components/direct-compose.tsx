@@ -9,15 +9,16 @@ import {designSchema,resolveBrandLinks,type EmailBlock,type EmailDesign} from '@
 import {renderDirectEmailPreview} from '@/lib/direct/preview';
 import {DirectEmailPreview} from '@/components/direct-email-preview';
 import {campaignParagraphs,checkDirectDesign} from '@/lib/direct/campaign-design';
+import {customerFieldOptions} from '@/lib/campaign/customer-fields';
 const GrapesEmailEditor=dynamic(()=>import('@/components/grapes-email-editor').then(m=>m.GrapesEmailEditor),{ssr:false,loading:()=> <p className="muted" role="status">Opening visual email editor…</p>});
 
-type Contact={id:string;first_name:string|null;last_name:string|null;email:string|null;phone:string|null};
+type Contact={id:string;first_name:string|null;last_name:string|null;email:string|null;phone:string|null;attributes?:Record<string,string>|null};
 type Group={id:string;name:string};
 type Template={id:string;name:string;subject:string;design:EmailDesign;source:'bank'|'starter'};
 type MediaAsset={id:string;file_name:string;public_url:string};
-export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,assets,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false}:{
+export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,assets,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false,customFields=[]}:{
  token:string;contacts:Contact[];groups:Group[];canBulk:boolean;emailEnabled:boolean;smsEnabled:boolean;maxRecipients:number;
- templates:Template[];assets:MediaAsset[];templateStudioUrl:string;brand:{name:string;color:string;address:string;website:string};schedulingEnabled:boolean;approvalRequired?:boolean;
+ templates:Template[];assets:MediaAsset[];templateStudioUrl:string;brand:{name:string;color:string;address:string;website:string};schedulingEnabled:boolean;approvalRequired?:boolean;customFields?:string[];
 }){
  const [state,submit,pending]=useActionState(createDirectMessage,{});
  const [step,setStep]=useState(0);
@@ -34,7 +35,8 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
  const [design,setDesign]=useState<EmailDesign|null>(null);
  const [templateId,setTemplateId]=useState('');
  const [editorMode,setEditorMode]=useState<'visual'|'sections'>('visual');
- const [variable,setVariable]=useState<'first_name'|'last_name'|'company_name'>('first_name');
+ const [variable,setVariable]=useState('first_name');
+ const fieldChoices=customerFieldOptions(customFields);
  const [mode,setMode]=useState<'now'|'later'>('now');
  const [sendAt,setSendAt]=useState('');
  const [results,setResults]=useState<Contact[]>([]);
@@ -69,8 +71,8 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
  const preview=useMemo(()=>{
   if(step<2||channel!=='email')return {html:'',subject,error:'',sampleName:'Sample customer'};
   if(designError)return {html:'',subject,error:designError,sampleName:'Sample customer'};
-  return renderDirectEmailPreview({design,subject,body,brand,contact:sampleContact});
- },[step,channel,design,subject,body,brand,designError,sampleContact]);
+  return renderDirectEmailPreview({design,subject,body,brand,contact:sampleContact,customFields});
+ },[step,channel,design,subject,body,brand,designError,sampleContact,customFields]);
  const messageReady=subject.trim().length>=3&&subject.trim().length<=180&&composedBody.trim().length>=10&&composedBody.trim().length<=2000&&!designError;
  const recipientsReady=audience==='selected'?chosen.length>0:audience==='list'?Boolean(groupId):canBulk;
  const scheduleReady=mode==='now'||(schedulingEnabled&&sendAt.trim().length>0);
@@ -165,10 +167,10 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
    <label>Subject<input value={subject} onChange={e=>setSubject(e.target.value)} maxLength={180} placeholder="Account service update"/></label>
    {channel==='email'&&design&&<div className="direct-editor" aria-label="Customer detail tools">
     <strong>Personalise this email</strong>
-    <p className="muted">Choose an approved detail, then insert it into the subject or the message. Actual customer names are inserted securely when the message is sent.</p>
+    <p className="muted">Choose customer information from your uploaded contacts. No codes needed. Information is added separately for each recipient during sending.</p>
     <div className="actions">
-     <label>Customer detail<select aria-label="Customer detail" value={variable} onChange={e=>setVariable(e.target.value as 'first_name'|'last_name'|'company_name')}>
-      <option value="first_name">First name</option><option value="last_name">Last name</option><option value="company_name">Bank name</option>
+     <label>Customer detail<select aria-label="Customer detail" value={variable} onChange={e=>setVariable(e.target.value)}>
+      {fieldChoices.map(f=><option key={f.key} value={f.key}>{f.label}</option>)}
      </select></label>
      <button type="button" className="btn secondary" onClick={()=>insertDetail('subject')}>Insert in subject</button>
      <button type="button" className="btn secondary" onClick={()=>insertDetail('message')}>Insert in message</button>
@@ -180,7 +182,7 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
       <button type="button" className="btn secondary" aria-pressed={editorMode==='visual'} onClick={()=>setEditorMode('visual')}>Visual drag-and-drop editor</button>
       <button type="button" className="btn secondary" aria-pressed={editorMode==='sections'} onClick={()=>setEditorMode('sections')}>Detailed sections</button>
      </div>
-     {editorMode==='visual'?<GrapesEmailEditor design={design} onChange={setDesign} assets={assets} brandName={brand.name} brandColor={brand.color} websiteUrl={brand.website}/>:
+     {editorMode==='visual'?<GrapesEmailEditor design={design} onChange={setDesign} assets={assets} brandName={brand.name} brandColor={brand.color} websiteUrl={brand.website} availableFields={customFields}/>:
      <><h3>Email sections</h3>{design.blocks.map((block,index)=><div key={index} className="direct-block-editor"><div className="direct-block-top"><strong>{block.type==='shape'?'Accent':block.type}</strong><span><button type="button" onClick={()=>moveBlock(index,-1)} disabled={index===0} aria-label="Move section up">↑</button><button type="button" onClick={()=>moveBlock(index,1)} disabled={index===design.blocks.length-1} aria-label="Move section down">↓</button><button type="button" disabled={design.blocks.length===1} onClick={()=>setDesign(d=>d?{...d,blocks:d.blocks.filter((_,i)=>i!==index)}:d)} aria-label="Remove section">×</button></span></div>
      {['heading','paragraph','shape'].includes(block.type)&&<textarea aria-label={`Section ${index+1} text`} rows={block.type==='paragraph'?4:2} value={block.text} onChange={e=>updateBlock(index,{text:e.target.value})} maxLength={block.type==='paragraph'?2000:200}/>}
      {block.type==='button'&&<><label>Button label<input value={block.text} maxLength={200} onChange={e=>updateBlock(index,{text:e.target.value})}/></label><label>Button destination<input type="url" value={block.url} onChange={e=>updateBlock(index,{url:e.target.value} as Partial<EmailBlock>)}/></label></>}

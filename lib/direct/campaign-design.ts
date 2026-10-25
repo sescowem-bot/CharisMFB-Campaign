@@ -1,4 +1,5 @@
-import {designSchema,assertNoDemoLinks,verifiedBrandWebsite,type EmailDesign} from '@/lib/campaign/design';
+import {designSchema,assertNoDemoLinks,verifiedBrandWebsite,type EmailDesign} from '../campaign/design.ts';
+import {allowedCustomerToken} from '../campaign/customer-fields.ts';
 
 export function campaignParagraphs(design:EmailDesign):string {
  return design.blocks.filter(block=>block.type==='paragraph').map(block=>block.text.trim()).filter(Boolean).join('\n\n');
@@ -11,10 +12,10 @@ export function checkDirectDesign(design:EmailDesign,bankWebsite?:string|null,su
  const allText=[subject,...design.blocks.filter(b=>b.type!=='divider').map(b=>b.text)];
  for(const text of allText){
   const tokens=[...text.matchAll(/\{\{\s*([^}]+?)\s*\}\}/g)].map(match=>match[1].trim());
-  if(tokens.some(token=>!['first_name','last_name','company_name'].includes(token))||
+  if(tokens.some(token=>!allowedCustomerToken(token))||
     text.replace(/\{\{\s*[^}]+?\s*\}\}/g,'').includes('{{')||
     text.replace(/\{\{\s*[^}]+?\s*\}\}/g,'').includes('}}'))
-   throw Error('This campaign supports first name, last name and company name only.');
+   throw Error('Choose a customer detail from the available fields. Unsupported details cannot be used.');
  }
  if(paragraphs.length<10||paragraphs.length>2000)throw Error('Write a message between 10 and 2,000 characters.');
  const brand=verifiedBrandWebsite(bankWebsite);

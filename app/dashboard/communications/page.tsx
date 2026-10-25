@@ -23,7 +23,7 @@ export default async function Communications({searchParams}:{searchParams:Promis
  ]);
  const canApprove=account.permissions.includes('campaigns.approve')||isAdmin===true;
  return <WorkspaceShell title="Campaigns" subtitle="Messages and delivery history" actions={canSend?<Link href="/dashboard/communications/new" className="btn"><Send size={16}/> Create Campaign</Link>:undefined}>
-  <div className="direct-quicklinks">{isAdmin&&<Link href="/admin/communications"><Settings2 size={19}/> Communication settings</Link>}{isAdmin&&<Link href="/dashboard/senders"><Mail size={19}/> Staff-only test email</Link>}
+  <div className="direct-quicklinks">{isAdmin&&<Link href="/admin/communications"><Settings2 size={19}/> Communication settings</Link>}
    {account.permissions.includes('templates.manage')&&<Link href={`/dashboard/templates?org=${org}`}>Design templates</Link>}
   </div>
   {(subscriptionsAccess===true||isAdmin===true)&&<p><Link href="/admin/subscriptions" className="inline-link">Email subscriptions</Link></p>}

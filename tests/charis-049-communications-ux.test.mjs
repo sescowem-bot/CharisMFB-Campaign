@@ -7,7 +7,7 @@ test('communications default to direct send; old editor is not the primary messa
  const legacy=file('app/dashboard/campaigns/page.tsx');
  assert.match(home,/New message/);
  assert.match(legacy,/redirect\('\/dashboard\/communications\/new'\)/);
- assert.match(legacy,/Previous campaign workflow/);
+ assert.match(legacy,/Previous campaigns/);
 });
 test('legacy Resend reporting distinguishes broadcast acceptance from old queue counters',()=>{
  const delivery=file('app/dashboard/delivery/page.tsx');

@@ -5,10 +5,11 @@ import {Type,AlignLeft,Image as ImageIcon,Square,PanelTop,Circle,RectangleHorizo
 import './template-studio-premium.css';
 import type {Editor} from 'grapesjs';
 import {designSchema,verifiedBrandWebsite,type EmailBlock,type EmailDesign} from '@/lib/campaign/design';
+import {customerFieldOptions} from '@/lib/campaign/customer-fields';
 import 'grapesjs/dist/css/grapes.min.css';
 
 type Media={id:string;file_name:string;public_url:string};
-type Props={design:EmailDesign;onChange:(next:EmailDesign)=>void;assets:Media[];brandName:string;brandColor:string;websiteUrl:string};
+type Props={design:EmailDesign;onChange:(next:EmailDesign)=>void;assets:Media[];brandName:string;brandColor:string;websiteUrl:string;availableFields?:string[]};
 
 function escapeHtml(value:string){return value.replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]||char));}
 const validHex=(value:string)=>/^#[0-9a-f]{6}$/i.test(value);
@@ -43,7 +44,7 @@ function markup(block:EmailBlock,index:number):string {
  * converted back into the version-1 validated block schema before it can save.
  * This deliberately refuses arbitrary HTML, scripts and external image URLs.
  */
-export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,websiteUrl}:Props){
+export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,websiteUrl,availableFields=[]}:Props){
  const host=useRef<HTMLDivElement>(null);
  const instance=useRef<Editor|null>(null);
  const current=useRef(design);
@@ -56,6 +57,8 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
  const [selectedIndex,setSelectedIndex]=useState(0);
  const [device,setDevice]=useState<'Desktop'|'Mobile'>('Desktop');
  const [focusCanvas,setFocusCanvas]=useState(false);
+ const [chosenField,setChosenField]=useState('first_name');
+ const fieldChoices=customerFieldOptions(availableFields);
  const addBlockRef=useRef<((type:EmailBlock['type'],shape?:Extract<EmailBlock,{type:'shape'}>['shape'])=>void)|null>(null);
  const website=verifiedBrandWebsite(websiteUrl);
  useEffect(()=>{onChangeRef.current=onChange;},[onChange]);
@@ -247,6 +250,11 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
      {active.type==='shape'&&<div className="charis-gjs-quick-sizes">
       <label>{active.shape==='circle'?'Circle diameter':'Shape width'} · {active.widthPercent??100}%<input type="range" min="25" max="100" value={active.widthPercent??100} onChange={e=>update({widthPercent:Number(e.target.value)})}/></label>
       {active.shape!=='circle'&&active.shape!=='rule'&&<label>Minimum height · {active.minHeight??0}px<input type="range" min="0" max="320" step="8" value={active.minHeight??0} onChange={e=>update({minHeight:Number(e.target.value)})}/></label>}
+     </div>}
+     {active.type!=='divider'&&active.type!=='image'&&<div className="charis-merge-inline">
+      <strong>Add customer information</strong>
+      <label>Customer detail<select aria-label="Detail for selected element" value={chosenField} onChange={e=>setChosenField(e.target.value)}>{fieldChoices.map(f=><option key={f.key} value={f.key}>{f.label}</option>)}</select></label>
+      <button type="button" className="charis-insert-field" onClick={()=>{const limit=active.type==='shape'||active.type==='button'?200:5000;update({text:(active.text+' {{'+chosenField+'}}').trim().slice(0,limit)});}}>Insert into selected section</button>
      </div>}
      {active.type!=='divider'&&!(active.type==='shape'&&active.shape==='rule')&&<label>{active.type==='image'?'Image description':'Text content'}
       <textarea rows={4} value={active.text} maxLength={active.type==='shape'||active.type==='button'?200:active.type==='image'?160:5000} onChange={e=>update({text:e.target.value})}/>

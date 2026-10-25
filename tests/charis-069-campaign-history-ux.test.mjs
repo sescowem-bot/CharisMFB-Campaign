@@ -27,7 +27,7 @@ test('Delivery detail distinguishes provider acceptance from actual delivery',()
 test('Staff-only sender test remains behind original permissions, verified sender and recipient lock',()=>{
  const page=read('app/dashboard/communications/page.tsx');
  const action=read('app/dashboard/senders/actions.ts');
- assert.match(page,/isAdmin&&<Link href="\/dashboard\/senders"/);
+ assert.doesNotMatch(page,/Staff-only test email/);
  assert.match(action,/senderAccess\(org\)/);
  assert.match(action,/to:user.email/);
  assert.match(action,/email_test_reserve/);

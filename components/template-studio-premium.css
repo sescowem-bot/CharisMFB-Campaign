@@ -133,3 +133,16 @@
 @media(max-width:920px){.charis-gjs-inspector{max-height:none;overflow:visible}}
 
 @media(max-width:680px){.charis-editor-heading{padding:10px 12px;gap:8px}.charis-editor-heading h2{font-size:17px}.charis-editor-top-actions .btn{padding:8px 10px;font-size:12px}.charis-editor-top-actions{gap:6px}}
+
+.charis-merge-picker{border:1px solid #ded5f2;background:#faf8ff;padding:15px;border-radius:12px;display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin:12px 0}
+.charis-merge-picker>div:first-child{flex:1 1 100%;min-width:0}
+.charis-merge-picker strong{color:#342065;font-size:14px}
+.charis-merge-picker p{font-size:12px;line-height:1.5;color:#716887;margin:4px 0 0}
+.charis-merge-picker label{font-size:12px;font-weight:700;color:#50446c;flex:1 1 180px;min-width:155px}
+.charis-merge-picker select{display:block;width:100%;border:1px solid #d5c9ed;border-radius:9px;background:white;padding:10px;font-size:12px;margin-top:5px}
+.charis-merge-picker .btn{min-height:41px}
+.charis-merge-inline{border:1px solid #e8def8;border-radius:9px;padding:10px;background:#fbf9ff;margin:8px 0 15px}
+.charis-merge-inline>strong{display:block;color:#412789;font-size:12px;margin-bottom:10px}
+.charis-merge-inline label{margin-bottom:9px}
+.charis-insert-field{border:0;border-radius:8px;background:#40239a;color:#fff;font-size:12px;font-weight:750;padding:10px 12px;cursor:pointer;width:100%}
+@media(max-width:650px){.charis-merge-picker{align-items:stretch}.charis-merge-picker .btn{flex:1 1 auto}}

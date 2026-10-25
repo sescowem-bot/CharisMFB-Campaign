@@ -5,6 +5,7 @@ import {WorkspaceShell} from '@/components/workspace-shell';
 import {TemplateStudio} from '@/components/template-studio';
 import {charisTemplatePresets} from '@/lib/campaign/template-presets';
 import {designSchema,resolveBrandLinks} from '@/lib/campaign/design';
+import {contactFieldNames} from '@/lib/campaign/customer-fields';
 
 export default async function NewTemplate({searchParams}:{searchParams:Promise<{org?:string;preset?:string;copy?:string}>}){
  const {org,preset,copy}=await searchParams;
@@ -12,9 +13,10 @@ export default async function NewTemplate({searchParams}:{searchParams:Promise<{
  const {db,user,canEdit}=await companyAccess(org);
  if(!user)redirect('/login');
  if(!canEdit)redirect('/dashboard/templates');
- const [{data:branding},{data:media}]=await Promise.all([
+ const [{data:branding},{data:media},{data:fieldRows}]=await Promise.all([
   db.from('organization_branding').select('display_name,primary_color,website_url').eq('organization_id',org).maybeSingle(),
   db.from('charis_media_assets').select('id,file_name,public_url').eq('organization_id',org).order('created_at',{ascending:false}).limit(100),
+  db.from('contacts').select('attributes').eq('organization_id',org).is('archived_at',null).limit(300),
  ]);
  const blueprint=charisTemplatePresets.find(item=>item.id===preset);
  let seed=blueprint?{name:`${blueprint.name} — custom`,subject:blueprint.subject,description:blueprint.description,category:blueprint.category,design:blueprint.design}:undefined;
@@ -30,6 +32,6 @@ export default async function NewTemplate({searchParams}:{searchParams:Promise<{
   <Link className="inline-link" href="/dashboard/templates">← Back to Template Library</Link>
   <TemplateStudio org={org} initial={seed?{...seed,id:'',design:initialDesign}:undefined} newDesign={initialDesign}
    brandName={branding?.display_name||'Charis Microfinance Bank'} brandColor={branding?.primary_color||'#40239a'}
-   websiteUrl={branding?.website_url||''} assets={media||[]} mode="create"/>
+   websiteUrl={branding?.website_url||''} assets={media||[]} availableFields={contactFieldNames(fieldRows||[])} mode="create"/>
  </WorkspaceShell>;
 }

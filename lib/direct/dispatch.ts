@@ -44,7 +44,7 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
    if(row.organization_id!==charisOrg())throw Error('invalid_organization');
    const [{data:msg,error:msgError},{data:contact,error:contactError},{data:settings}]=await Promise.all([
     db.from('charis_direct_messages').select('id,organization_id,subject,body,design,channel,purpose,status').eq('id',row.message_id).single(),
-    db.from('contacts').select('id,email,phone,first_name,last_name,archived_at').eq('organization_id',row.organization_id).eq('id',row.contact_id).single(),
+    db.from('contacts').select('id,email,phone,first_name,last_name,attributes,archived_at').eq('organization_id',row.organization_id).eq('id',row.contact_id).single(),
     db.from('charis_direct_settings').select('email_enabled,sms_enabled').eq('organization_id',row.organization_id).single()
    ]);
    if(msgError||!msg||contactError||!contact||!settings)throw Error('source_record_missing');
@@ -80,7 +80,7 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
      const rendered=renderCampaign({
       design:m.design,subject:m.subject,company:brand.display_name||'Charis Microfinance Bank',
       address:brand.postal_address||'',color:brand.primary_color||'#40239a',
-      contact:{first_name:contact.first_name||'Customer',last_name:contact.last_name||''},
+      contact:{first_name:contact.first_name||'Customer',last_name:contact.last_name||'',email:contact.email||'',attributes:(contact.attributes&&typeof contact.attributes==='object'&&!Array.isArray(contact.attributes)?contact.attributes:{} as Record<string,string>) as Record<string,string>},
       unsubscribeUrl:preference,
       preferenceLabel:m.purpose==='general_notice'?'Unsubscribe from optional updates':'Manage optional email preferences'
      });

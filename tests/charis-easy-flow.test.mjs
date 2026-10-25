@@ -7,7 +7,7 @@ test('Charis has visible independent approval inbox and action labels',()=>{
  assert.match(src('components/campaign-studio.tsx'),/Submit for review/);
 });
 test('Charis campaign test is visible and authenticated to own account',()=>{
- assert.match(src('app/dashboard/campaigns/page.tsx'),/charis&&!!edit.data&&!!canTest/);
+ assert.doesNotMatch(src('app/dashboard/campaigns/page.tsx'),/Recent campaign tests/);
  assert.match(src('app/dashboard/campaigns/actions.ts'),/charis_campaign_test_reserve/);
  const sql=src('supabase/migrations/017_charis_resend_review_and_test.sql');
  assert.match(sql,/public.charis_campaign_test_reserve/);

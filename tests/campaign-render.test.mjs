@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {personalize,renderCampaign} from '../lib/campaigns/render.ts';
 const design={version:'1',blocks:[{type:'heading',text:'Hello {{first_name}}'},{type:'paragraph',text:'Welcome to {{company_name}}. {{attributes.account_ref}}'},{type:'button',text:'Learn more',url:'https://charismfb.com/'}]};
 test('personalization supports company and custom fields with missing-name fallback',()=>{
- assert.equal(personalize('Hello {{first_name}}, {{company_name}} {{attributes.account_ref}}',{attributes:{account_ref:'REF123'}},'Example'),'Hello Customer, Example REF123');
+ assert.equal(personalize('Hello {{first_name}}, {{company_name}} {{attributes.account_ref}}',{attributes:{account_ref:'REF123'}},'Example'),'Hello Customer, Example •••• 123');
 });
 test('unsupported and malformed variables are rejected',()=>{
  for(const value of ['{{password}}','{{attributes.constructor}}','{{first_name','{{ first_name }} }}','{{attributes.__proto__}}'])assert.throws(()=>personalize(value,{},'Company'));
