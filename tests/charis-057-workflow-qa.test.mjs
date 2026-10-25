@@ -29,7 +29,8 @@ test('recipient status is honest about provider acceptance, failures and uncerta
  assert.doesNotMatch(labels,/accepted:'Delivered'/);
  const history=read('app/dashboard/communications/history/page.tsx');
  assert.match(history,/deliverySummaryText\(totals\)/);
- assert.match(history,/recipientStatusLabel\(r\.status\)/);
+ assert.match(history,/DirectRecipientOutcomes/);
+ assert.match(read('components/direct-recipient-outcomes.tsx'),/recipientStatusLabel\(r\.status\)/);
  const action=read('app/dashboard/communications/actions.ts');
  assert.match(action,/initial delivery attempts failed/);
  assert.match(action,/Do not send the campaign again/);

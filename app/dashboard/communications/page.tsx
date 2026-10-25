@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import {redirect} from 'next/navigation';
-import {Mail,MessageSquare,Send,Settings2} from 'lucide-react';
+import {Mail,Send,Settings2} from 'lucide-react';
 import {WorkspaceShell} from '@/components/workspace-shell';
 import {supabaseServer} from '@/lib/supabase/server';
 import {currentAccount} from '@/lib/auth/account';
 import {canSendDirect} from '@/lib/auth/direct-send-access';
-import {DirectApprovalForm} from '@/components/direct-approval-form';
-import {messageStatusLabel} from '@/lib/direct/delivery-view';
+import {CampaignHistoryTable} from '@/components/direct-delivery-history';
+
 export const dynamic='force-dynamic';
 export const maxDuration=120;
 export default async function Communications({searchParams}:{searchParams:Promise<{view?:string}>}){
@@ -23,15 +23,15 @@ export default async function Communications({searchParams}:{searchParams:Promis
  ]);
  const canApprove=account.permissions.includes('campaigns.approve')||isAdmin===true;
  return <WorkspaceShell title="Campaigns" subtitle="Messages and delivery history" actions={canSend?<Link href="/dashboard/communications/new" className="btn"><Send size={16}/> Create Campaign</Link>:undefined}>
-  <div className="direct-quicklinks">{isAdmin&&<Link href="/admin/communications"><Settings2 size={19}/> Communication settings</Link>}
+  <div className="direct-quicklinks">{isAdmin&&<Link href="/admin/communications"><Settings2 size={19}/> Communication settings</Link>}{isAdmin&&<Link href="/dashboard/senders"><Mail size={19}/> Staff-only test email</Link>}
    {account.permissions.includes('templates.manage')&&<Link href={`/dashboard/templates?org=${org}`}>Design templates</Link>}
   </div>
   {(subscriptionsAccess===true||isAdmin===true)&&<p><Link href="/admin/subscriptions" className="inline-link">Email subscriptions</Link></p>}
   {settings?.approval_required&&<p className="notice">Approval is enabled in bank settings.</p>}
   <section className="panel"><div className="workspace-heading"><h2>{archived?'Archived messages':'Recent campaigns'}</h2>{canManage===true&&<Link className="btn secondary" href={archived?'/dashboard/communications':'/dashboard/communications?view=archived'}>{archived?'Active messages':'Archived'}</Link>}</div>{error&&<p role="alert" className="feedback-error">Direct message history is unavailable. Confirm SQL 047 is installed.</p>}
-  {messages?.length?<div className="table-scroll"><table className="admin-table"><thead><tr><th>Message</th><th>Channel</th><th>Recipients</th><th>Status</th><th>Date</th><th>Action</th></tr></thead><tbody>
-   {messages.map(m=><tr key={m.id}><td><strong>{m.title}</strong><small style={{display:'block'}}>{m.subject}</small></td><td>{m.channel==='email'?<Mail size={17}/>:<MessageSquare size={17}/>}</td><td>{m.recipient_count}</td><td><span className="status-chip">{messageStatusLabel(m.status,m.scheduled_at)}</span></td><td>{m.scheduled_at&&new Date(m.scheduled_at).getTime()>Date.now()?`Send ${new Date(m.scheduled_at).toLocaleString('en-NG',{timeZone:'Africa/Lagos'})}`:new Date(m.created_at).toLocaleString('en-NG')}</td><td><div className="actions"><Link href={`/dashboard/communications/history?id=${m.id}`}>Details</Link>{!archived&&m.status==='pending_approval'&&canApprove&&m.created_by!==account.id&&<DirectApprovalForm id={m.id}/>}</div></td></tr>)}
-  </tbody></table></div>:!error&&<p className="muted">{earlier.data?.length?"No campaigns created through the new composer yet. Earlier campaigns appear below.":"No campaigns yet. Select Create Campaign to begin."}</p>}</section>
+  {messages?.length?<CampaignHistoryTable messages={messages} archived={archived} canApprove={canApprove} accountId={account.id}/>:
+  !error&&<div className="charis-history-no-records"><Mail size={27}/><h3>No campaigns to display</h3><p>{earlier.data?.length?"New campaigns appear here. Older campaign records are available below.":"Create your first campaign to see its progress and delivery history."}</p>{canSend&&<Link className="btn" href="/dashboard/communications/new">Create Campaign</Link>}</div>}
+</section>
   {!archived&&Boolean(earlier.data?.length)&&<section className="panel"><div className="workspace-heading"><h2>Earlier campaigns</h2><Link className="inline-link" href={`/dashboard/campaigns?org=${org}`}>View all</Link></div><div className="table-scroll"><table className="admin-table"><thead><tr><th>Campaign</th><th>Status</th><th>Updated</th><th>Action</th></tr></thead><tbody>{(earlier.data||[]).map(c=><tr key={c.id}><td>{c.name}</td><td><span className="status-chip">{c.status.replaceAll("_"," ")}</span></td><td>{new Date(c.updated_at).toLocaleString("en-NG",{timeZone:"Africa/Lagos"})}</td><td><Link href={`/dashboard/campaigns?org=${org}&id=${c.id}`}>View</Link></td></tr>)}</tbody></table></div></section>}
   {isAdmin===true&&<details className="panel"><summary>Previous campaign records</summary>
    <div className="actions"><Link className="btn secondary" href={`/dashboard/campaigns?org=${org}`}>Legacy Campaign Studio</Link><Link className="btn secondary" href={`/dashboard/delivery?org=${org}`}>Legacy queue</Link><Link className="btn secondary" href={`/dashboard/approvals?org=${org}`}>Legacy approvals</Link>{account.permissions.includes('service_notices.view')&&<Link className="btn secondary" href="/dashboard/communications/service">Account service notices</Link>}{account.permissions.includes('campaigns.view')&&<Link className="btn secondary" href={`/dashboard/sms?org=${org}`}>SMS communications (legacy)</Link>}</div></details>}

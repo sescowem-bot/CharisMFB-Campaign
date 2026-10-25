@@ -1,0 +1,38 @@
+.charis-history{min-width:0}.charis-history-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin:16px 0 20px}
+.charis-history-metrics>div{border:1px solid #ebe6f2;border-radius:13px;background:#fff;padding:17px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.charis-history-metrics span{display:flex;align-items:center;gap:7px;color:#5a4d77;font-size:12px;font-weight:750}
+.charis-history-metrics strong{font-size:27px;color:#2e1a65;line-height:1.2;font-variant-numeric:tabular-nums}
+.charis-history-metrics small{color:#777184;font-size:11px;line-height:1.45}
+.charis-history-tools{display:flex;flex-wrap:wrap;align-items:center;gap:11px;justify-content:space-between;margin:15px 0 8px}
+.charis-history-search{display:flex;align-items:center;gap:8px;border:1px solid #dfd8ea;padding:0 12px;border-radius:10px;background:white;flex:1;min-width:200px;color:#6c5b86}
+.charis-history-search input{border:0!important;box-shadow:none!important;outline:0;width:100%;height:42px;min-width:0}
+.charis-history-filter{display:flex;align-items:center;gap:9px;color:#605872;font-size:12px;font-weight:700}
+.charis-history-filter select{border:1px solid #ded7e8;border-radius:9px;background:white;padding:10px 12px;min-height:42px}
+.charis-history-count{font-size:11px;color:#817889;margin:9px 0 15px}
+.charis-history-table td{vertical-align:middle}.charis-history-table td strong{display:block;color:#302451;font-size:13px;max-width:330px;overflow-wrap:anywhere}
+.charis-history-table td small{display:block;color:#7c7389;font-size:11px;max-width:360px;overflow-wrap:anywhere;margin-top:4px}
+.charis-history-channel{display:inline-flex;align-items:center;gap:6px;color:#5a4b77;font-size:12px}
+.charis-history-status{display:inline-flex;max-width:195px;text-align:left;align-items:center;padding:6px 9px;border-radius:999px;font-size:11px;font-weight:750;line-height:1.4;background:#f1eff6;color:#564d67}
+.charis-history-status-pending{background:#fff7e7;color:#946420}.charis-history-status-done{background:#edf8f0;color:#2f7548}.charis-history-status-review{background:#fff0ed;color:#a34436}
+.charis-history-date{white-space:nowrap;color:#6a6378;font-size:12px}
+.charis-history-open{display:inline-flex;align-items:center;gap:6px;font-weight:750;font-size:12px;color:#4226a0;text-decoration:none}
+.charis-history-empty,.charis-history-no-records{text-align:center;border:1px dashed #dcd5e8;border-radius:14px;padding:38px 20px;display:flex;align-items:center;flex-direction:column;gap:10px;color:#6f6381}
+.charis-history-empty strong{color:#34244f}.charis-history-empty span{font-size:12px}
+.charis-history-empty button{border:1px solid #d2c6e5;border-radius:9px;padding:9px 13px;color:#4b2a9a;background:white;cursor:pointer}
+.charis-history-no-records h3,.charis-history-no-records p{margin:0}
+@media(max-width:1150px){.charis-history-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.charis-history-metrics{gap:8px}.charis-history-metrics>div{padding:12px}.charis-history-metrics strong{font-size:23px}.charis-history-search{min-width:100%}.charis-history-filter{width:100%}.charis-history-filter select{flex:1}}
+.charis-delivery-top{border:1px solid #e8e2f1;border-radius:15px;padding:21px;background:linear-gradient(110deg,#fff,#fcfaff);margin-bottom:20px}
+.charis-delivery-top h2{font-size:22px;letter-spacing:-.025em;color:#302057;margin:2px 0 10px;overflow-wrap:anywhere}
+.charis-delivery-meta{display:flex;gap:10px 18px;flex-wrap:wrap;color:#736982;font-size:12px;margin:12px 0}
+.charis-delivery-meta>span{display:inline-flex;align-items:center;gap:5px}
+.charis-delivery-subject{border-top:1px solid #ede7f2;padding-top:13px;margin-top:15px;color:#43345d;font-size:13px}
+.charis-delivery-summary{margin:8px 0 17px;line-height:1.6;color:#6e657e;font-size:13px}
+.charis-delivery-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0 19px}
+.charis-delivery-kpis>div{border:1px solid #ebe5f2;background:#fff;border-radius:11px;padding:15px;min-width:0}
+.charis-delivery-kpis strong{font-size:24px;color:#34216c;display:block;margin:7px 0;font-variant-numeric:tabular-nums}
+.charis-delivery-kpis small{font-size:11px;color:#796f84}
+.charis-delivery-preview summary{cursor:pointer;font-weight:750;color:#4b2c9d;padding:12px 0}
+.charis-delivery-preview iframe{border:1px solid #ddd4eb;border-radius:10px;max-width:100%;background:white}
+.charis-delivery-explain{border:1px solid #e7dff3;background:#f9f6fe;color:#605575;border-radius:11px;padding:14px 16px;font-size:12px;line-height:1.7}
+@media(max-width:650px){.charis-delivery-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.charis-delivery-top{padding:15px}}
