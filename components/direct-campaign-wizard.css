@@ -1,0 +1,37 @@
+/* Charis email campaign flow: staff-facing four-step wizard */
+.direct-wizard.charis-campaign-flow{background:#fff;border:1px solid #e7e3ee;box-shadow:0 8px 35px #28175a09;max-width:100%;min-width:0;overflow:visible}
+.charis-flow-intro{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-bottom:20px}
+.charis-flow-intro h2{margin:5px 0 7px;font-size:clamp(20px,2.2vw,27px);color:#261849;letter-spacing:-.028em}
+.charis-flow-intro p{margin:0;color:#746d82;font-size:13px;line-height:1.65;max-width:590px}
+.charis-flow-eyebrow{text-transform:uppercase;letter-spacing:.1em;color:#5935ab;font-size:11px;font-weight:800;display:flex;align-items:center;gap:6px}
+.charis-flow-safe{display:inline-flex;align-items:center;gap:7px;background:#f4faf5;border:1px solid #d7eddc;color:#326746;padding:8px 11px;border-radius:9px;font-size:11px;font-weight:700}
+.direct-wizard .direct-simple-steps.charis-flow-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-bottom:23px}
+.direct-wizard .direct-simple-steps.charis-flow-steps span{display:flex;align-items:center;gap:10px;text-align:left;min-width:0;border:1px solid #e9e5f2;background:#faf9fd;padding:11px 12px;color:#786e8a;border-radius:12px}
+.direct-wizard .direct-simple-steps.charis-flow-steps span.current{border-color:#6440bb;background:#f2edff;color:#321779;box-shadow:inset 0 0 0 1px #b7a0eb}
+.direct-wizard .direct-simple-steps.charis-flow-steps span.complete{border-color:#dcece0;background:#f5faf6;color:#326a47}
+.charis-flow-step-number{flex:none;display:flex;align-items:center;justify-content:center;width:29px;height:29px;border-radius:9px;background:#efebf6;color:inherit;font-size:12px;font-weight:850}
+.direct-wizard .direct-simple-steps.charis-flow-steps span.current .charis-flow-step-number{background:#40239a;color:white}
+.direct-wizard .direct-simple-steps.charis-flow-steps span.complete .charis-flow-step-number{background:#dcefe2;color:#287545}
+.charis-flow-step-name{font-size:12px;font-weight:750;line-height:1.3;min-width:0}
+.charis-flow-step-sub{display:block;font-size:10px;line-height:1.5;color:#888196;font-weight:500;margin-top:3px}
+.charis-flow-panel{min-width:0}
+.charis-flow-panel-heading{display:flex;gap:12px;align-items:center;border-bottom:1px solid #eee9f4;padding-bottom:16px;margin-bottom:20px}
+.charis-flow-panel-icon{background:#f1eafe;border:1px solid #e3d7fa;color:#40239a;border-radius:11px;padding:12px;display:flex;flex:none}
+.charis-flow-panel-heading h3{margin:0 0 4px;font-size:19px;letter-spacing:-.015em;color:#2f2058}
+.charis-flow-panel-heading p{font-size:12px;margin:0;color:#7c728a;line-height:1.6}
+.charis-flow-recipient-chip{font-size:12px;font-weight:750;color:#432692;border-radius:9px;padding:8px 11px;background:#f3efff;border:1px solid #e5d9ff;display:inline-flex;gap:7px;align-items:center}
+.charis-flow-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}
+.charis-flow-summary>div{padding:13px 15px;border:1px solid #e8e4ee;background:#fcfbfe;border-radius:11px;min-width:0}
+.charis-flow-summary dt{text-transform:uppercase;letter-spacing:.07em;color:#827a8f;font-size:10px;font-weight:800;margin-bottom:5px}
+.charis-flow-summary dd{margin:0;font-size:13px;font-weight:700;color:#352452;overflow-wrap:anywhere}
+.charis-flow-guidance{display:flex;align-items:flex-start;gap:9px;border-radius:10px;border:1px solid #e1def1;background:#f8f7fc;padding:11px 13px;color:#665d78;font-size:12px;line-height:1.6;margin:14px 0}
+.charis-flow-guidance svg{flex:none;margin-top:2px;color:#5836ac}
+.charis-flow-approval{padding:14px 16px!important;border:1px solid #ded4f1!important;background:#faf7ff;border-radius:12px;line-height:1.55}
+.direct-wizard.charis-campaign-flow .direct-wizard-actions{border-top:1px solid #eae6f1;padding-top:18px;align-items:center;justify-content:space-between}
+.charis-flow-navigation-note{color:#7d7488;font-size:11px;max-width:400px;line-height:1.5}
+.charis-flow-button-group{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-left:auto}
+.charis-flow-button-group .btn{min-height:43px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:10px;padding:10px 16px;white-space:normal}
+.direct-wizard.charis-campaign-flow .direct-review{background:#fff;border-radius:12px}
+.charis-flow-confirm-flag{display:flex;align-items:center;gap:7px;font-size:12px;color:#326a47;font-weight:750}
+@media(max-width:900px){.direct-wizard .direct-simple-steps.charis-flow-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.direct-wizard .direct-simple-steps.charis-flow-steps{gap:6px}.direct-wizard .direct-simple-steps.charis-flow-steps span{padding:9px;gap:6px}.charis-flow-step-number{height:26px;width:26px}.charis-flow-step-sub{display:none}.charis-flow-step-name{font-size:11px}.charis-flow-summary{grid-template-columns:1fr}.charis-flow-intro{gap:10px}.charis-flow-panel-heading{align-items:flex-start}.charis-flow-button-group{width:100%;margin:0}.charis-flow-button-group .btn{flex:1}.charis-flow-navigation-note{max-width:none;width:100%}}

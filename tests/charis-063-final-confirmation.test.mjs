@@ -8,7 +8,7 @@ const page=source('app/dashboard/communications/new/page.tsx');
 const css=source('app/globals.css');
 
 test('Four steps put preview before a distinct final confirmation',()=>{
- assert.match(composer,/\['Message','Recipients','Preview','Confirm & send'\]/);
+ for(const label of ['Message','Recipients','Preview','Confirm & send'])assert.ok(composer.includes("label:'"+label+"'"));
  assert.match(composer,/step===2\?'block':'none'\}\} aria-label="Preview campaign"/);
  assert.match(composer,/step===3\?'block':'none'\}\} aria-label="Confirm campaign"/);
  assert.match(composer,/Nothing will be sent on this step/);
