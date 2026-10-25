@@ -28,10 +28,12 @@ test('Server rejects unconfirmed submits before database access and send attempt
  assert.ok(guard<action.indexOf("db.rpc('charis_direct_create_v2'"));
  assert.match(action,/sendDirectBatch\(3,\{org,message:id\}\)/);
 });
-test('Rich preview only renders at preview step while typing stays light',()=>{
- assert.match(composer,/if\(step!==2\|\|!design/);
+test('Rich preview renders at review and final confirmation while typing stays light',()=>{
+ assert.match(composer,/if\(step<2\|\|channel!=='email'\)/);
+ assert.match(composer,/step===2&&<DirectEmailPreview/);
+ assert.match(composer,/step===3&&<DirectEmailPreview/);
  assert.match(composer,/const designError=useMemo/);
- assert.match(composer,/loading="lazy"/);
+ assert.match(source('components/direct-email-preview.tsx'),/loading="eager"/);
  assert.match(css,/direct-send-confirm/);
  assert.match(css,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
 });

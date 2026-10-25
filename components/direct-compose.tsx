@@ -4,7 +4,8 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {createDirectMessage} from '@/app/dashboard/communications/actions';
 import {designSchema,resolveBrandLinks,type EmailBlock,type EmailDesign} from '@/lib/campaign/design';
-import {renderCampaign} from '@/lib/campaigns/render';
+import {renderDirectEmailPreview} from '@/lib/direct/preview';
+import {DirectEmailPreview} from '@/components/direct-email-preview';
 import {campaignParagraphs,checkDirectDesign} from '@/lib/direct/campaign-design';
 const GrapesEmailEditor=dynamic(()=>import('@/components/grapes-email-editor').then(m=>m.GrapesEmailEditor),{ssr:false,loading:()=> <p className="muted" role="status">Opening visual email editor…</p>});
 
@@ -32,8 +33,6 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
  const [templateId,setTemplateId]=useState('');
  const [editorMode,setEditorMode]=useState<'visual'|'sections'>('visual');
  const [variable,setVariable]=useState<'first_name'|'last_name'|'company_name'>('first_name');
- const [previewDevice,setPreviewDevice]=useState<'desktop'|'mobile'>('desktop');
- const [previewRevision,setPreviewRevision]=useState(0);
  const [mode,setMode]=useState<'now'|'later'>('now');
  const [sendAt,setSendAt]=useState('');
  const [results,setResults]=useState<Contact[]>([]);
@@ -58,19 +57,18 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
  const filtered=(search.length<2?contacts:results).filter(c=>search.length<2||`${c.first_name||''} ${c.last_name||''} ${c.email||''} ${c.phone||''}`.toLowerCase().includes(search.toLowerCase())).slice(0,40);
  const richBody=design?campaignParagraphs(design):body;
  const composedBody=channel==='email'&&design?richBody:body.trim();
- // Lightweight validation while editing; render the full HTML preview only on step 3.
+ // Keep typing responsive: render HTML for review/confirmation, not during editing.
  const designError=useMemo(()=>{
   if(!design||channel!=='email')return '';
   try{checkDirectDesign(design,brand.website,subject);return '';}
   catch(e){return e instanceof Error?e.message:'Check the email design.';}
  },[design,brand.website,subject,channel]);
+ const sampleContact=audience==='selected'?chosen.map(id=>selectedDetails[id]).find(Boolean):undefined;
  const preview=useMemo(()=>{
-  if(step!==2||!design||channel!=='email'||designError)return {html:'',error:designError};
-  try{
-   const rendered=renderCampaign({design,subject,company:brand.name,address:brand.address,color:brand.color,contact:{first_name:'Customer',last_name:'Example'},testPreview:true});
-   return {html:rendered.html,error:''};
-  }catch(e){return {html:'',error:e instanceof Error?e.message:'Preview could not be loaded.'};}
- },[step,design,subject,brand.name,brand.address,brand.color,channel,designError]);
+  if(step<2||channel!=='email')return {html:'',subject,error:'',sampleName:'Sample customer'};
+  if(designError)return {html:'',subject,error:designError,sampleName:'Sample customer'};
+  return renderDirectEmailPreview({design,subject,body,brand,contact:sampleContact});
+ },[step,channel,design,subject,body,brand,designError,sampleContact]);
  const messageReady=subject.trim().length>=3&&subject.trim().length<=180&&composedBody.trim().length>=10&&composedBody.trim().length<=2000&&!designError;
  const recipientsReady=audience==='selected'?chosen.length>0:audience==='list'?Boolean(groupId):canBulk;
  const scheduleReady=mode==='now'||(schedulingEnabled&&sendAt.trim().length>0);
@@ -196,19 +194,8 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
     <p><strong>Recipients:</strong> {audience==='selected'?`${chosen.length} selected`:audience==='list'?groups.find(g=>g.id===groupId)?.name||'Selected group':'All eligible contacts (within limit)'}</p>
     {audience==='selected'&&<ul aria-label="Selected recipients">{chosen.slice(0,12).map(id=><li key={id}>{[selectedDetails[id]?.first_name,selectedDetails[id]?.last_name].filter(Boolean).join(' ')||selectedDetails[id]?.email||'Selected customer'}</li>)}{chosen.length>12&&<li>And {chosen.length-12} more</li>}</ul>}
    </div>
-   {channel==='email'&&design ? (preview.error?<p className="feedback-error" role="alert">{preview.error}</p>:
-    <div aria-label="Campaign email preview display">
-     <div className="actions" role="group" aria-label="Preview display">
-      <button type="button" className="btn secondary" aria-pressed={previewDevice==='desktop'} onClick={()=>setPreviewDevice('desktop')}>Desktop</button>
-      <button type="button" className="btn secondary" aria-pressed={previewDevice==='mobile'} onClick={()=>setPreviewDevice('mobile')}>Mobile</button>
-      <button type="button" className="btn secondary" onClick={()=>setPreviewRevision(n=>n+1)}>Reload preview</button>
-     </div>
-     <div style={{display:'flex',justifyContent:'center',overflowX:'auto',background:'#edf1f7',padding:'12px 0'}}>
-      <iframe key={previewDevice+previewRevision} title="Campaign email preview" loading="eager" sandbox="" srcDoc={preview.html} style={{border:'1px solid #e2e8f0',borderRadius:8,width:previewDevice==='mobile'?375:'100%',maxWidth:previewDevice==='mobile'?375:720,height:560,background:'#ffffff'}}/>
-     </div>
-    </div>) :
+   {channel==='email'?(step===2&&<DirectEmailPreview key="review" preview={preview}/>):
     <div className="direct-review" style={{background:'#fff',whiteSpace:'pre-wrap'}} aria-label="Message preview">
-     {channel==='email'&&<p><strong>{brand.name}</strong></p>}
      <p>{composedBody}</p>
     </div>}
    <p className="muted">Use Back to make changes, or Continue to confirm.</p>
@@ -220,6 +207,8 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
     <p><strong>Channel:</strong> {channel.toUpperCase()}</p>
     <p><strong>Recipients:</strong> {audience==='selected'?`${chosen.length} selected contacts`:audience==='list'?groups.find(g=>g.id===groupId)?.name||'Selected group':'All eligible contacts (within limit)'}</p>
    </div>
+   {channel==='email'?(step===3&&<DirectEmailPreview key="confirmation" preview={preview} finalReview/>):
+    <div className="direct-review" style={{whiteSpace:'pre-wrap'}} aria-label="Final SMS preview">{composedBody}</div>}
    <label>When to send<select value={mode} onChange={e=>{setConfirmed(false);setMode(e.target.value as 'now'|'later');}}><option value="now">Send now</option>{schedulingEnabled&&<option value="later">Schedule for later</option>}</select></label>
    {mode==='later'&&<label>Send on (Nigeria time · WAT)<input type="datetime-local" value={sendAt} onChange={e=>{setConfirmed(false);setSendAt(e.target.value);}}/></label>}
    <label className="direct-send-confirm"><input type="checkbox" name="confirmed" value="yes" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>

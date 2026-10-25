@@ -1,0 +1,16 @@
+.charis-direct-preview{border:1px solid #e4dfef;border-radius:15px;overflow:hidden;background:#fff;margin:18px 0;min-width:0;box-shadow:0 4px 20px #31204c0b}
+.charis-direct-preview-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:16px 18px;border-bottom:1px solid #eee9f5;flex-wrap:wrap}
+.charis-direct-preview-title{display:flex;gap:9px;align-items:center;color:#42239b}.charis-direct-preview-title div{display:flex;flex-direction:column;gap:3px}
+.charis-direct-preview-title strong{color:#2f2058;font-size:14px}.charis-direct-preview-title small{color:#777186;font-size:11px}
+.charis-direct-preview-devices{display:flex;gap:3px;border:1px solid #eee8f4;background:#f8f6fb;border-radius:9px;padding:3px}
+.charis-direct-preview-devices button{border:0;background:transparent;color:#675779;border-radius:7px;cursor:pointer;padding:8px 11px;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:650}
+.charis-direct-preview-devices button[aria-pressed=true]{background:white;color:#40239a;box-shadow:0 1px 5px #3820551f}
+.charis-direct-preview-devices button:focus-visible{outline:3px solid #38b87a;outline-offset:1px}
+.charis-direct-preview-subject{display:flex;align-items:center;gap:11px;padding:12px 18px;font-size:13px;background:#fdfcff;min-width:0}
+.charis-direct-preview-subject span{font-size:10px;letter-spacing:.07em;font-weight:750;color:#81798a}.charis-direct-preview-subject strong{color:#2e2545;overflow-wrap:anywhere}
+.charis-direct-preview-surface{background:#eeeaf5;padding:20px;display:flex;justify-content:center;overflow-x:auto}
+.charis-direct-preview-paper{width:100%;min-width:0;position:relative;background:#fff;border-radius:9px;border:1px solid #ded7ea;overflow:hidden;box-shadow:0 4px 24px #27114417}
+.charis-direct-preview-paper iframe{display:block;border:0;background:white;min-width:0}
+.charis-direct-preview-loading{position:absolute;inset:0;background:white;display:flex;align-items:center;justify-content:center;color:#786f88;font-size:13px;margin:0}
+.charis-direct-preview-note{border-top:1px solid #eee8f4;color:#756f7d;font-size:11px;line-height:1.6;padding:10px 17px}
+@media(max-width:650px){.charis-direct-preview-heading{padding:13px}.charis-direct-preview-surface{padding:8px}.charis-direct-preview-devices{width:100%;justify-content:center}}

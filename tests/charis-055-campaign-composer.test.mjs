@@ -19,7 +19,8 @@ test('Campaign workflow has 4 explicit steps, supports templates, searchable rec
  assert.match(composer,/\['Message','Recipients','Preview','Confirm & send'\]/);
  assert.match(composer,/\.map\(\(label,index\)/);
  assert.match(composer,/selectTemplate/);
- assert.match(composer,/renderCampaign\(/);
+ assert.match(composer,/renderDirectEmailPreview\(/);
+ assert.match(read('lib/direct/preview.ts'),/renderCampaign\(/);
  assert.match(composer,/api\/direct\/contacts/);
  assert.match(composer,/Confirm & Send/);
  assert.match(composer,/scheduleReady/);
