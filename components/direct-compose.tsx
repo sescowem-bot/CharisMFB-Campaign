@@ -1,17 +1,20 @@
 'use client';
 import {useActionState,useEffect,useMemo,useRef,useState} from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {createDirectMessage} from '@/app/dashboard/communications/actions';
 import {designSchema,resolveBrandLinks,type EmailBlock,type EmailDesign} from '@/lib/campaign/design';
 import {renderCampaign} from '@/lib/campaigns/render';
 import {campaignParagraphs,checkDirectDesign} from '@/lib/direct/campaign-design';
+const GrapesEmailEditor=dynamic(()=>import('@/components/grapes-email-editor').then(m=>m.GrapesEmailEditor),{ssr:false,loading:()=> <p className="muted" role="status">Opening visual email editor…</p>});
 
 type Contact={id:string;first_name:string|null;last_name:string|null;email:string|null;phone:string|null};
 type Group={id:string;name:string};
-type Template={id:string;name:string;subject:string;design:EmailDesign};
-export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false}:{
+type Template={id:string;name:string;subject:string;design:EmailDesign;source:'bank'|'starter'};
+type MediaAsset={id:string;file_name:string;public_url:string};
+export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,assets,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false}:{
  token:string;contacts:Contact[];groups:Group[];canBulk:boolean;emailEnabled:boolean;smsEnabled:boolean;maxRecipients:number;
- templates:Template[];templateStudioUrl:string;brand:{name:string;color:string;address:string;website:string};schedulingEnabled:boolean;approvalRequired?:boolean;
+ templates:Template[];assets:MediaAsset[];templateStudioUrl:string;brand:{name:string;color:string;address:string;website:string};schedulingEnabled:boolean;approvalRequired?:boolean;
 }){
  const [state,submit,pending]=useActionState(createDirectMessage,{});
  const [step,setStep]=useState(0);
@@ -27,6 +30,8 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
  const [query,setQuery]=useState('');const [body,setBody]=useState('');const [subject,setSubject]=useState('');
  const [design,setDesign]=useState<EmailDesign|null>(null);
  const [templateId,setTemplateId]=useState('');
+ const [editorMode,setEditorMode]=useState<'visual'|'sections'>('visual');
+ const [variable,setVariable]=useState<'first_name'|'last_name'|'company_name'>('first_name');
  const [previewDevice,setPreviewDevice]=useState<'desktop'|'mobile'>('desktop');
  const [previewRevision,setPreviewRevision]=useState(0);
  const [mode,setMode]=useState<'now'|'later'>('now');
@@ -79,6 +84,17 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
   const copy=resolveBrandLinks(safe.data,brand.website);
   setSubject(t.subject);setDesign(copy);setBody(campaignParagraphs(copy));
  }
+ function insertDetail(target:'subject'|'message'){
+  if(!design||channel!=='email')return;
+  const token='{{'+variable+'}}';
+  if(target==='subject'){setSubject(old=>(old+' '+token).trim().slice(0,180));return;}
+  const index=design.blocks.findIndex(b=>b.type==='paragraph');
+  if(index<0){
+   if(design.blocks.length>=30)return;
+   setDesign(d=>d?{...d,blocks:[...d.blocks,{type:'paragraph',text:token}]}:d);
+  }else setDesign(d=>d?{...d,blocks:d.blocks.map((b,i)=>i===index&&b.type==='paragraph'
+   ?{...b,text:(b.text+' '+token).trim().slice(0,2000)}:b)}:d);
+ }
  function updateBlock(index:number,update:Partial<EmailBlock>){
   setDesign(d=>d?{...d,blocks:d.blocks.map((b,i)=>i===index?{...b,...update} as EmailBlock:b)}:d);
  }
@@ -123,17 +139,39 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
     {emailEnabled&&<option value="email">Email</option>}{smsEnabled&&<option value="sms">SMS</option>}</select></label>
    <label>Message type<select value={purpose} onChange={e=>setPurpose(e.target.value)}><option value="general_notice">General bank notice</option><option value="service_notice">Service update</option><option value="account_update">Account notification</option></select></label></div>
    <label>Related product<select value={product} onChange={e=>setProduct(e.target.value)}><option value="general">General</option><option value="savings">Savings</option><option value="current">Current account</option><option value="fixed_deposit">Fixed deposit</option><option value="loans">Loans</option><option value="mobile_app">Mobile banking</option><option value="other">Other</option></select></label>
-   {channel==='email'&&<div className="direct-layout-control"><label>Email layout<select aria-label="Email layout" value={templateId} onChange={e=>selectTemplate(e.target.value)}><option value="">Simple message</option>{templates.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
+   {channel==='email'&&<div className="direct-layout-control"><label>Start with an email template<select aria-label="Email layout" value={templateId} onChange={e=>selectTemplate(e.target.value)}>
+     <option value="">Simple message</option>
+     <optgroup label="Saved Charis templates">{templates.filter(t=>t.source==='bank').map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</optgroup>
+     <optgroup label="Ready-to-edit starter designs">{templates.filter(t=>t.source==='starter').map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</optgroup>
+    </select></label>
     <Link href={templateStudioUrl} className="inline-link">Open Template Studio</Link></div>}
    <label>Subject<input value={subject} onChange={e=>setSubject(e.target.value)} maxLength={180} placeholder="Account service update"/></label>
+   {channel==='email'&&design&&<div className="direct-editor" aria-label="Customer detail tools">
+    <strong>Personalise this email</strong>
+    <p className="muted">Choose an approved detail, then insert it into the subject or the message. Actual customer names are inserted securely when the message is sent.</p>
+    <div className="actions">
+     <label>Customer detail<select aria-label="Customer detail" value={variable} onChange={e=>setVariable(e.target.value as 'first_name'|'last_name'|'company_name')}>
+      <option value="first_name">First name</option><option value="last_name">Last name</option><option value="company_name">Bank name</option>
+     </select></label>
+     <button type="button" className="btn secondary" onClick={()=>insertDetail('subject')}>Insert in subject</button>
+     <button type="button" className="btn secondary" onClick={()=>insertDetail('message')}>Insert in message</button>
+    </div>
+   </div>}
    {!design||channel==='sms'?<label>Message<textarea rows={6} maxLength={channel==='sms'?480:2000} value={body} onChange={e=>setBody(e.target.value)} placeholder="Write a clear message. Never request a PIN, password or OTP."/><small className="muted">{body.length}/{channel==='sms'?480:2000}</small></label>:
-    <div className="direct-editor"><h3>Email sections</h3>{design.blocks.map((block,index)=><div key={index} className="direct-block-editor"><div className="direct-block-top"><strong>{block.type==='shape'?'Accent':block.type}</strong><span><button type="button" onClick={()=>moveBlock(index,-1)} disabled={index===0} aria-label="Move section up">↑</button><button type="button" onClick={()=>moveBlock(index,1)} disabled={index===design.blocks.length-1} aria-label="Move section down">↓</button><button type="button" disabled={design.blocks.length===1} onClick={()=>setDesign(d=>d?{...d,blocks:d.blocks.filter((_,i)=>i!==index)}:d)} aria-label="Remove section">×</button></span></div>
+    <div className="direct-editor">
+     <div className="actions" role="group" aria-label="Email editing mode">
+      <button type="button" className="btn secondary" aria-pressed={editorMode==='visual'} onClick={()=>setEditorMode('visual')}>Visual drag-and-drop editor</button>
+      <button type="button" className="btn secondary" aria-pressed={editorMode==='sections'} onClick={()=>setEditorMode('sections')}>Detailed sections</button>
+     </div>
+     {editorMode==='visual'?<GrapesEmailEditor design={design} onChange={setDesign} assets={assets} brandName={brand.name} brandColor={brand.color} websiteUrl={brand.website}/>:
+     <><h3>Email sections</h3>{design.blocks.map((block,index)=><div key={index} className="direct-block-editor"><div className="direct-block-top"><strong>{block.type==='shape'?'Accent':block.type}</strong><span><button type="button" onClick={()=>moveBlock(index,-1)} disabled={index===0} aria-label="Move section up">↑</button><button type="button" onClick={()=>moveBlock(index,1)} disabled={index===design.blocks.length-1} aria-label="Move section down">↓</button><button type="button" disabled={design.blocks.length===1} onClick={()=>setDesign(d=>d?{...d,blocks:d.blocks.filter((_,i)=>i!==index)}:d)} aria-label="Remove section">×</button></span></div>
      {['heading','paragraph','shape'].includes(block.type)&&<textarea aria-label={`Section ${index+1} text`} rows={block.type==='paragraph'?4:2} value={block.text} onChange={e=>updateBlock(index,{text:e.target.value})} maxLength={block.type==='paragraph'?2000:200}/>}
      {block.type==='button'&&<><label>Button label<input value={block.text} maxLength={200} onChange={e=>updateBlock(index,{text:e.target.value})}/></label><label>Button destination<input type="url" value={block.url} onChange={e=>updateBlock(index,{url:e.target.value} as Partial<EmailBlock>)}/></label></>}
      {block.type==='image'&&<small className="muted">Bank-approved image · {block.text}</small>}
     </div>)}
      <div className="actions"><button type="button" className="btn secondary" onClick={()=>addBlock('paragraph')}>+ Paragraph</button><button type="button" className="btn secondary" onClick={()=>addBlock('heading')}>+ Heading</button>{Boolean(brand.website)&&<button type="button" className="btn secondary" onClick={()=>addBlock('button')}>+ Button</button>}<button type="button" className="btn secondary" onClick={()=>addBlock('divider')}>+ Divider</button></div>
-     {designError&&<p role="alert" className="feedback-error">{designError}</p>}<p className="muted">Full email preview is available in step 3.</p>
+     </>}
+     {designError&&<p role="alert" className="feedback-error">{designError}</p>}<p className="muted">Full email preview is available in step 3. No email is sent while editing.</p>
     </div>}
   </section>
   <section style={{display:step===1?'block':'none'}} aria-label="Choose recipients">
