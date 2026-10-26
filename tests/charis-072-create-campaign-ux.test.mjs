@@ -1,0 +1,53 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+test('Four-step progress uses isolated markup, no inherited nested span cards',()=>{
+ const s=read('components/direct-compose.tsx');
+ const css=read('components/direct-campaign-wizard.css');
+ assert.match(s,/className="charis-wizard-progress"/);
+ assert.match(s,/<ol>\{steps\.map/);
+ assert.match(s,/label:'Write message'/);
+ assert.match(s,/label:'Recipients'/);
+ assert.match(s,/label:'Preview'/);
+ assert.match(s,/label:'Send'/);
+ assert.match(css,/\.charis-wizard-progress ol\{list-style:none;display:grid/);
+ assert.match(css,/@media\(max-width:820px\)/);
+ assert.match(css,/@media\(max-width:520px\)/);
+});
+test('Channel and purpose choices are plain language; product and saved designs are optional',()=>{
+ const s=read('components/direct-compose.tsx');
+ assert.match(s,/legend>Send by<\/legend>/);
+ assert.match(s,/aria-label="Message purpose"/);
+ assert.match(s,/General announcement/);
+ assert.match(s,/Bank service update/);
+ assert.match(s,/Customer account notice/);
+ assert.match(s,/This message concerns a particular banking product/);
+ assert.match(s,/showProduct&&<label>Choose product/);
+ assert.match(s,/name="product" value=\{showProduct\?product:'general'\}/);
+ assert.match(s,/Use a saved email design \(optional\)/);
+ assert.match(s,/Write a simple email/);
+});
+test('Undo and redo cover subject, body, selected design without changing recipients or dispatch',()=>{
+ const s=read('components/direct-compose.tsx');
+ assert.match(s,/function undoDraft\(\)/);
+ assert.match(s,/function redoDraft\(\)/);
+ assert.match(s,/type DraftSnapshot=\{subject:string;body:string;design:EmailDesign\|null;templateId:string\}/);
+ assert.match(s,/lastDraft.current=next/);
+ assert.match(s,/setSubject\(snapshot.subject\)/);
+ assert.match(s,/setDesign\(snapshot.design\)/);
+ assert.match(s,/disabled=\{!historyCounts.undo\}/);
+ assert.match(s,/disabled=\{!historyCounts.redo\}/);
+ assert.match(s,/step!==3\|\|!confirmed/);
+ assert.match(s,/name="commit_send" value="yes"/);
+ assert.doesNotMatch(s,/setChosen\(snapshot\./);
+});
+test('Final confirmation retains recipient review, approval and delivery protections',()=>{
+ const s=read('components/direct-compose.tsx');
+ const action=read('app/dashboard/communications/actions.ts');
+ assert.match(s,/DirectEmailPreview key="confirmation"/);
+ assert.match(s,/setConfirmed\(false\);setStep/);
+ assert.match(s,/disabled=\{pending\|\|!!state.id\|\|!confirmed\|\|!messageReady/);
+ assert.match(action,/form\.get\('confirmed'\)!=='yes'/);
+ assert.match(action,/sendDirectBatch/);
+});

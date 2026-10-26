@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 test('Campaign wizard has clear labelled steps, beginner-friendly hints, and a safety notice',()=>{
  const source=read('components/direct-compose.tsx');
- assert.match(source,/className="direct-simple-steps charis-flow-steps"/);
- assert.match(source,/Nothing is sent until you confirm/);
+ assert.match(source,/className="charis-wizard-progress"/);
+ assert.match(source,/Nothing sends before confirmation/);
  for(const text of ['Write your message','Choose your recipients','Review your message','Final check before sending'])assert.ok(source.includes(text),text);
  assert.match(source,/Step \{step\+1\} of 4/);
 });

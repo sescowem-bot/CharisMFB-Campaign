@@ -2,7 +2,7 @@
 import {useActionState,useEffect,useMemo,useRef,useState} from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import {Check,ShieldCheck,MessageSquareText,UsersRound,Eye,ArrowRight,ArrowLeft,Info,ClipboardCheck} from 'lucide-react';
+import {Check,ShieldCheck,MessageSquareText,UsersRound,Eye,ArrowRight,ArrowLeft,Info,ClipboardCheck,Undo2,Redo2,Mail,Smartphone} from 'lucide-react';
 import './direct-campaign-wizard.css';
 import {createDirectMessage} from '@/app/dashboard/communications/actions';
 import {designSchema,resolveBrandLinks,type EmailBlock,type EmailDesign} from '@/lib/campaign/design';
@@ -28,13 +28,51 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
  const [channel,setChannel]=useState<'email'|'sms'>(emailEnabled?'email':'sms');
  const [purpose,setPurpose]=useState('general_notice');
  const [product,setProduct]=useState('general');
+ const [showProduct,setShowProduct]=useState(false);
  const [audience,setAudience]=useState<'selected'|'list'|'all'>('selected');
  const [groupId,setGroupId]=useState('');
  const [chosen,setChosen]=useState<string[]>([]);
  const [query,setQuery]=useState('');const [body,setBody]=useState('');const [subject,setSubject]=useState('');
  const [design,setDesign]=useState<EmailDesign|null>(null);
  const [templateId,setTemplateId]=useState('');
+ type DraftSnapshot={subject:string;body:string;design:EmailDesign|null;templateId:string};
+ const draftHistory=useRef<{past:DraftSnapshot[];future:DraftSnapshot[]}>({past:[],future:[]});
+ const lastDraft=useRef<DraftSnapshot>({subject:'',body:'',design:null,templateId:''});
+ const [historyCounts,setHistoryCounts]=useState({undo:0,redo:0});
+
  const [editorMode,setEditorMode]=useState<'visual'|'sections'>('visual');
+ // Changes in the subject, message and visual design share one reversible history.
+ // Delivery, recipient selection and approval are deliberately never undone.
+ useEffect(()=>{
+  const next={subject,body,design,templateId};
+  if(JSON.stringify(next)===JSON.stringify(lastDraft.current))return;
+  draftHistory.current.past.push(lastDraft.current);
+  if(draftHistory.current.past.length>80)draftHistory.current.past.shift();
+  draftHistory.current.future=[];
+  lastDraft.current=next;
+  setHistoryCounts({undo:draftHistory.current.past.length,redo:0});
+ },[subject,body,design,templateId]);
+ function restoreDraft(snapshot:DraftSnapshot){
+  lastDraft.current=snapshot;
+  setSubject(snapshot.subject);setBody(snapshot.body);setDesign(snapshot.design);setTemplateId(snapshot.templateId);
+ }
+ function undoDraft(){
+  const h=draftHistory.current;
+  const previous=h.past.pop();
+  if(!previous)return;
+  h.future.push(lastDraft.current);
+  restoreDraft(previous);
+  setHistoryCounts({undo:h.past.length,redo:h.future.length});
+ }
+ function redoDraft(){
+  const h=draftHistory.current;
+  const next=h.future.pop();
+  if(!next)return;
+  h.past.push(lastDraft.current);
+  restoreDraft(next);
+  setHistoryCounts({undo:h.past.length,redo:h.future.length});
+ }
+
  const [variable,setVariable]=useState('first_name');
  const fieldChoices=customerFieldOptions(customFields);
  const [mode,setMode]=useState<'now'|'later'>('now');
@@ -78,12 +116,13 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
  const scheduleReady=mode==='now'||(schedulingEnabled&&sendAt.trim().length>0);
  const audienceLabel=audience==='selected'?chosen.length+' selected contact'+(chosen.length===1?'':'s'):
   audience==='list'?groups.find(g=>g.id===groupId)?.name||'No group chosen':'All eligible contacts (within your limit)';
- const typeLabel=purpose==='general_notice'?'General bank notice':purpose==='service_notice'?'Service update':'Account notification';
+ const typeLabel=purpose==='general_notice'?'General notice':purpose==='service_notice'?'Service update':'Account notification';
  const productLabel=({general:'General banking',savings:'Savings',current:'Current account',fixed_deposit:'Fixed deposit',loans:'Loans',mobile_app:'Mobile banking',other:'Other'} as Record<string,string>)[product]||'General banking';
- const steps=[{label:'Message',sub:'Content & design',icon:MessageSquareText},
-              {label:'Recipients',sub:'Who receives it',icon:UsersRound},
-              {label:'Preview',sub:'Check the email',icon:Eye},
-              {label:'Confirm & send',sub:'Final approval',icon:ClipboardCheck}];
+ const purposeHint=purpose==='general_notice'?'For announcements, opening hours, or general information.':purpose==='service_notice'?'For changes to bank services, channels, or availability.':'For a notice related to a customer account. Do not include passwords, PINs or OTPs.';
+ const steps=[{label:'Write message',icon:MessageSquareText},
+              {label:'Recipients',icon:UsersRound},
+              {label:'Preview',icon:Eye},
+              {label:'Send',icon:ClipboardCheck}];
 
  function selectTemplate(id:string){
   setTemplateId(id);
@@ -136,7 +175,7 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
   <input type="hidden" name="subject" value={subject}/>
   <input type="hidden" name="body" value={composedBody}/>
   <input type="hidden" name="purpose" value={purpose}/>
-  <input type="hidden" name="product" value={product}/>
+  <input type="hidden" name="product" value={showProduct?product:'general'}/>
   <input type="hidden" name="channel" value={channel}/>
   <input type="hidden" name="audience" value={audience}/>
   <input type="hidden" name="contact_ids" value={chosen.join(',')}/>
@@ -145,25 +184,52 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
   <input type="hidden" name="mode" value={mode}/>
   <input type="hidden" name="send_at" value={mode==='later'?sendAt:''}/>
   <div className="charis-flow-intro"><div><div className="charis-flow-eyebrow"><MessageSquareText size={15}/> CHARIS CAMPAIGN CENTRE</div>
-   <h2>Create a customer message</h2><p>Four simple steps: write your message, choose recipients, check the preview and confirm delivery.</p></div>
-   <span className="charis-flow-safe"><ShieldCheck size={15}/> Nothing is sent until you confirm</span>
+   <h2>Create campaign</h2><p>Write your message, choose customers, preview it, then send.</p></div>
+   <span className="charis-flow-safe"><ShieldCheck size={15}/> Nothing sends before confirmation</span>
   </div>
-  <nav ref={stepNavRef} aria-label="Campaign steps" className="direct-simple-steps charis-flow-steps">{steps.map((item,index)=>
-   <span key={item.label} className={step===index?'current':step>index?'complete':''} aria-current={step===index?'step':undefined}>
-    <span className="charis-flow-step-number">{step>index?<Check size={15}/>:index+1}</span>
-    <span><span className="charis-flow-step-name">{item.label}</span><small className="charis-flow-step-sub">{item.sub}</small></span>
-   </span>)}</nav>
-  <section style={{display:step===0?'block':'none'}} aria-label="Create message" className="charis-flow-panel"><div className="charis-flow-panel-heading"><span className="charis-flow-panel-icon"><MessageSquareText size={21}/></span><div><h3>Write your message</h3><p>Choose a message type and template, then edit the content in plain language.</p></div></div>
-   <div className="form-two"><label>Channel<select value={channel} onChange={e=>{if(e.target.value==='sms'&&design){setBody(richBody);setDesign(null);setTemplateId('');}setChannel(e.target.value as 'email'|'sms');setChosen([]);setSelectedDetails({});setAudience('selected');}}>
-    {emailEnabled&&<option value="email">Email</option>}{smsEnabled&&<option value="sms">SMS</option>}</select></label>
-   <label>Message type<select value={purpose} onChange={e=>setPurpose(e.target.value)}><option value="general_notice">General bank notice</option><option value="service_notice">Service update</option><option value="account_update">Account notification</option></select></label></div>
-   <label>Related product<select value={product} onChange={e=>setProduct(e.target.value)}><option value="general">General</option><option value="savings">Savings</option><option value="current">Current account</option><option value="fixed_deposit">Fixed deposit</option><option value="loans">Loans</option><option value="mobile_app">Mobile banking</option><option value="other">Other</option></select></label>
-   {channel==='email'&&<div className="direct-layout-control"><label>Start with an email template<select aria-label="Email layout" value={templateId} onChange={e=>selectTemplate(e.target.value)}>
-     <option value="">Simple message</option>
-     <optgroup label="Saved Charis templates">{templates.filter(t=>t.source==='bank').map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</optgroup>
-     <optgroup label="Ready-to-edit starter designs">{templates.filter(t=>t.source==='starter').map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</optgroup>
+  <nav ref={stepNavRef} aria-label="Campaign steps" className="charis-wizard-progress">
+   <ol>{steps.map((item,index)=><li key={item.label} className={step===index?'current':step>index?'complete':''} aria-current={step===index?'step':undefined}>
+    <span className="charis-wizard-progress-number">{step>index?<Check size={16}/>:index+1}</span>
+    <span className="charis-wizard-progress-label">{item.label}</span>
+   </li>)}</ol>
+  </nav>
+  <section style={{display:step===0?'block':'none'}} aria-label="Create message" className="charis-flow-panel"><div className="charis-flow-panel-heading"><span className="charis-flow-panel-icon"><MessageSquareText size={21}/></span><div><h3>Write your message</h3><p>Write your message in plain language. Choose a design only if you need one.</p></div></div>
+   <div className="charis-message-setup">
+    <fieldset className="charis-channel-choice"><legend>Send by</legend>
+     {emailEnabled&&<button type="button" aria-pressed={channel==='email'} onClick={()=>{setChannel('email');setChosen([]);setSelectedDetails({});setAudience('selected');}}><Mail size={17}/> Email</button>}
+     {smsEnabled&&<button type="button" aria-pressed={channel==='sms'} onClick={()=>{if(design){setBody(richBody.replace(/\{\{[^}]*\}\}/g,'').trim());setDesign(null);setTemplateId('');}setChannel('sms');setChosen([]);setSelectedDetails({});setAudience('selected');}}><Smartphone size={17}/> SMS</button>}
+    </fieldset>
+    <div className="charis-purpose-choice">
+     <label>What is this message about?<select aria-label="Message purpose" value={purpose} onChange={e=>setPurpose(e.target.value)}>
+      <option value="general_notice">General announcement</option>
+      <option value="service_notice">Bank service update</option>
+      <option value="account_update">Customer account notice</option>
+     </select></label>
+     <p className="charis-purpose-hint">{purposeHint}</p>
+    </div>
+   </div>
+   <div className="charis-optional-product">
+    <label><input type="checkbox" checked={showProduct} onChange={e=>{setShowProduct(e.target.checked);if(!e.target.checked)setProduct('general');}}/> This message concerns a particular banking product</label>
+    {showProduct&&<label>Choose product<select aria-label="Related banking product" value={product} onChange={e=>setProduct(e.target.value)}>
+     <option value="general">General banking</option><option value="savings">Savings</option><option value="current">Current account</option>
+     <option value="fixed_deposit">Fixed deposit</option><option value="loans">Loans</option><option value="mobile_app">Mobile banking</option><option value="other">Other</option>
+    </select></label>}
+   </div>
+   {channel==='email'&&<details className="charis-template-choice" open={Boolean(templateId)}>
+    <summary>{templateId?'Email design selected — change template':'Use a saved email design (optional)'}</summary>
+    <div className="direct-layout-control"><label>Choose a design<select aria-label="Email layout" value={templateId} onChange={e=>selectTemplate(e.target.value)}>
+     <option value="">Write a simple email</option>
+     <optgroup label="Your saved designs">{templates.filter(t=>t.source==='bank').map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</optgroup>
+     <optgroup label="Ready-made designs">{templates.filter(t=>t.source==='starter').map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</optgroup>
     </select></label>
-    <Link href={templateStudioUrl} className="inline-link">Open Template Studio</Link></div>}
+    <Link href={templateStudioUrl} className="inline-link">Open Design Templates</Link></div>
+    <p className="muted">A template controls how the email looks. It does not change who receives it or when it is sent.</p>
+   </details>}
+   <div className="charis-compose-history" role="group" aria-label="Undo and redo message changes">
+    <button type="button" className="btn secondary" onClick={undoDraft} disabled={!historyCounts.undo} title="Undo the last message edit"><Undo2 size={16}/> Undo</button>
+    <button type="button" className="btn secondary" onClick={redoDraft} disabled={!historyCounts.redo} title="Restore the last undone edit"><Redo2 size={16}/> Redo</button>
+    <span>Correct a mistake without starting over.</span>
+   </div>
    <label>Subject<input value={subject} onChange={e=>setSubject(e.target.value)} maxLength={180} placeholder="Account service update"/></label>
    {channel==='email'&&design&&<div className="direct-editor" aria-label="Customer detail tools">
     <strong>Personalise this email</strong>
@@ -230,7 +296,7 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
     <div><dt>Subject</dt><dd>{subject}</dd></div>
     <div><dt>Recipients</dt><dd>{audienceLabel}</dd></div>
     <div><dt>Channel & type</dt><dd>{channel.toUpperCase()} · {typeLabel}</dd></div>
-    <div><dt>Product</dt><dd>{productLabel}</dd></div>
+    {showProduct&&<div><dt>Product</dt><dd>{productLabel}</dd></div>}
    </dl>
    {channel==='email'?(step===3&&<DirectEmailPreview key="confirmation" preview={preview} finalReview/>):
     <div className="direct-review" style={{whiteSpace:'pre-wrap'}} aria-label="Final SMS preview">{composedBody}</div>}

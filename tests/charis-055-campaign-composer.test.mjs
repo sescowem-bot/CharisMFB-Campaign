@@ -16,10 +16,10 @@ test('Release 055 builds on all previously delivered subscription and staff UX f
  assert.match(page,/\.limit\(35\)/);
 });
 test('Campaign workflow has 4 explicit steps, supports templates, searchable recipients and preview',()=>{
- assert.match(composer,/label:'Message'/);
+ assert.match(composer,/label:'Write message'/);
  assert.match(composer,/label:'Recipients'/);
  assert.match(composer,/label:'Preview'/);
- assert.match(composer,/label:'Confirm & send'/);
+ assert.match(composer,/label:'Send'/);
  assert.match(composer,/steps\.map\(\(item,index\)/);
  assert.match(composer,/selectTemplate/);
  assert.match(composer,/renderDirectEmailPreview\(/);
