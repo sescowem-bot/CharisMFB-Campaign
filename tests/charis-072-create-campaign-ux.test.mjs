@@ -32,7 +32,7 @@ test('Undo and redo cover subject, body, selected design without changing recipi
  const s=read('components/direct-compose.tsx');
  assert.match(s,/function undoDraft\(\)/);
  assert.match(s,/function redoDraft\(\)/);
- assert.match(s,/type DraftSnapshot=\{subject:string;body:string;design:EmailDesign\|null;templateId:string\}/);
+ assert.match(s,/type DraftSnapshot=\{subject:string;body:string;design:EmailDesign\|null;templateId:string;simpleStyle:SimpleEmailStyle;simpleGreeting:string\}/);
  assert.match(s,/lastDraft.current=next/);
  assert.match(s,/setSubject\(snapshot.subject\)/);
  assert.match(s,/setDesign\(snapshot.design\)/);

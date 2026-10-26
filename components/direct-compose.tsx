@@ -10,6 +10,8 @@ import {renderDirectEmailPreview} from '@/lib/direct/preview';
 import {DirectEmailPreview} from '@/components/direct-email-preview';
 import {campaignParagraphs,checkDirectDesign} from '@/lib/direct/campaign-design';
 import {customerFieldOptions} from '@/lib/campaign/customer-fields';
+import {makeSimpleEmailDesign,simpleEmailStyles,type SimpleEmailStyle} from '@/lib/direct/simple-email';
+import {DirectCampaignReceipt} from '@/components/direct-campaign-receipt';
 const GrapesEmailEditor=dynamic(()=>import('@/components/grapes-email-editor').then(m=>m.GrapesEmailEditor),{ssr:false,loading:()=> <p className="muted" role="status">Opening visual email editor…</p>});
 
 type Contact={id:string;first_name:string|null;last_name:string|null;email:string|null;phone:string|null;attributes?:Record<string,string>|null};
@@ -35,26 +37,29 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
  const [query,setQuery]=useState('');const [body,setBody]=useState('');const [subject,setSubject]=useState('');
  const [design,setDesign]=useState<EmailDesign|null>(null);
  const [templateId,setTemplateId]=useState('');
- type DraftSnapshot={subject:string;body:string;design:EmailDesign|null;templateId:string};
+ const [simpleStyle,setSimpleStyle]=useState<SimpleEmailStyle>('classic');
+ const [simpleGreeting,setSimpleGreeting]=useState('Hello {{first_name}},');
+ type DraftSnapshot={subject:string;body:string;design:EmailDesign|null;templateId:string;simpleStyle:SimpleEmailStyle;simpleGreeting:string};
  const draftHistory=useRef<{past:DraftSnapshot[];future:DraftSnapshot[]}>({past:[],future:[]});
- const lastDraft=useRef<DraftSnapshot>({subject:'',body:'',design:null,templateId:''});
+ const lastDraft=useRef<DraftSnapshot>({subject:'',body:'',design:null,templateId:'',simpleStyle:'classic',simpleGreeting:'Hello {{first_name}},'});
  const [historyCounts,setHistoryCounts]=useState({undo:0,redo:0});
 
  const [editorMode,setEditorMode]=useState<'visual'|'sections'>('visual');
  // Changes in the subject, message and visual design share one reversible history.
  // Delivery, recipient selection and approval are deliberately never undone.
  useEffect(()=>{
-  const next={subject,body,design,templateId};
+  const next={subject,body,design,templateId,simpleStyle,simpleGreeting};
   if(JSON.stringify(next)===JSON.stringify(lastDraft.current))return;
   draftHistory.current.past.push(lastDraft.current);
   if(draftHistory.current.past.length>80)draftHistory.current.past.shift();
   draftHistory.current.future=[];
   lastDraft.current=next;
   setHistoryCounts({undo:draftHistory.current.past.length,redo:0});
- },[subject,body,design,templateId]);
+ },[subject,body,design,templateId,simpleStyle,simpleGreeting]);
  function restoreDraft(snapshot:DraftSnapshot){
   lastDraft.current=snapshot;
   setSubject(snapshot.subject);setBody(snapshot.body);setDesign(snapshot.design);setTemplateId(snapshot.templateId);
+  setSimpleStyle(snapshot.simpleStyle);setSimpleGreeting(snapshot.simpleGreeting);
  }
  function undoDraft(){
   const h=draftHistory.current;
@@ -98,19 +103,20 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
  },[search]);
  const filtered=(search.length<2?contacts:results).filter(c=>search.length<2||`${c.first_name||''} ${c.last_name||''} ${c.email||''} ${c.phone||''}`.toLowerCase().includes(search.toLowerCase())).slice(0,40);
  const richBody=design?campaignParagraphs(design):body;
+ const effectiveDesign=useMemo(()=>channel==='email'?(design??makeSimpleEmailDesign(body,simpleGreeting,simpleStyle)):null,[channel,design,body,simpleGreeting,simpleStyle]);
  const composedBody=channel==='email'&&design?richBody:body.trim();
  // Keep typing responsive: render HTML for review/confirmation, not during editing.
  const designError=useMemo(()=>{
-  if(!design||channel!=='email')return '';
-  try{checkDirectDesign(design,brand.website,subject);return '';}
+  if(!effectiveDesign||channel!=='email'||(!design&&body.trim().length<10))return '';
+  try{checkDirectDesign(effectiveDesign,brand.website,subject);return '';}
   catch(e){return e instanceof Error?e.message:'Check the email design.';}
- },[design,brand.website,subject,channel]);
+ },[effectiveDesign,design,body,brand.website,subject,channel]);
  const sampleContact=audience==='selected'?chosen.map(id=>selectedDetails[id]).find(Boolean):undefined;
  const preview=useMemo(()=>{
   if(step<2||channel!=='email')return {html:'',subject,error:'',sampleName:'Sample customer'};
   if(designError)return {html:'',subject,error:designError,sampleName:'Sample customer'};
-  return renderDirectEmailPreview({design,subject,body,brand,contact:sampleContact,customFields});
- },[step,channel,design,subject,body,brand,designError,sampleContact,customFields]);
+  return renderDirectEmailPreview({design:effectiveDesign,subject,body,brand,contact:sampleContact,customFields});
+ },[step,channel,effectiveDesign,subject,body,brand,designError,sampleContact,customFields]);
  const messageReady=subject.trim().length>=3&&subject.trim().length<=180&&composedBody.trim().length>=10&&composedBody.trim().length<=2000&&!designError;
  const recipientsReady=audience==='selected'?chosen.length>0:audience==='list'?Boolean(groupId):canBulk;
  const scheduleReady=mode==='now'||(schedulingEnabled&&sendAt.trim().length>0);
@@ -135,9 +141,10 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
   setSubject(t.subject);setDesign(copy);setBody(campaignParagraphs(copy));
  }
  function insertDetail(target:'subject'|'message'){
-  if(!design||channel!=='email')return;
+  if(channel!=='email')return;
   const token='{{'+variable+'}}';
   if(target==='subject'){setSubject(old=>(old+' '+token).trim().slice(0,180));return;}
+  if(!design){setBody(old=>(old+' '+token).trim().slice(0,2000));return;}
   const index=design.blocks.findIndex(b=>b.type==='paragraph');
   if(index<0){
    if(design.blocks.length>=30)return;
@@ -180,7 +187,7 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
   <input type="hidden" name="audience" value={audience}/>
   <input type="hidden" name="contact_ids" value={chosen.join(',')}/>
   <input type="hidden" name="list_id" value={audience==='list'?groupId:''}/>
-  <input type="hidden" name="design" value={channel==='email'&&design?JSON.stringify(design):''}/>
+  <input type="hidden" name="design" value={channel==='email'&&effectiveDesign?JSON.stringify(effectiveDesign):''}/>
   <input type="hidden" name="mode" value={mode}/>
   <input type="hidden" name="send_at" value={mode==='later'?sendAt:''}/>
   <div className="charis-flow-intro"><div><div className="charis-flow-eyebrow"><MessageSquareText size={15}/> CHARIS CAMPAIGN CENTRE</div>
@@ -231,9 +238,9 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
     <span>Correct a mistake without starting over.</span>
    </div>
    <label>Subject<input value={subject} onChange={e=>setSubject(e.target.value)} maxLength={180} placeholder="Account service update"/></label>
-   {channel==='email'&&design&&<div className="direct-editor" aria-label="Customer detail tools">
-    <strong>Personalise this email</strong>
-    <p className="muted">Choose customer information from your uploaded contacts. No codes needed. Information is added separately for each recipient during sending.</p>
+   {channel==='email'&&<div className="direct-editor charis-personalise-tools" aria-label="Customer detail tools">
+    <strong>Insert customer details</strong>
+    <p className="muted">Choose First name, Last name, Account (last four digits), or another available contact field. Each email uses the correct customer details automatically.</p>
     <div className="actions">
      <label>Customer detail<select aria-label="Customer detail" value={variable} onChange={e=>setVariable(e.target.value)}>
       {fieldChoices.map(f=><option key={f.key} value={f.key}>{f.label}</option>)}
@@ -242,6 +249,14 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
      <button type="button" className="btn secondary" onClick={()=>insertDetail('message')}>Insert in message</button>
     </div>
    </div>}
+   {channel==='email'&&!design&&<section className="charis-simple-email-options" aria-label="Simple email appearance">
+    <div><strong>Choose your email look</strong><p>Charis colours and bank details are added automatically. No saved template is needed.</p></div>
+    <fieldset aria-label="Email appearance" className="charis-simple-email-styles">
+     {simpleEmailStyles.map(option=><button type="button" key={option.value} aria-pressed={simpleStyle===option.value} onClick={()=>setSimpleStyle(option.value)}>
+      <span className={'charis-simple-style-swatch style-'+option.value}><i/></span><strong>{option.label}</strong><small>{option.description}</small></button>)}
+    </fieldset>
+    <label>Email greeting<input aria-label="Email greeting" maxLength={200} value={simpleGreeting} onChange={e=>setSimpleGreeting(e.target.value)} placeholder="Hello {{first_name}},"/></label>
+   </section>}
    {!design||channel==='sms'?<label>Message<textarea rows={6} maxLength={channel==='sms'?480:2000} value={body} onChange={e=>setBody(e.target.value)} placeholder="Write a clear message. Never request a PIN, password or OTP."/><small className="muted">{body.length}/{channel==='sms'?480:2000}</small></label>:
     <div className="direct-editor">
      <div className="actions" role="group" aria-label="Email editing mode">
@@ -317,6 +332,6 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
     <button type="submit" name="commit_send" value="yes" className="btn" disabled={pending||!!state.id||!confirmed||!messageReady||!recipientsReady||!scheduleReady}>{pending?'Submitting…':approvalRequired?'Confirm & Submit for Approval':mode==='later'?'Confirm & Schedule':'Confirm & Send'}</button>}
    </div></div>
   {state.error&&<p role="alert" className="feedback-error">{state.error}</p>}
-  {state.success&&<div role="status" className="notice"><strong>{state.success}</strong> {state.id&&<Link className="inline-link" href={`/dashboard/communications/history?id=${state.id}`}>View status →</Link>}</div>}
+  {state.id&&<DirectCampaignReceipt id={state.id} outcome={state.outcome||'submitted'}/>}
  </form>;
 }

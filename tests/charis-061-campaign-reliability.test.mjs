@@ -35,7 +35,7 @@ test('recent campaigns include earlier records with organisation filter and perm
 
 test('duplicate campaign submission is blocked after a saved ID is returned',()=>{
  assert.match(composer,/disabled=\{pending\|\|!!state\.id/);
- assert.match(composer,/href=\{`\/dashboard\/communications\/history\?id=\$\{state\.id\}`\}/);
+ assert.match(composer,/state\.id&&<DirectCampaignReceipt/);
 });
 
 test('error recovery directs staff to history before reloading an old form',()=>{

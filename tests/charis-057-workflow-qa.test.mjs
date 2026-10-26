@@ -32,8 +32,8 @@ test('recipient status is honest about provider acceptance, failures and uncerta
  assert.match(history,/DirectRecipientOutcomes/);
  assert.match(read('components/direct-recipient-outcomes.tsx'),/recipientStatusLabel\(r\.status\)/);
  const action=read('app/dashboard/communications/actions.ts');
- assert.match(action,/initial delivery attempts failed/);
- assert.match(action,/Do not send the campaign again/);
+ assert.match(action,/Some messages need attention/);
+ assert.match(action,/Delivery needs review before taking further action/);
 });
 
 test('due reminder data loading errors are shown, not mistaken for zero reminders',()=>{

@@ -26,7 +26,7 @@ test('Customer name insertion is restricted to approved variables and designed e
  assert.match(source,/customerFieldOptions/);
  assert.match(source,/fieldChoices.map/);
  assert.match(source,/Insert in message/);
- assert.match(source,/if\(!design\|\|channel!=='email'\)return/);
+ assert.match(source,/if\(channel!=='email'\)return/);
  const validation=read('lib/direct/campaign-design.ts');
  assert.match(validation,/allowedCustomerToken/);
 });

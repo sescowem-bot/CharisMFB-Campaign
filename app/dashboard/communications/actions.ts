@@ -8,7 +8,7 @@ import {directEmailReadiness,directWorkerIsHealthy} from '@/lib/direct/readiness
 import {readDirectDesign,checkDirectDesign,campaignParagraphs} from '@/lib/direct/campaign-design';
 import {renderCampaign} from '@/lib/campaigns/render';
 import type {EmailDesign} from '@/lib/campaign/design';
-export type DirectState={error?:string;success?:string;id?:string};
+export type DirectState={error?:string;success?:string;id?:string;outcome?:'submitted'|'scheduled'|'approval'|'attention'|'unavailable'};
 
 /** The schedule is entered explicitly in Nigeria's WAT (+01:00), not the server's timezone. */
 function requestedSchedule(mode:'now'|'later',raw:string):string|null {
@@ -80,19 +80,19 @@ export async function createDirectMessage(_:DirectState,form:FormData):Promise<D
   });
   if(error||!id)throw Error(error?.message||'Campaign could not be saved. No messages were sent.');
   const {data:message,error:messageError}=await db.from('charis_direct_messages').select('status,scheduled_at').eq('organization_id',org).eq('id',id).maybeSingle();
-  if(messageError||!message)return {id,success:'Campaign saved. Its status could not be confirmed. Open Campaigns before taking further action.'};
+  if(messageError||!message)return {id,outcome:'attention',success:'Campaign saved. Check campaign progress before trying again.'};
   revalidatePath('/dashboard/communications');
-  if(message?.status==='pending_approval')return {id,success:scheduledAt?'Scheduled campaign saved for approval.':'Campaign saved for approval.'};
-  if(message?.scheduled_at&&new Date(message.scheduled_at).getTime()>Date.now())return {id,success:'Campaign scheduled. View Campaigns to track it.'};
-  if(message?.status!=='queued')return {id,success:'Campaign already exists. Check its status before sending again.'};
+  if(message?.status==='pending_approval')return {id,outcome:'approval',success:scheduledAt?'Scheduled campaign saved for approval.':'Campaign saved for approval.'};
+  if(message?.scheduled_at&&new Date(message.scheduled_at).getTime()>Date.now())return {id,outcome:'scheduled',success:'Campaign scheduled. View Campaigns to track it.'};
+  if(message?.status!=='queued')return {id,outcome:'attention',success:'Campaign saved. Check its status before sending again.'};
   try{
    const result=await sendDirectBatch(3,{org,message:id});
-   if(result.outcomes.disabled)return {id,success:'Campaign saved. Sending is currently disabled.'};
+   if(result.outcomes.disabled)return {id,outcome:'unavailable',success:'Campaign saved. Sending is currently unavailable.'};
    const accepted=result.outcomes.accepted||0,failed=result.outcomes.failed||0,uncertain=result.outcomes.unknown||0;
-   if(uncertain)return {id,success:`${accepted} accepted by provider. Delivery needs review. Do not send the campaign again.`};
-   if(failed&&!accepted)return {id,success:'Campaign created, but the initial delivery attempts failed. Open delivery status.'};
-   return {id,success:`${accepted} accepted by provider${failed?`, ${failed} failed`:''}. Open delivery status for the remaining recipients.`};
-  }catch{return {id,success:'Campaign saved. Delivery is not confirmed; check its status before trying again.'};}
+   if(uncertain)return {id,outcome:'attention',success:'Campaign saved. Delivery needs review before taking further action.'};
+   if(failed&&!accepted)return {id,outcome:'attention',success:'Campaign saved. Some messages need attention.'};
+   return {id,outcome:failed?'attention':'submitted',success:'Campaign submitted for delivery.'};
+  }catch{return {id,outcome:'attention',success:'Campaign saved. Check delivery progress before trying again.'};}
  }catch(e){return {error:e instanceof z.ZodError?'Complete the required campaign details.':e instanceof SyntaxError?'Invalid email design.':e instanceof Error?e.message:'Unable to create campaign.'};}
 }
 export async function approveDirectMessage(_:DirectState,form:FormData):Promise<DirectState>{
