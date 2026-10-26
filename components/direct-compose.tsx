@@ -18,15 +18,16 @@ type Contact={id:string;first_name:string|null;last_name:string|null;email:strin
 type Group={id:string;name:string};
 type Template={id:string;name:string;subject:string;design:EmailDesign;source:'bank'|'starter'};
 type MediaAsset={id:string;file_name:string;public_url:string};
-export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,assets,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false,customFields=[]}:{
+export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,assets,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false,customFields=[],providerChoiceAvailable=false,readyEmailProviders=[]}:{
  token:string;contacts:Contact[];groups:Group[];canBulk:boolean;emailEnabled:boolean;smsEnabled:boolean;maxRecipients:number;
- templates:Template[];assets:MediaAsset[];templateStudioUrl:string;brand:{name:string;color:string;address:string;website:string};schedulingEnabled:boolean;approvalRequired?:boolean;customFields?:string[];
+ templates:Template[];assets:MediaAsset[];templateStudioUrl:string;brand:{name:string;color:string;address:string;website:string};schedulingEnabled:boolean;approvalRequired?:boolean;customFields?:string[];providerChoiceAvailable?:boolean;readyEmailProviders?:string[];
 }){
  const [state,submit,pending]=useActionState(createDirectMessage,{});
  const [step,setStep]=useState(0);
  const stepNavRef=useRef<HTMLElement|null>(null);
  useEffect(()=>{if(step>0)stepNavRef.current?.scrollIntoView({behavior:'smooth',block:'start'});},[step]);
  const [confirmed,setConfirmed]=useState(false);
+ const [emailProvider,setEmailProvider]=useState('auto');
  const [channel,setChannel]=useState<'email'|'sms'>(emailEnabled?'email':'sms');
  const [purpose,setPurpose]=useState('general_notice');
  const [product,setProduct]=useState('general');
@@ -184,6 +185,7 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
   <input type="hidden" name="purpose" value={purpose}/>
   <input type="hidden" name="product" value={showProduct?product:'general'}/>
   <input type="hidden" name="channel" value={channel}/>
+  <input type="hidden" name="send_provider" value={channel==='email'&&providerChoiceAvailable?emailProvider:'auto'}/>
   <input type="hidden" name="audience" value={audience}/>
   <input type="hidden" name="contact_ids" value={chosen.join(',')}/>
   <input type="hidden" name="list_id" value={audience==='list'?groupId:''}/>
@@ -315,6 +317,15 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
    </dl>
    {channel==='email'?(step===3&&<DirectEmailPreview key="confirmation" preview={preview} finalReview/>):
     <div className="direct-review" style={{whiteSpace:'pre-wrap'}} aria-label="Final SMS preview">{composedBody}</div>}
+   {channel==='email'&&<div className="charis-final-provider-choice">
+    <label>Send using
+     <select aria-label="Email provider for this campaign" value={providerChoiceAvailable?emailProvider:'auto'} disabled={!providerChoiceAvailable||!readyEmailProviders.length} onChange={e=>{setEmailProvider(e.target.value);setConfirmed(false);}}>
+      <option value="auto">Automatic (recommended)</option>
+      {(['resend','brevo','mailjet'] as const).filter(p=>readyEmailProviders.includes(p)).map(p=><option key={p} value={p}>{p==='resend'?'Resend':p==='brevo'?'Brevo':'Mailjet'}</option>)}
+     </select>
+    </label>
+    <p>{!providerChoiceAvailable?'Provider selection will be available after the bank administrator applies database migration 075. Automatic sending still works.':emailProvider==='auto'?'Charis chooses from your approved providers. If one rejects a message before submission, Charis may use another approved provider.':'Only the selected provider will be used for this campaign. If it becomes unavailable, the campaign needs attention instead of silently switching services.'}</p>
+   </div>}
    <label>When to send<select value={mode} onChange={e=>{setConfirmed(false);setMode(e.target.value as 'now'|'later');}}><option value="now">Send now</option>{schedulingEnabled&&<option value="later">Schedule for later</option>}</select></label>
    {mode==='later'&&<label>Send on (Nigeria time · WAT)<input type="datetime-local" value={sendAt} onChange={e=>{setConfirmed(false);setSendAt(e.target.value);}}/></label>}
    <div className="charis-flow-guidance"><Info size={16}/><span>Check the final preview above and recipient list before authorising delivery. Delivery may be queued or require approval, depending on bank settings.</span></div>

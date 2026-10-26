@@ -65,7 +65,15 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
     }
     const readiness=await directEmailReadiness(row.organization_id);
     if(!readiness.ready)throw Error('No verified service-email sender is ready.');
-    const prefs=readiness.providers;
+    // A provider choice is persisted on the campaign (SQL 075), not a per-request hint.
+    // Old installations without 075 continue to deliver automatic campaigns unchanged.
+    const {data:storedPreference,error:preferenceError}=await db.from('charis_direct_messages')
+     .select('preferred_provider').eq('organization_id',row.organization_id).eq('id',row.message_id).maybeSingle();
+    if(preferenceError&&!['42703','PGRST204'].includes(preferenceError.code||''))throw Error('campaign_provider_preference_unavailable');
+    const selectedProvider=storedPreference?.preferred_provider||null;
+    if(selectedProvider&&!['resend','brevo','mailjet'].includes(selectedProvider))throw Error('invalid_campaign_provider');
+    const prefs=selectedProvider?readiness.providers.filter(pref=>pref.provider===selectedProvider):readiness.providers;
+    if(selectedProvider&&!prefs.length)throw Error('selected_provider_unavailable');
     // One-time, bank-hosted preference URL. No personal data in the URL or token.
     // All manually composed direct emails respect suppressions.
     // Bank-mandated account/security notifications belong to a separate event workflow.

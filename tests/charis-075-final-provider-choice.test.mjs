@@ -1,0 +1,51 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+test('Email provider selection appears at final approval, defaults to Automatic and includes only ready providers',()=>{
+ const s=read('components/direct-compose.tsx');
+ assert.match(s,/const \[emailProvider,setEmailProvider\]=useState\('auto'\)/);
+ assert.match(s,/aria-label="Email provider for this campaign"/);
+ assert.match(s,/Automatic \(recommended\)/);
+ assert.match(s,/readyEmailProviders.includes\(p\)/);
+ assert.match(s,/providerChoiceAvailable/);
+ assert.match(s,/setEmailProvider\(e.target.value\);setConfirmed\(false\)/);
+ assert.match(s,/value=\{channel==='email'&&providerChoiceAvailable\?emailProvider:'auto'\}/);
+ assert.match(s,/section style=\{\{display:step===3\?'block':'none'\}\} aria-label="Confirm campaign"/);
+ assert.match(s,/Only the selected provider will be used/);
+ assert.doesNotMatch(s,/value="sendgrid"/);
+});
+test('Provider choice enforced server-side and saved atomically with the campaign before any worker can claim it',()=>{
+ const action=read('app/dashboard/communications/actions.ts');
+ const sql=read('supabase/migrations/075_charis_campaign_provider_choice.sql');
+ assert.match(action,/z\.enum\(\['auto','resend','brevo','mailjet'\]\)/);
+ assert.match(action,/selectedProvider!=='auto'&&!readiness\.providers\.some/);
+ assert.match(action,/selectedProvider==='auto'/);
+ assert.match(action,/charis_direct_create_v2/);
+ assert.match(action,/charis_direct_create_provider_075/);
+ assert.match(sql,/ADD COLUMN IF NOT EXISTS preferred_provider text/);
+ assert.match(sql,/CHECK \(preferred_provider IS NULL OR \(channel='email'/);
+ assert.match(sql,/public\.charis_direct_create_v2\(/);
+ assert.match(sql,/JOIN public\.sender_identities/);
+ assert.match(sql,/JOIN public\.sending_domains/);
+ assert.match(sql,/v_old_provider IS DISTINCT FROM p_provider/);
+ assert.match(sql,/REVOKE ALL ON FUNCTION public\.charis_direct_create_provider_075/);
+});
+test('Queued and approved later sends honour stored provider choice, without silent provider failover',()=>{
+ const s=read('lib/direct/dispatch.ts');
+ assert.match(s,/\.select\('preferred_provider'\)/);
+ assert.match(s,/const prefs=selectedProvider\?readiness\.providers\.filter\(pref=>pref\.provider===selectedProvider\)/);
+ assert.match(s,/selected_provider_unavailable/);
+ assert.match(s,/for\(const pref of prefs\)/);
+ assert.match(s,/charis_direct_claim/);
+});
+test('SMS selection stays separate and current Termii sender path remains unchanged',()=>{
+ const action=read('app/dashboard/communications/actions.ts');
+ const dispatch=read('lib/direct/dispatch.ts');
+ assert.match(action,/parsed\.channel==='sms'&&selectedProvider!=='auto'/);
+ assert.match(dispatch,/TERMII_API_KEY/);
+ assert.match(dispatch,/CHARIS_CUSTOMER_SMS_ENABLED/);
+ const page=read('app/dashboard/communications/new/page.tsx');
+ assert.match(page,/providerColumnError/);
+ assert.match(page,/directEmailReadiness\(org\)/);
+});

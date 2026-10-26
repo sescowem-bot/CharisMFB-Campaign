@@ -6,7 +6,7 @@ import {canSendDirect} from '@/lib/auth/direct-send-access';
 import {supabaseServer} from '@/lib/supabase/server';
 import {WorkspaceShell} from '@/components/workspace-shell';
 import {DirectCompose} from '@/components/direct-compose';
-import {directWorkerIsHealthy} from '@/lib/direct/readiness';
+import {directWorkerIsHealthy,directEmailReadiness} from '@/lib/direct/readiness';
 import {designSchema,resolveBrandLinks,assertNoDemoLinks} from '@/lib/campaign/design';
 import {contactFieldNames} from '@/lib/campaign/customer-fields';
 import {charisTemplatePresets} from '@/lib/campaign/template-presets';
@@ -15,7 +15,7 @@ export const maxDuration=120;
 export default async function NewCommunication(){
  const account=await currentAccount();if(!account)redirect('/login');
  const org=account.workspace.id,db=await supabaseServer();
- const [allowed,{data:settings,error:settingsError},{data:bankWide},{data:contacts,error:contactError},{data:fieldRows},{data:groups},{data:branding},{data:allTemplates},{data:media},schedulingReady]=await Promise.all([
+ const [allowed,{data:settings,error:settingsError},{data:bankWide},{data:contacts,error:contactError},{data:fieldRows},{data:groups},{data:branding},{data:allTemplates},{data:media},schedulingReady,providerReadiness,{error:providerColumnError}]=await Promise.all([
   canSendDirect(org),
   db.from('charis_direct_settings').select('approval_required,email_enabled,sms_enabled,max_recipients').eq('organization_id',org).maybeSingle(),
   db.rpc('charis_is_bankwide',{p_org:org}),
@@ -25,7 +25,9 @@ export default async function NewCommunication(){
   db.from('organization_branding').select('display_name,primary_color,postal_address,website_url').eq('organization_id',org).maybeSingle(),
   db.from('email_templates').select('id,name,subject,design,category').or(`organization_id.eq.${org},organization_id.is.null`).in('status',['draft','approved']).order('created_at',{ascending:false}).limit(100),
   db.from('charis_media_assets').select('id,file_name,public_url').eq('organization_id',org).order('created_at',{ascending:false}).limit(80),
-  process.env.CHARIS_SCHEDULING_ENABLED==='true'?directWorkerIsHealthy():Promise.resolve(false)
+  process.env.CHARIS_SCHEDULING_ENABLED==='true'?directWorkerIsHealthy():Promise.resolve(false),
+  directEmailReadiness(org),
+  db.from('charis_direct_messages').select('preferred_provider',{head:true,count:'exact'}).limit(0)
  ]);
  if(!allowed)redirect('/dashboard');
  if(settingsError||!settings)return <WorkspaceShell title="Create Campaign"><p role="alert" className="feedback-error">Communication settings are unavailable.</p></WorkspaceShell>;
@@ -52,6 +54,6 @@ export default async function NewCommunication(){
   {!settings.email_enabled&&!settings.sms_enabled?<p role="alert" className="feedback-error">Email and SMS are currently disabled.</p>:
    <DirectCompose token={randomUUID()} contacts={contacts||[]} groups={bankWide===true?groups||[]:[]} canBulk={bankWide===true} emailEnabled={settings.email_enabled} smsEnabled={settings.sms_enabled} maxRecipients={settings.max_recipients}
     templates={[...templates.map(t=>({...t,source:'bank' as const})),...starters]} assets={media||[]} templateStudioUrl={`/dashboard/templates?org=${org}`} brand={{name:branding?.display_name||'Charis Microfinance Bank',color:branding?.primary_color||'#40239a',address:branding?.postal_address||'',website:branding?.website_url||''}}
-    schedulingEnabled={schedulingReady} approvalRequired={settings.approval_required} customFields={customFields}/>}
+    schedulingEnabled={schedulingReady} approvalRequired={settings.approval_required} customFields={customFields} providerChoiceAvailable={!providerColumnError} readyEmailProviders={providerReadiness.providers.map(p=>p.provider)}/>}
  </WorkspaceShell>;
 }

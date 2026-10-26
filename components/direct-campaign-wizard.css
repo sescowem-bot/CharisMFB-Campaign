@@ -112,3 +112,11 @@
 .charis-receipt-dismissed a{color:#40239a;font-weight:700}
 @media(max-width:760px){.charis-simple-email-styles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:460px){.charis-receipt-dialog{padding:27px 17px 21px}.charis-receipt-actions{flex-direction:column}.charis-receipt-actions .btn{width:100%}}
+
+/* Release 075: email delivery provider is selected at final review, not during composition. */
+.charis-final-provider-choice{margin:15px 0;border:1px solid #ded5ed;border-radius:12px;background:#fbf9ff;padding:15px 17px}
+.charis-final-provider-choice label{display:block;font-weight:750;color:#33215b;font-size:13px}
+.charis-final-provider-choice select{margin-top:8px;width:100%;min-height:48px;background:#fff;border:1px solid #d9cdef;border-radius:10px;font-size:13px;color:#332451;padding:10px}
+.charis-final-provider-choice select:disabled{opacity:.68;cursor:not-allowed}
+.charis-final-provider-choice p{font-size:12px;line-height:1.55;color:#756986;margin:8px 0 0}
+@media(max-width:520px){.charis-final-provider-choice{padding:12px}}
