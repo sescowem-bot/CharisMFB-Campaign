@@ -8,7 +8,7 @@ import {reportArguments,reportFilters,reportSchema} from '@/lib/analytics/report
 export const dynamic='force-dynamic';
 export default async function Reports({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
  const account=await currentAccount();if(!account)redirect('/login');
- if(!account.permissions.includes('reports.view'))redirect('/dashboard');
+ if(!account.owner&&!account.permissions.includes('reports.view'))redirect('/dashboard');
  const org=account.workspace.id;
  const raw=await searchParams;
  const params=new URLSearchParams();

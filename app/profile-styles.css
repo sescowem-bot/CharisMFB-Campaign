@@ -1,0 +1,5 @@
+.charis-profile-details{display:grid;gap:0;margin:8px 0 20px}
+.charis-profile-details>div{display:grid;grid-template-columns:minmax(130px,.4fr) minmax(0,1fr);gap:15px;padding:15px 0;border-bottom:1px solid #ebe7f1}
+.charis-profile-details dt{font-weight:600;color:#726783}
+.charis-profile-details dd{margin:0;display:flex;align-items:center;gap:8px;overflow-wrap:anywhere;color:#271d3c}
+@media(max-width:600px){.charis-profile-details>div{grid-template-columns:1fr;gap:4px}}

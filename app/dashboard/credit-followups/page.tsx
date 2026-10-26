@@ -41,8 +41,8 @@ export default async function CreditFollowups({searchParams}:{searchParams:Promi
  const selectable=(loans||[]).filter(l=>names.has(l.contact_id)).map(l=>({id:l.id,reference:l.loan_reference,customer:names.get(l.contact_id)!,due_on:l.due_on}));
  const safeTasks=(tasks||[]) as Task[];
  const openOverdue=safeTasks.filter(t=>t.status==='open'&&new Date(t.due_at).getTime()<Date.now()).length;
- return <WorkspaceShell org={org} title="Credit follow-ups" subtitle="Assign, schedule and close internal loan follow-up tasks. No customer emails or SMS are sent here.">
-  <div className="workspace-links"><Link href="/dashboard/loans">Loan register</Link><Link href="/dashboard/credit-reminders">Credit reminders</Link><Link href="/dashboard/notifications">My notifications</Link></div>
+ return <WorkspaceShell org={org} title="Loan follow-ups" subtitle="Assign repayments to relationship officers and track follow-up outcomes.">
+  <div className="workspace-links"><Link href="/dashboard/loans">Loan portfolio</Link><Link href="/dashboard/credit-reminders">Repayment reminders</Link></div>
   <div className="audience-kpis"><div className="audience-kpi"><span>Tasks in this view</span><strong>{safeTasks.length}</strong></div><div className="audience-kpi"><span>Past due in this view</span><strong>{openOverdue}</strong></div></div>
   {canCreate&&<section className="panel"><form method="get" className="audience-search"><label>Find loan by reference<input name="q" defaultValue={q} placeholder="Loan reference"/></label><button className="btn secondary">Find loan</button></form>
    {loanError&&<p className="feedback-error" role="alert">Unable to load loans for follow-up.</p>}

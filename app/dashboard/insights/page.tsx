@@ -9,7 +9,7 @@ export const dynamic='force-dynamic';
 type Params={from?:string;to?:string};
 export default async function OperationalInsightsPage({searchParams}:{searchParams:Promise<Params>}){
  const account=await currentAccount();if(!account)redirect('/login');
- if(!account.permissions.includes('operations.view')&&!account.permissions.includes('reports.view'))redirect('/dashboard');
+ if(!account.owner&&!account.permissions.includes('operations.view')&&!account.permissions.includes('reports.view'))redirect('/dashboard');
  const org=account.workspace.id;
  const params=await searchParams;
  const dates=parseOperationalDates(params.from,params.to);

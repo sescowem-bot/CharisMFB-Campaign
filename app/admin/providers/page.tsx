@@ -62,6 +62,7 @@ export default async function Providers(){
     </div>
     <div className="charis-provider-intro-actions">
      <Link className="btn secondary" href={"/dashboard/senders?org="+org}>Manage sending addresses</Link>
+     <Link className="btn secondary" href="/dashboard/zoho-smtp">Staff mailbox setup &amp; test</Link>
      <Link className="btn secondary" href="/admin/communications">Staff &amp; sending rules</Link>
     </div>
    </section>

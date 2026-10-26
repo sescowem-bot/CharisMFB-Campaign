@@ -15,7 +15,6 @@ export async function WorkspaceShell({title,subtitle,actions,children}:{
   title:string;subtitle?:string;actions?:ReactNode;org?:string;admin?:boolean;children:ReactNode;
 }) {
   const [account,assets,verifiedUser]=await Promise.all([currentAccount(),charisBrandAssets(),currentVerifiedUser()]);
-  const admin=account?.admin===true;
   const permitted=(key:string)=>account?.permissions?.includes(key)===true;
   const canAny=(...keys:string[])=>keys.some(permitted);
   const canAdmin=Boolean(account?.owner||canAny('staff.manage','access.manage','departments.manage','branches.manage','providers.manage','settings.manage','audit.view'));
@@ -23,7 +22,6 @@ export async function WorkspaceShell({title,subtitle,actions,children}:{
   const directAllowed=account?await canSendDirect(account.workspace.id):false;
   const canCommunicate=directAllowed||canAny('templates.manage','campaigns.view','campaigns.create','service_notices.view','service_notices.create','service_notices.approve','credit_reminders.view','credit_reminders.create');
   const canCredit=canAny('loans.view','loans.manage','loans.repayments','credit_reminders.view','credit_reminders.create','credit_reminders.approve','credit_reminders.queue','credit_reminders.dispatch','credit_followups.view','credit_followups.create','credit_followups.manage');
-  const liveSending=process.env.EMAIL_DELIVERY_ENABLED==='true';
   const email=verifiedUser?.email||'';
   const initials=(email.split('@')[0]||'C').replace(/[^a-z0-9]/gi,'').slice(0,2).toUpperCase()||'C';
   return <div className="app">
@@ -37,8 +35,6 @@ export async function WorkspaceShell({title,subtitle,actions,children}:{
       <nav aria-label="Charis workspace navigation">
         <NavLink href="/dashboard"><LayoutDashboard size={18}/> Dashboard</NavLink>
         {directAllowed&&<NavLink href="/dashboard/communications/new"><Send size={18}/> Create Campaign</NavLink>}
-        {canCommunicate&&<NavLink href="/dashboard/zoho-smtp"><Mail size={18}/> Zoho Mail &amp; Test</NavLink>}
-        {canCommunicate&&<NavLink href="/dashboard/zeptomail"><Mail size={18}/> ZeptoMail Notices</NavLink>}
         {canCommunicate&&<SidebarSection title="Campaigns" routes={['/dashboard/communications','/dashboard/templates','/dashboard/campaigns']}>
           <NavLink href="/dashboard/communications" exact><Mail size={18}/> All Campaigns</NavLink>
           {permitted('templates.manage')&&<NavLink href={forBank('/dashboard/templates')}><FileText size={18}/> Design Templates</NavLink>}
@@ -59,14 +55,15 @@ export async function WorkspaceShell({title,subtitle,actions,children}:{
         </SidebarSection>}
         <SidebarSection title="Workspace" routes={['/dashboard/tasks','/dashboard/reports','/dashboard/insights','/dashboard/notifications','/dashboard/help']}>
           {canAny('reminders.view','reminders.create')&&<NavLink href={forBank('/dashboard/tasks')}><ClipboardCheck size={18}/> My Tasks</NavLink>}
-          {canAny('reports.view','operations.view')&&<NavLink href={permitted('operations.view')?'/dashboard/insights':forBank('/dashboard/reports')}><Activity size={18}/> Reports</NavLink>}
+          {(account?.owner||permitted('reports.view'))&&<NavLink href="/dashboard/reports"><FileText size={18}/> Campaign Reports</NavLink>}
+          {(account?.owner||permitted('operations.view'))&&<NavLink href="/dashboard/insights"><Activity size={18}/> Operations Reports</NavLink>}
           <NavLink href="/dashboard/notifications"><Bell size={18}/> Notifications</NavLink>
           <NavLink href="/dashboard/help"><BookOpen size={18}/> Help & Guides</NavLink>
         </SidebarSection>
         {canAdmin&&<><div className="sidebar-label">Administration</div><NavLink href="/admin"><Settings2 size={18}/> Administration</NavLink></>}
       </nav>
       <div className="sidebar-foot">
-        <div className="user-card"><span className="avatar" aria-hidden="true">{initials}</span><div style={{minWidth:0}}><strong style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{email||'Charis staff'}</strong><small>{admin?'Administrator':'Authorised staff'}</small></div></div>
+        <Link className="user-card" href="/dashboard/profile" aria-label="View my profile and account permissions"><span className="avatar" aria-hidden="true">{initials}</span><div style={{minWidth:0}}><strong>My profile</strong><small>View account details</small></div></Link>
         <SignOutForm/>
       </div>
     </aside>
@@ -75,7 +72,7 @@ export async function WorkspaceShell({title,subtitle,actions,children}:{
         <label htmlFor="nav-toggle" className="menu-btn" aria-label="Open navigation"><Menu size={20}/></label>
         <div className="crumbs"><Link href="/dashboard">Charis</Link><ArrowRight size={13} aria-hidden="true"/><span className="topbar-title">{title}</span></div>
         <div className="topbar-spacer"/><Link className="charis-top-help" href="/dashboard/help"><ShieldCheck size={15}/> Help</Link>
-        {canAdmin&&<span className="topbar-env" title={liveSending?'Email delivery switch enabled; individual channels and workers may still be unavailable.':'Email delivery switch disabled.'}><span className={liveSending?'dot':'dot off'}/>{liveSending?'Email enabled':'Email disabled'}</span>}
+
       </header>
       <main className="page" id="main">
         <div className="page-head"><div><h1>{title}</h1>{subtitle&&<p>{subtitle}</p>}</div>{actions&&<div className="actions" style={{marginTop:0}}>{actions}</div>}</div>

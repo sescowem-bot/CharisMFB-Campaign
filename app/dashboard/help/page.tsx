@@ -11,6 +11,14 @@ export default async function Help(){
  const credit=account.permissions.some(x=>['loans.view','credit_reminders.view','credit_reminders.create'].includes(x));
  return <WorkspaceShell title="Help & Guides" subtitle="Quick guides for everyday work.">
   <StaffGettingStarted userId={account.id} contactsPath={manageContacts?`/dashboard/contacts?org=${org}`:"/dashboard/customers"} replay/>
+  <section className="panel">
+   <h2>Find the right report</h2>
+   <p className="muted">Campaign Reports show sending results and provide a CSV export. Operations Reports show available customer and credit activity; they are not official core-banking financial statements.</p>
+   <div className="actions">
+    {(account.owner||account.permissions.includes('reports.view'))&&<Link className="btn secondary" href="/dashboard/reports">Campaign Reports</Link>}
+    {(account.owner||account.permissions.includes('operations.view'))&&<Link className="btn secondary" href="/dashboard/insights">Operations Reports</Link>}
+   </div>
+  </section>
   <div className="admin-columns">
    <section className="panel"><h2>1. Create a campaign</h2><p>Choose Email or SMS, write your message, then select recipients.</p><Link className="inline-link" href="/dashboard/communications/new">Create Campaign →</Link></section>
    {viewContacts&&<section className="panel"><h2>2. Manage contacts</h2><p>Find customers, review contact details and organise groups.</p><Link className="inline-link" href={manageContacts?`/dashboard/contacts?org=${org}`:'/dashboard/customers'}>Open Contacts →</Link></section>}

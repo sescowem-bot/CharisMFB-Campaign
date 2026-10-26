@@ -43,9 +43,12 @@ export default async function LoanRegister({searchParams}:{searchParams:Promise<
  const totalOutstanding=currentRows.reduce((sum,l)=>sum+l.balance,0);
  const customerOptions=(matchingCustomers||[]).map(c=>({id:c.id,name:[c.first_name,c.last_name].filter(Boolean).join(' ')||c.email||'Customer'}));
  const queryUrl=(next:number)=>`/dashboard/loans?${new URLSearchParams({q,status,customer,page:String(next)})}`;
- return <WorkspaceShell title="Loan register" org={org} subtitle="Monitor assigned loan accounts, balances, repayments and overdue positions.">
-  {account.permissions.includes('credit_followups.view')&&<div className="workspace-links"><Link href="/dashboard/credit-followups">Credit follow-ups</Link></div>}
-  <section className="panel"><div className="notice"><strong>Internal credit records.</strong> This register is not connected to the core banking ledger. Confirm balances against the bank’s authorised loan records before acting. No customer notice is sent from this page.</div></section>
+ return <WorkspaceShell title="Loan portfolio" org={org} subtitle="Monitor assigned loan accounts, balances, repayments and overdue positions.">
+  <div className="workspace-links">
+   {account.permissions.includes('credit_reminders.view')&&<Link href="/dashboard/credit-reminders">Repayment reminders</Link>}
+   {account.permissions.includes('credit_followups.view')&&<Link href="/dashboard/credit-followups">Follow-up assignments</Link>}
+  </div>
+  <section className="panel"><div className="notice"><strong>Balance verification required.</strong> This operational loan register is not a live core-banking statement. Verify each balance and due date against authorised bank records before sending a reminder.</div></section>
   <div className="audience-kpis"><div className="audience-kpi"><span>Loans on this page</span><strong>{rows.length}</strong></div><div className="audience-kpi"><span>Overdue on this page</span><strong>{balanceError?'—':overdue}</strong></div><div className="audience-kpi"><span>Outstanding on this page</span><strong>{balanceError?'Unavailable':ngn(totalOutstanding)}</strong></div><div className="audience-kpi"><span>Records matching filters</span><strong>{count||0}</strong></div></div>
   <section className="panel"><h2>Find loan accounts</h2><form className="audience-search" method="get"><label>Loan reference<input name="q" defaultValue={q} placeholder="Search reference"/></label><label>Account status<select name="status" defaultValue={status}><option value="all">All</option><option value="active">Open</option><option value="settled">Settled</option></select></label><button className="btn secondary" type="submit">Search loans</button></form></section>
   {balanceError&&<p role="alert" className="feedback-error">Loan balances cannot be calculated. Contact the administrator before relying on this register.</p>}

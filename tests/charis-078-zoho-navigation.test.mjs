@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 
-test('Staff can find Zoho Mail and Test before environment variables are configured',()=>{
+test('Administrators can find Zoho Mail and Test in Email settings before configuration',()=>{
  const s=read('components/workspace-shell.tsx');
- assert.match(s,/\{canCommunicate&&<NavLink href="\/dashboard\/zoho-smtp"><Mail size=\{18\}\/> Zoho Mail &amp; Test<\/NavLink>\}/);
+ assert.doesNotMatch(s,/<NavLink href="\/dashboard\/zoho-smtp"/);
+ assert.match(read('app/admin/providers/page.tsx'),/href="\/dashboard\/zoho-smtp"/);
  assert.doesNotMatch(s,/directAllowed&&process\.env\.ZOHO_SMTP_USER/);
 });
 test('The Zoho page is bank-scoped, shows missing setup and account mismatch without revealing credentials',()=>{

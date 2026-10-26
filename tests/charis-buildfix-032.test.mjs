@@ -16,5 +16,6 @@ test('unused campaign workspace RPC and shell binding removed without altering s
   assert.doesNotMatch(campaigns, /\bownWorkspace\b/);
   assert.doesNotMatch(shell, /const workspace=org\|\|/);
   assert.match(campaigns, /const own=false/);
-  assert.match(shell, /EMAIL_DELIVERY_ENABLED==='true'/);
+  assert.doesNotMatch(shell, /topbar-env/);
+  assert.match(read('lib/delivery/worker.ts'), /EMAIL_DELIVERY_ENABLED/);
 });

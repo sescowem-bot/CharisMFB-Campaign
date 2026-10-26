@@ -12,7 +12,7 @@ export const dynamic='force-dynamic';
 export default async function ZeptoMailPage(){
  const [account,user]=await Promise.all([currentAccount(),currentVerifiedUser()]);
  if(!user)redirect('/login');
- if(!account||account.workspace.id!==charisOrgId())redirect('/dashboard');
+ if(!account||account.workspace.id!==charisOrgId()||!account.providerAdmin)redirect('/dashboard');
  const db=await supabaseServer();
  const {data:allowed}=await db.rpc('charis_direct_can_send',{p_org:account.workspace.id});
  if(allowed!==true)redirect('/dashboard');

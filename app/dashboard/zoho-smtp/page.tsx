@@ -13,7 +13,7 @@ export const dynamic='force-dynamic';
 export default async function MyZohoMailTest(){
  const [account,user]=await Promise.all([currentAccount(),currentVerifiedUser()]);
  if(!user)redirect('/login');
- if(!account||account.workspace.id!==charisOrgId())redirect('/dashboard');
+ if(!account||account.workspace.id!==charisOrgId()||!account.providerAdmin)redirect('/dashboard');
  const email=user.email||'';
  const smtpEmail=process.env.ZOHO_SMTP_USER||'';
  let ownsMailbox=false;

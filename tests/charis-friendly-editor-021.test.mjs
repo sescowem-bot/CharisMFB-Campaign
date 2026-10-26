@@ -16,7 +16,7 @@ test('existing domain and campaign sending restrictions are unchanged',()=>{
  const studio=read('components/campaign-studio.tsx');
  assert.match(studio,/selected_contacts/);
  assert.match(studio,/RecipientPicker/);
- assert.match(read('components/workspace-shell.tsx'),/Email disabled/);
+ assert.doesNotMatch(read('components/workspace-shell.tsx'),/topbar-env/);
  assert.match(read('lib/delivery/worker.ts'),/EMAIL_DELIVERY_ENABLED/);
 });
 test('four email designs use one structured schema and persist into template library',()=>{
