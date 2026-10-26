@@ -38,6 +38,7 @@ export async function WorkspaceShell({title,subtitle,actions,children}:{
         <NavLink href="/dashboard"><LayoutDashboard size={18}/> Dashboard</NavLink>
         {directAllowed&&<NavLink href="/dashboard/communications/new"><Send size={18}/> Create Campaign</NavLink>}
         {canCommunicate&&<NavLink href="/dashboard/zoho-smtp"><Mail size={18}/> Zoho Mail &amp; Test</NavLink>}
+        {canCommunicate&&<NavLink href="/dashboard/zeptomail"><Mail size={18}/> ZeptoMail Notices</NavLink>}
         {canCommunicate&&<SidebarSection title="Campaigns" routes={['/dashboard/communications','/dashboard/templates','/dashboard/campaigns']}>
           <NavLink href="/dashboard/communications" exact><Mail size={18}/> All Campaigns</NavLink>
           {permitted('templates.manage')&&<NavLink href={forBank('/dashboard/templates')}><FileText size={18}/> Design Templates</NavLink>}

@@ -125,6 +125,13 @@ export default async function Providers(){
       </details>
      </article>;
     })}
+    <article id="provider-zeptomail" className="charis-provider-main-card">
+     <header><div><h2>ZeptoMail</h2><p>Customer-specific transactional notices</p></div>
+      <span className="charis-provider-status is-setup">{process.env.ZEPTOMAIL_FROM_EMAIL&&process.env.ZEPTOMAIL_SMTP_PASSWORD?'Credentials present':'Setup required'}</span></header>
+     <p className="charis-provider-main-status">Transactional only — not general bulk campaigns</p>
+     <p className="charis-provider-guidance">Use ZeptoMail&apos;s separate Mail Agent credentials for account-related notifications, loan repayment reminders and receipts. Test before enabling customer sending.</p>
+     <Link href="/dashboard/zeptomail" className="btn secondary">Configure &amp; test ZeptoMail</Link>
+    </article>
     <article id="provider-sendgrid" className="charis-provider-main-card">
      <header><div><h2>SendGrid</h2><p>Additional email service</p></div><span className="charis-provider-status is-setup">Verification only</span></header>
      <p className="charis-provider-main-status">{credentialPresent?'API configuration found — verify your domain':'Not connected to customer sending'}</p>
