@@ -12,6 +12,7 @@ test('Administrators can find Zoho Mail and Test in Email settings before config
 test('The Zoho page is bank-scoped, shows missing setup and account mismatch without revealing credentials',()=>{
  const page=read('app/dashboard/zoho-smtp/page.tsx');
  assert.match(page,/account.workspace.id!==charisOrgId\(\)/);
+ assert.match(page,/!account.providerAdmin&&\(!user.email_confirmed_at\|\|!ownsMailbox\)/);
  assert.match(page,/Connect your bank mailbox first/);
  assert.match(page,/Your Charis login does not match the Zoho mailbox/);
  assert.match(page,/ZOHO_SMTP_TEST_ENABLED/);

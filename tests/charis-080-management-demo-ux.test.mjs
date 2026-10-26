@@ -25,10 +25,10 @@ test('Staff identity is accessed through profile rather than prominently showing
  assert.match(read('app/dashboard/profile/page.tsx'),/user.email/);
  assert.match(read('app/dashboard/profile/page.tsx'),/account.owner/);
 });
-test('Provider test pages are authorised administrator tools',()=>{
+test('Zoho mailbox owner can self-test; ZeptoMail remains provider-admin-only',()=>{
  const zoho=read('app/dashboard/zoho-smtp/page.tsx');
  const zepto=read('app/dashboard/zeptomail/page.tsx');
- assert.match(zoho,/!account.providerAdmin/);
+ assert.match(zoho,/!account.providerAdmin&&\(!user.email_confirmed_at\|\|!ownsMailbox\)/);
  assert.match(zepto,/!account.providerAdmin/);
 });
 test('Credit pages focus on repayment workflows and retain essential core-ledger caution',()=>{

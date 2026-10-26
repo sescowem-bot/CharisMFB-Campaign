@@ -13,11 +13,13 @@ export const dynamic='force-dynamic';
 export default async function MyZohoMailTest(){
  const [account,user]=await Promise.all([currentAccount(),currentVerifiedUser()]);
  if(!user)redirect('/login');
- if(!account||account.workspace.id!==charisOrgId()||!account.providerAdmin)redirect('/dashboard');
+ if(!account||account.workspace.id!==charisOrgId())redirect('/dashboard');
  const email=user.email||'';
  const smtpEmail=process.env.ZOHO_SMTP_USER||'';
  let ownsMailbox=false;
  try{ownsMailbox=Boolean(email&&smtpEmail&&mailbox(email)===mailbox(smtpEmail));}catch{/* Keep route usable if a mailbox environment variable is invalid. */}
+ // Technical settings remain in Administration, but the verified mailbox owner may use the personal self-test.
+ if(!account.providerAdmin&&(!user.email_confirmed_at||!ownsMailbox))redirect('/dashboard');
  const ready=Boolean(process.env.ZOHO_SMTP_TEST_ENABLED==='true'&&process.env.ZOHO_SMTP_HOST&&
   process.env.ZOHO_SMTP_APP_PASSWORD&&process.env.ZOHO_SMTP_USER);
  return <WorkspaceShell title="Zoho business mail" subtitle="Test your mailbox and send individual client correspondence manually">
