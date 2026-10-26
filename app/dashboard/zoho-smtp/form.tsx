@@ -7,7 +7,7 @@ export function MyZohoSmtpForm({ready,ownsMailbox}:{ready:boolean;ownsMailbox:bo
  const [state,action,pending]=useActionState(checkMyZohoSmtp,{});
  return <form action={action} className="admin-form">
   <div className="workspace-heading">
-   <div><h2>Test my Zoho SMTP connection</h2><p className="muted">Checks your mailbox login only. No customer email or marketing campaign is sent.</p></div>
+   <div><h2>Step 1 — Verify my Zoho connection</h2><p className="muted">Checks your mailbox login only. No customer email or marketing campaign is sent.</p></div>
    <PlugZap size={23}/>
   </div>
   <button type="submit" className="btn" disabled={!ready||!ownsMailbox||pending}>{pending?'Checking secure connection…':'Verify my SMTP connection'}</button>

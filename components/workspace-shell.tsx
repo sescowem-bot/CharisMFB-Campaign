@@ -37,6 +37,7 @@ export async function WorkspaceShell({title,subtitle,actions,children}:{
       <nav aria-label="Charis workspace navigation">
         <NavLink href="/dashboard"><LayoutDashboard size={18}/> Dashboard</NavLink>
         {directAllowed&&<NavLink href="/dashboard/communications/new"><Send size={18}/> Create Campaign</NavLink>}
+        {directAllowed&&process.env.ZOHO_SMTP_USER?.toLowerCase()===email.toLowerCase()&&<NavLink href="/dashboard/zoho-smtp"><Mail size={18}/> My Zoho Mail</NavLink>}
         {canCommunicate&&<SidebarSection title="Campaigns" routes={['/dashboard/communications','/dashboard/templates','/dashboard/campaigns']}>
           <NavLink href="/dashboard/communications" exact><Mail size={18}/> All Campaigns</NavLink>
           {permitted('templates.manage')&&<NavLink href={forBank('/dashboard/templates')}><FileText size={18}/> Design Templates</NavLink>}

@@ -1,0 +1,16 @@
+.charis-zoho-letter-form{display:grid;gap:15px}
+.charis-zoho-letter-form label{display:grid;gap:6px;color:#332451;font-size:13px;font-weight:700}
+.charis-zoho-letter-form input,.charis-zoho-letter-form textarea{width:100%;max-width:100%;box-sizing:border-box}
+.charis-zoho-letter-form textarea{white-space:pre-wrap;min-height:160px}
+.charis-zoho-letter-preview{background:#f7f5fc;border:1px solid #e8e1f2;border-radius:12px;padding:18px}
+.charis-zoho-letter-preview>strong{color:#3e2885}
+.charis-zoho-letter-preview dl{display:grid;gap:8px;margin:13px 0;font-size:12px}
+.charis-zoho-letter-preview dl>div{display:grid;grid-template-columns:68px minmax(0,1fr);gap:9px}
+.charis-zoho-letter-preview dt{color:#756a83}
+.charis-zoho-letter-preview dd{margin:0;color:#332451;overflow-wrap:anywhere}
+.charis-zoho-letter-preview-body{padding:18px;background:white;border-top:3px solid #40239a;min-height:80px;border-radius:8px}
+.charis-zoho-letter-preview-body>strong{color:#40239a}
+.charis-zoho-letter-preview-body p{white-space:pre-wrap;overflow-wrap:anywhere;color:#332451;line-height:1.6;font-size:13px}
+.charis-zoho-letter-form .charis-zoho-manual-confirm{display:flex;align-items:start;gap:11px;cursor:pointer;line-height:1.55}
+.charis-zoho-manual-confirm input{flex:none!important;width:17px!important;height:17px!important;margin-top:1px}
+@media(max-width:540px){.charis-zoho-letter-preview{padding:12px}.charis-zoho-letter-preview-body{padding:12px}}
