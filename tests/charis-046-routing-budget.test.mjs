@@ -4,9 +4,9 @@ import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL(`../${path}`,import.meta.url),'utf8');
 test('optional email budget read cannot suppress routing controls',()=>{
  const s=read('app/admin/providers/page.tsx');
- assert.match(s,/readErrors=\[routesResult,sendersResult,domainsResult\]\.filter\(r=>r\.error\)/);
- assert.doesNotMatch(s,/readErrors=\[routesResult,sendersResult,domainsResult,budgetResult\]/);
- assert.match(s,/routeErrorAreas/);
+ assert.match(s,/settings\.error\|\|senders\.error\|\|domains\.error/);
+ assert.doesNotMatch(s,/if\(monthly\.error\)return/);
+ assert.match(s,/monthly\.error\?/);
  assert.match(s,/ProviderRouteForm/);
 });
 test('production error boundary displays safe digest and return navigation',()=>{

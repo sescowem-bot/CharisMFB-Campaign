@@ -7,13 +7,13 @@ const css=read('app/charis-providers.css');
 const layout=read('app/layout.tsx');
 
 test('providers are ordered with Resend primary and retain all three provider forms',()=>{
- assert.match(page,/const providers=\[\.\.\.\(data\|\|\[\]\)\]\.sort/);
- assert.match(page,/\{resend:0,mailjet:1,brevo:2\}/);
+ assert.match(page,/const order:Provider\[\]=\['resend','brevo','mailjet'\]/);
+ assert.match(page,/order\.map\(provider=>/);
  for(const form of ['ProviderForm','ProviderLimitsForm','ProviderRouteForm','MailjetSenderConnect','BrevoSenderConnect'])assert.match(page,new RegExp(`<${form}\\b`));
 });
 test('provider detail sections are independently expandable, optional providers folded',()=>{
- assert.match(page,/charis-provider-disclosure/);
- assert.match(page,/open=\{p\.provider==='resend'\}/);
+ assert.match(page,/charis-provider-advanced/);
+ assert.match(page,/>Advanced settings<\/summary>/);
  assert.match(page,/charis-webhook-details/);
 });
 test('webhook URL stays contained and respects current secured endpoint',()=>{

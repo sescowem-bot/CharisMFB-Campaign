@@ -16,10 +16,13 @@ export function DirectProviderForm({provider,senders,current}:{provider:'resend'
  const [state,action,pending]=useActionState(directAdminAction,{});
  return <form className="admin-form" action={action}><input name="action" type="hidden" value="provider"/><input name="provider" type="hidden" value={provider}/>
  <h3>{provider==='resend'?'Resend':provider==='brevo'?'Brevo':'Mailjet'}</h3>
- <label>Verified service sender<select name="sender" required defaultValue={current?.sender_id||''}><option value="">Choose verified sender</option>{senders.map(s=><option key={s.id} value={s.id}>{s.name} — {s.email}</option>)}</select></label>
- <label>Priority (lower number first)<input name="priority" type="number" defaultValue={current?.priority??10} min={1} max={100}/></label>
- <label><input name="enabled" type="checkbox" defaultChecked={current?.enabled===true}/> Use for official bank service emails</label>
- <button className="btn secondary" disabled={pending||!senders.length}>Save sender preference</button>
+ <label>Send emails from<select name="sender" required defaultValue={current?.sender_id||''}><option value="">Choose a verified sender</option>{senders.map(s=><option key={s.id} value={s.id}>{s.name} — {s.email}</option>)}</select></label>
+ <label><input name="enabled" type="checkbox" defaultChecked={current?.enabled===true}/> Use this provider for Charis service emails</label>
+ <details className="charis-sender-order"><summary>Sending order (advanced)</summary>
+  <p className="muted">When more than one provider is enabled, the lower number is tried first.</p>
+  <label>Priority number<input name="priority" type="number" defaultValue={current?.priority??10} min={1} max={100}/></label>
+ </details>
+ <button className="btn secondary" disabled={pending||!senders.length}>Save email provider</button>
  {state.error&&<p role="alert" className="feedback-error">{state.error}</p>}{state.success&&<p role="status" className="feedback-success">{state.success}</p>}
  </form>;
 }

@@ -64,3 +64,51 @@ body.charis-premium .charis-provider-page .btn{max-width:100%;white-space:normal
 @media(max-width:1120px){body.charis-premium .charis-provider-form-grid,body.charis-premium .charis-provider-finance-grid{grid-template-columns:1fr}}
 @media(max-width:760px){body.charis-premium .charis-provider-state-grid,body.charis-premium .charis-provider-overview{grid-template-columns:1fr}body.charis-premium .charis-provider-intro{padding:20px}body.charis-premium .charis-provider-section-head{padding:18px}body.charis-premium .charis-provider-disclosure>summary{padding:14px 18px}body.charis-premium .charis-provider-disclosure-body{padding:14px}body.charis-premium .charis-provider-setting{padding:14px}body.charis-premium .charis-provider-finance-grid{padding:14px}body.charis-premium .charis-provider-page .admin-form .actions{flex-direction:column;align-items:stretch}body.charis-premium .charis-provider-page .admin-form .actions>.btn{width:100%}}
 @media(max-width:440px){body.charis-premium .charis-provider-intro-actions{width:100%}body.charis-premium .charis-provider-intro-actions .btn{width:100%}}
+
+/* Release 074: one provider hub, without duplicate routing forms crowding staff settings. */
+body.charis-premium .charis-provider-hub{gap:15px}
+body.charis-premium .charis-provider-hub .charis-provider-intro{padding:22px 24px}
+body.charis-premium .charis-provider-help{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+body.charis-premium .charis-provider-help>div{display:grid;gap:5px;background:#fff;border:1px solid #e7e1ef;border-radius:12px;padding:13px 15px}
+body.charis-premium .charis-provider-help strong{font-size:12px;color:#32215c}
+body.charis-premium .charis-provider-help span{font-size:11px;line-height:1.55;color:#766d87}
+body.charis-premium .charis-provider-main-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;align-items:start}
+body.charis-premium .charis-provider-main-card{display:flex;flex-direction:column;gap:12px;border:1px solid #e5dfed;border-radius:16px;background:#fff;padding:19px;box-shadow:0 2px 8px #20103e09;min-width:0;scroll-margin-top:90px}
+body.charis-premium .charis-provider-main-card>header{display:flex;align-items:start;justify-content:space-between;gap:8px}
+body.charis-premium .charis-provider-main-card h2{margin:0 0 4px;font-size:19px;line-height:1.25;color:#22133d}
+body.charis-premium .charis-provider-main-card header p{margin:0;font-size:12px;color:#817790;line-height:1.45}
+body.charis-premium .charis-provider-status{flex:none;display:inline-flex;border-radius:999px;padding:5px 9px;font-size:10px;font-weight:750;background:#f6f1e7;color:#8c602a;border:1px solid #efe1c3}
+body.charis-premium .charis-provider-status.is-ready{color:#226f48;background:#eaf7ee;border-color:#cbebd5}
+body.charis-premium .charis-provider-status.is-setup{color:#655b7c;background:#f5f3f9;border-color:#e6e1ee}
+body.charis-premium .charis-provider-main-status{margin:0;font-size:12px;font-weight:650;color:#533a82}
+body.charis-premium .charis-provider-active-sender{margin:0;overflow-wrap:anywhere;font-size:12px;color:#6e6380}
+body.charis-premium .charis-provider-primary-action .admin-form{margin:0;border:1px solid #eee8f5;background:#faf9fd;border-radius:11px;padding:13px}
+body.charis-premium .charis-provider-primary-action .admin-form h3{display:none}
+body.charis-premium .charis-provider-primary-action .admin-form label{font-size:12px;font-weight:700}
+body.charis-premium .charis-provider-primary-action .admin-form select,body.charis-premium .charis-provider-primary-action .admin-form input[type=number]{max-width:100%}
+body.charis-premium .charis-provider-primary-action .admin-form button{min-height:39px}
+body.charis-premium .charis-provider-guidance{font-size:12px;line-height:1.6;color:#776b87;margin:0}
+body.charis-premium .charis-provider-guidance p{margin:0 0 8px}
+body.charis-premium .charis-provider-guidance details{padding:8px 10px;background:#fbf9ff;border:1px solid #eee9f5;border-radius:9px;margin-top:8px}
+body.charis-premium .charis-provider-guidance summary{cursor:pointer;font-size:12px;font-weight:750;color:#46289f}
+body.charis-premium .charis-provider-advanced{border-top:1px solid #eae5f2;padding:12px 0 0;margin-top:auto}
+body.charis-premium .charis-provider-advanced>summary{font-size:12px;font-weight:800;color:#4b3293;cursor:pointer;list-style:revert}
+body.charis-premium .charis-provider-advanced[open]>summary{margin-bottom:12px}
+body.charis-premium .charis-provider-advanced-body{display:grid;gap:12px}
+body.charis-premium .charis-provider-advanced-body>*{min-width:0}
+body.charis-premium .charis-provider-advanced-body>.admin-form{margin:0;border:1px solid #eee8f5;border-radius:10px;padding:12px}
+body.charis-premium .charis-provider-advanced-body>div{border:1px solid #eee8f5;border-radius:10px;padding:12px}
+body.charis-premium .charis-provider-advanced-body h3{margin:0 0 5px;font-size:13px}
+body.charis-premium .charis-provider-help-link{font-size:12px;font-weight:750;color:#492b9a}
+body.charis-premium .charis-provider-domain-warning{background:#fff7ed;border:1px solid #f0dcb4;border-radius:12px;padding:14px 16px;color:#794a20}
+body.charis-premium .charis-provider-domain-warning strong{font-size:13px}
+body.charis-premium .charis-provider-domain-warning p{margin:4px 0 0;font-size:12px;line-height:1.55}
+body.charis-premium .charis-provider-footer-note{font-size:12px;line-height:1.5;color:#716784;margin:0}
+body.charis-premium .charis-provider-footer-note a{color:#47279c;font-weight:750}
+@media(max-width:930px){body.charis-premium .charis-provider-main-grid{grid-template-columns:1fr}}
+@media(max-width:630px){body.charis-premium .charis-provider-help{grid-template-columns:1fr}body.charis-premium .charis-provider-main-card{padding:14px}body.charis-premium .charis-provider-main-card>header{flex-wrap:wrap}}
+
+body.charis-premium .charis-sender-order{background:transparent;border:0;margin:0;padding:0}
+body.charis-premium .charis-sender-order>summary{font-size:11px;font-weight:700;color:#604ba0;cursor:pointer}
+body.charis-premium .charis-sender-order>p{font-size:11px;line-height:1.4;margin:6px 0;color:#786e89}
+body.charis-premium .charis-sender-order>label{display:block;margin-top:8px}

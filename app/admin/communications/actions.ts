@@ -19,7 +19,7 @@ export async function directAdminAction(_:State,form:FormData):Promise<State>{
    ({error}=await db.rpc('charis_direct_history_access_save',{p_org:org,p_user:z.uuid().parse(form.get('user')),p_allowed:form.get('can_manage_history')==='yes'}));
   }
   if(error)throw Error(error.message);
-  revalidatePath('/admin/communications');revalidatePath('/dashboard/communications');
+  revalidatePath('/admin/communications');revalidatePath('/admin/providers');revalidatePath('/dashboard/communications');
   return {success:'Communication settings saved.'};
  }catch(e){return {error:e instanceof Error?e.message:'Could not update communication settings.'};}
 }
