@@ -8,11 +8,12 @@ import {WorkspaceShell} from '@/components/workspace-shell';
 import {MyZohoSmtpForm} from './form';
 import {ZohoSelfTestForm,ZohoManualForm} from './manual-form';
 import {randomUUID} from 'node:crypto';
+import {charisOrgId} from '@/lib/bank';
 export const dynamic='force-dynamic';
 export default async function MyZohoMailTest(){
  const [account,user]=await Promise.all([currentAccount(),currentVerifiedUser()]);
  if(!user)redirect('/login');
- if(!account)redirect('/dashboard');
+ if(!account||account.workspace.id!==charisOrgId())redirect('/dashboard');
  const email=user.email||'';
  const smtpEmail=process.env.ZOHO_SMTP_USER||'';
  let ownsMailbox=false;
@@ -26,6 +27,15 @@ export default async function MyZohoMailTest(){
    <p className="muted">Use the exact outgoing server shown in your Zoho mailbox’s SMTP tab. Do not enter or share your normal password here.</p>
    <p><Link href="https://accounts.zoho.com/home#security" target="_blank">Manage Zoho app-specific passwords</Link></p>
   </section>
+  {!ready&&<section className="panel" role="status">
+   <h2>Connect your bank mailbox first</h2>
+   <p className="muted">The Zoho SMTP details are not configured for this project yet. Add your own Zoho SMTP host, port, mailbox and app-specific password in Vercel, then redeploy once.</p>
+   <p className="muted">Enable ZOHO_SMTP_TEST_ENABLED for testing. Client sending requires SQL 077 and ZOHO_SMTP_MANUAL_CLIENT_ENABLED as separate administrator steps.</p>
+  </section>}
+  {ready&&!ownsMailbox&&<section className="panel" role="note">
+   <h2>Your Charis login does not match the Zoho mailbox</h2>
+   <p className="muted">This tester only authorises the matching bank mailbox owner. Please sign in to Charis with the same verified email as ZOHO_SMTP_USER; you do not need the Zoho organisation administrator password.</p>
+  </section>}
   <section className="panel"><MyZohoSmtpForm ready={ready} ownsMailbox={ownsMailbox}/></section>
   <section className="panel"><ZohoSelfTestForm enabled={ready&&ownsMailbox}/></section>
   <section className="panel"><ZohoManualForm ready={ready&&ownsMailbox}

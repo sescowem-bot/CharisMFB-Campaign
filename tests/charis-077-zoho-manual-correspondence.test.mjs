@@ -56,7 +56,8 @@ test('Letter templates are escaped and use one-to-one business formatting',()=>{
 test('Staff-only Zoho page is discoverable without adding bulk Zoho provider',()=>{
  const shell=read('components/workspace-shell.tsx');
  assert.match(shell,/href="\/dashboard\/zoho-smtp"/);
- assert.match(shell,/process.env.ZOHO_SMTP_USER\?\.toLowerCase\(\)===email.toLowerCase\(\)/);
+ assert.match(shell,/canCommunicate&&<NavLink href="\/dashboard\/zoho-smtp"/);
+ assert.match(read('app/dashboard/zoho-smtp/actions.ts'),/mailbox\(user.email\)!==config.user/);
  const sender=read('app/admin/providers/page.tsx');
  assert.doesNotMatch(sender,/provider='zoho'/);
 });
