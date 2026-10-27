@@ -1,80 +1,85 @@
 # Charis Campaign Centre
 
-**Internal customer-communications application for Charis Microfinance Bank Ltd.**
+An internal staff application for **Charis Microfinance Bank** covering customer communications, email templates, authorised sending, delivery outcomes, loan follow-up workflows and staff administration.
 
-This repository contains the working Next.js application, Supabase migrations, campaign delivery code and automated tests. The bank's logo, premium purple/green styling and staff interface are included. The product is **single-company**, although some historical database structures remain for backwards compatibility.
+The application is designed for one bank organisation. It is **not** a public SaaS product and is not a replacement for the bank's core banking system.
 
-## Latest continuation
+## Technology
 
-Batch 4 credit reminders and held delivery staging: see [MD/CHARIS_BATCH_4_032_CREDIT_REMINDERS.md](MD/CHARIS_BATCH_4_032_CREDIT_REMINDERS.md). This complete source archive contains the earlier Batch 1–3 modules plus migrations through **032**. Apply only missing migrations in order, after backup and staging verification. This source is not a live-deployment certificate.
+- **Frontend / server:** Next.js 15 App Router, React 19, TypeScript
+- **Data and authentication:** Supabase Auth, PostgreSQL, row-level security and permission-controlled database functions
+- **Deployment:** Vercel, connected to the GitHub default branch
+- **Delivery:** Provider-specific email integrations and webhook reconciliation
+- **Email design:** Template Studio with saved designs and staff preview
+- **Runtime:** Node.js 24
 
-## Start here
+## Staff workflows
 
-- [System overview](MD/SYSTEM_OVERVIEW.md) — modules and what is implemented.
-- [Architecture and workflows](MD/ARCHITECTURE_AND_WORKFLOWS.md) — the application, recipient eligibility and approval flow.
-- [Brand and UI](MD/DESIGN_SYSTEM.md) — Charis colors and interface principles.
-- [Set up and deploy](MD/SETUP_AND_DEPLOYMENT.md) — environment variables, migrations and release steps.
-- [Security and communication preferences](MD/SECURITY_AND_COMMUNICATION_PREFERENCES.md) — promotions, unsubscribes and account notices.
-- [Testing and release](MD/TESTING_AND_RELEASE.md) — quality gates and changes.
-- [Email provider routing](MD/EMAIL_DELIVERY_ROUTING.md) — migration 025, credentials, provider policy, queue and webhooks.
-- [Maintainer instructions](MD/AGENTS.md) — development conventions.
+1. An authorised bank administrator invites a staff member using the **Team** module.
+2. The staff member accepts the invitation and sets a personal password. The sign-in screen also supports password recovery.
+3. Role and action permissions determine which sections of the application the staff member can see and use.
+4. Authorised staff manage contacts, import CSV/XLSX contact records, create or reuse templates and prepare campaigns.
+5. The bank's approved sender identity and message purpose determine the permitted email delivery route.
+6. Staff monitor provider acknowledgements, callbacks, suppressions and exceptions from campaign history and reports.
+7. Credit staff view loan accounts, create repayment follow-ups and prepare reminders after reconciling balances with bank records.
 
-## Run locally
+**Important:** Provider acceptance is not proof of inbox delivery. Opens and clicks, if reported, may include automated traffic and are not proof of customer conversion.
 
-Node.js **24** required:
+## Credit operations
 
-```bash
-npm ci
-cp .env.charis.example .env.local
-npm run typecheck
-npm run lint
-npm test
-npm run build
-```
+Current source includes:
 
-Configure `.env.local` with actual non-public Supabase and email-provider credentials; never commit secrets. On Windows, copy the example file manually or run `copy .env.charis.example .env.local`.
+- An internal loan register and manual repayment updates.
+- Staff follow-up tasks and private in-app notifications.
+- Loan reminder preparation, review and held delivery records.
+- A due-date candidate scan that can be run on a schedule **when configured and enabled**.
+- A protected, individually triggered loan-service email action using the bank's permitted provider and authorisation flags.
+- A **monthly loan CSV/XLSX review page** for checking references, balances, dates, missing contact details and duplicate rows.
 
-## Database and production
+The monthly review page is **preview-only**. It does not update loan balances or automatically send messages. There is **no live core-banking integration or production-certified fully automatic borrower delivery** in this repository. Any future bulk import must reconcile source files against approved loan accounts and record authorised changes in an auditable transaction.
 
-Migrations are kept in **`supabase/migrations/` (001–032)** and must be reviewed/applied sequentially on an existing database. **Do not rerun the fresh-install SQL on a database containing customers or campaigns.** This source is not a production acceptance certificate: database authorisation, staff access, approved sender, background delivery worker, suppression rules and live sending must all pass hosted tests before use.
+## Authentication and staff account setup
 
-SMS pilot is implemented for controlled staff tests; live account-service broadcasts are not implemented. Promotional sending must respect documented consent, unsubscribe preferences and independent approval. See `MD/SECURITY_AND_COMMUNICATION_PREFERENCES.md`.
+- Supabase Auth remains responsible for invitation/recovery tokens and sessions.
+- Charis provides branded staff-facing setup, recovery and password-change screens.
+- The bank's Supabase Auth configuration must allow the official application URLs used for invitation and recovery redirects.
+- Production invitations and password reset messages require an approved, authenticated sender (custom SMTP or secured email hook), configured by IT. Default Supabase email sending is **not** the bank's final branded setup.
+- Every staff member uses an individual login. A product owner should never share personal credentials with bank administrators.
+- Bank administrators manage allowed staff privileges. Technical service credentials are server-only.
 
+## Development setup
 
-SMS pilot: see [MD/SMS_AND_SENDGRID.md](MD/SMS_AND_SENDGRID.md). Apply migration 023 after 022.
+Use Node.js **24** and an authorised copy of the application environment.
 
-Provider-aware email delivery: migration 025 is required before using the new worker. Both live sending gates default to **off**. Read [MD/EMAIL_DELIVERY_ROUTING.md](MD/EMAIL_DELIVERY_ROUTING.md) before any customer sending.
+    npm ci
+    npm run lint
+    npm run typecheck
+    npm test
+    npm run build
+    npm run test:smoke
 
+Start a local development server with:
 
-## Department workspaces and visual templates
+    npm run dev
 
-See `MD/DEPARTMENTS_AND_REMINDERS.md` for Migration 026, internal reminders, department access and bank-approved image/shape email design.
+Do not put secret credentials in the repository or expose privileged service keys through browser-prefixed environment variables.
 
+## Operational safeguards
 
-## Batch 3 continuation (SQL 031)
+- Apply only **missing** database migrations after backup and staging tests; never rerun a historical installer over customer data.
+- Verify role permissions at database/API level. Hiding a button alone does not provide security.
+- Configure verified bank sender domains, SPF/DKIM/DMARC as applicable, rate limits and authentic provider callbacks.
+- Send promotional email only where customer preferences and the chosen provider permit it. Service messages are governed separately.
+- Keep bulk sending and unattended credit messages disabled until bank IT, Credit, Risk/Compliance and management sign off.
+- Reconcile uncertain provider outcomes before attempting another send. Avoid duplicate customer notices.
+- Validate restore procedures, privileged access and audit logs before production acceptance.
 
-This source archive adds the Loan Register and a separate **account-service notice draft and review** workflow. Install only missing migrations in sequence, with `031_charis_loan_register.sql` after 030. This batch does not send loan or account notices. Read [Batch 3 rollout and permissions](MD/CHARIS_BATCH_3_031_COMMUNICATIONS_AND_LOANS.md) before using.
+## Release verification
 
+The GitHub **Quality checks** workflow runs lint, type checking, tests, build, smoke checks and package auditing. A successful push does **not** by itself certify production readiness. Read the latest Actions run and resolve failures before relying on the changes in the bank.
 
-## Batch 4 continuation (SQL 032)
+The application's actual implementation and live configuration are the technical sources of truth. Older project notes may describe earlier prototypes or features that have not been enabled, verified or deployed.
 
-Credit Reminder Centre now prepares authorised loan reminder drafts, enforces independent or expressly delegated review, and stages approved batches as **HELD ONLY** delivery records. No Batch 4 worker dispatches these records. Use the [Batch 4 release and operations notes](MD/CHARIS_BATCH_4_032_CREDIT_REMINDERS.md) before staging.
+## Ownership and access
 
-
-## Batch 5 — internal follow-ups and staff notifications (Migration 033)
-
-Migration `033_charis_credit_followups_notifications.sql` adds scoped loan-linked staff follow-ups and a private in-app notification inbox. The source also improves the customer workspace filters. See `MD/CHARIS_BATCH_5_033_FOLLOWUPS_AND_CUSTOMER_FILTERS.md`. Customer messages are **not** sent by this module. Run Migration 033 only after the corrected 032 is already installed. For a read-only database check, run `supabase/verification/033_charis_credit_followups_verify.sql`.
-
-
-## Batch 6 — Operational insights and audit (Migration 034)
-
-See [`MD/CHARIS_BATCH_6_034_OPERATIONS_REPORTING.md`](MD/CHARIS_BATCH_6_034_OPERATIONS_REPORTING.md) for permission-scoped credit oversight, auditing and installation. Migration 033 is required before applying 034. These reports do not activate customer email or SMS.
-
-## Final source hardening (035 — no database migration)
-
-See [`MD/CHARIS_FINAL_RELEASE_HARDENING_035.md`](MD/CHARIS_FINAL_RELEASE_HARDENING_035.md) for the scoped sender-test and provider-admin safeguards, Node 24 quality gates, and release-readiness verification. This release requires **no new SQL migration**. Confirm whether migrations 033–034 were previously applied; do not repeat them without checking. Live customer sending remains disabled pending acceptance.
-
-
-## Release 036: SendGrid connection checks and production gate
-
-See [Production Readiness & SendGrid](MD/CHARIS_036_PRODUCTION_READINESS_AND_SENDGRID.md). New SendGrid support is domain verification and sandbox request validation only. **No live customer delivery route is enabled for SendGrid.**
+Source access, software licensing, bank data ownership, hosting responsibilities, maintenance and technical handover should be addressed under a separate written agreement. Avoid uploading real customer files, secrets or authentication tokens to this repository.
