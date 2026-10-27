@@ -5,6 +5,7 @@ import {supabaseBrowser} from '@/lib/supabase/browser';
 export function SetStaffPassword(){
  const [password,setPassword]=useState(''),[confirm,setConfirm]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[ready,setReady]=useState(false);
  const router=useRouter();
+ const [show,setShow]=useState(false);
  useEffect(()=>{
   let active=true;
   async function initialize(){
@@ -27,7 +28,7 @@ export function SetStaffPassword(){
  async function submit(event:FormEvent){
   event.preventDefault();setError('');
   if(password!==confirm){setError('Passwords do not match.');return;}
-  if(password.length<12){setError('Please choose a password with at least 12 characters.');return;}
+  if(password.length<8){setError('Please choose a password with at least 8 characters.');return;}
   setBusy(true);
   try{const db=supabaseBrowser();const {data:{user}}=await db.auth.getUser();if(!user)throw new Error('Your invitation session has expired. Request another invitation from a Charis administrator.');
    const {error}=await db.auth.updateUser({password});if(error)throw error;
@@ -36,7 +37,8 @@ export function SetStaffPassword(){
  }
  return <section className="panel" style={{maxWidth:520,margin:'0 auto'}}><h1>Charis Campaign Centre</h1><h2>Set your staff password</h2>
  <p className="muted">Confirm your staff invitation and choose a password to finish setting up your Charis account.</p>
- <form onSubmit={submit} className="admin-form"><label>New password<input type="password" autoComplete="new-password" required minLength={12} value={password} onChange={e=>setPassword(e.target.value)}/></label>
- <label>Confirm password<input type="password" autoComplete="new-password" required minLength={12} value={confirm} onChange={e=>setConfirm(e.target.value)}/></label>
+ <form onSubmit={submit} className="admin-form"><label>New password<input type={show?'text':'password'} autoComplete="new-password" required minLength={8} value={password} onChange={e=>setPassword(e.target.value)}/></label>
+ <label>Confirm password<input type={show?'text':'password'} autoComplete="new-password" required minLength={8} value={confirm} onChange={e=>setConfirm(e.target.value)}/></label>
+ <button className="btn secondary" type="button" onClick={()=>setShow(v=>!v)}>{show?"Hide passwords":"Show passwords"}</button>
  <button className="btn" type="submit" disabled={busy||!ready}>{busy?'Saving password…':ready?'Complete staff setup':'Verifying invitation…'}</button>{error&&<p role="alert" className="feedback-error">{error}</p>}</form></section>;
 }

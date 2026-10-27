@@ -8,7 +8,6 @@ import {ProviderRouteForm,MailjetSenderConnect,BrevoSenderConnect,MonthlyEmailBu
 import {ProviderCapacityPlanner} from '@/components/provider-capacity-planner';
 import {DirectProviderForm} from '@/components/direct-admin-forms';
 import {BrevoStaffCheck} from '@/components/brevo-staff-check';
-import {SendgridCheckForm} from '../sendgrid/check-form';
 import {providerHubState} from '@/lib/email/provider-hub-status';
 
 export const dynamic='force-dynamic';
@@ -48,7 +47,6 @@ export default async function Providers(){
   const d=domainMap.get(s.domain_id);return s.is_active&&d?.provider===provider&&d.verification_status==='verified';
  }).map(s=>({id:s.id,name:s.from_name,email:s.from_email}));
  const canSetService=directAccess.error===null&&directAccess.data===true&&!directPrefs.error;
- const credentialPresent=Boolean(process.env.SENDGRID_API_KEY&&process.env.SENDGRID_FROM_EMAIL);
  const deliveryEnabled=process.env.EMAIL_DELIVERY_ENABLED==='true';
  const providerHasApi=(provider:Provider)=>Boolean(process.env[provider==='resend'?'RESEND_API_KEY':provider==='brevo'?'BREVO_API_KEY':'MAILJET_API_KEY']);
  const flaggedSender=(senders.data||[]).filter(s=>s.is_active&&s.from_email.toLowerCase().endsWith('@salemmedicals.com'));
@@ -133,20 +131,7 @@ export default async function Providers(){
      <p className="charis-provider-guidance">Use ZeptoMail&apos;s separate Mail Agent credentials for account-related notifications, loan repayment reminders and receipts. Test before enabling customer sending.</p>
      <Link href="/dashboard/zeptomail" className="btn secondary">Configure &amp; test ZeptoMail</Link>
     </article>
-    <article id="provider-sendgrid" className="charis-provider-main-card">
-     <header><div><h2>SendGrid</h2><p>Additional email service</p></div><span className="charis-provider-status is-setup">Verification only</span></header>
-     <p className="charis-provider-main-status">{credentialPresent?'API configuration found — verify your domain':'Not connected to customer sending'}</p>
-     <p className="charis-provider-guidance">SendGrid can be checked here, but it cannot yet send Charis customer campaigns. A full delivery integration and unsubscribe/event processing must be completed before activation.</p>
-     <details className="charis-provider-advanced">
-      <summary>{credentialPresent?'Verify SendGrid connection':'Set up SendGrid'}</summary>
-      <div className="charis-provider-advanced-body">
-       {!credentialPresent&&<p className="muted">Add SENDGRID_API_KEY and SENDGRID_FROM_EMAIL to the project&apos;s secure Vercel environment. Do not paste API keys into this page.</p>}
-       <SendgridCheckForm/>
-       <p className="muted">Connection checks do not enable sending or send customer messages.</p>
-      </div>
-     </details>
-     <Link className="charis-provider-help-link" href="/admin/sendgrid">SendGrid setup details</Link>
-    </article>
+
    </section>
    <details className="charis-provider-finance">
     <summary>Advanced: limits, capacity and delivery controls</summary>

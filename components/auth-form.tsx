@@ -38,6 +38,7 @@ export function AuthForm({mode}:{mode:'login'|'register'}) {
   <label htmlFor="charis-auth-password">Password<div className="charis-password-field"><input id="charis-auth-password" required minLength={8} type={showPassword?'text':'password'} autoComplete={mode==='login'?'current-password':'new-password'} value={password} onChange={e=>setPassword(e.target.value)} style={{display:'block',marginTop:7}}/><button type="button" className="charis-password-toggle" aria-label={showPassword?'Hide password':'Show password'} onClick={()=>setShowPassword(v=>!v)}>{showPassword?<EyeOff size={16}/>:<Eye size={16}/>}</button></div></label>
   <button className="btn" disabled={busy} type="submit" style={{width:'100%'}}><LockKeyhole size={17}/>{busy?'Please wait…':mode==='login'?'Secure sign in':'Create account'}</button>
   {message&&<p role="status" aria-live="polite" className="notice" style={{margin:0}}>{message}</p>}
+  {mode==='login'&&<p><Link className="inline-link" href="/auth/forgot-password">Forgot your password?</Link></p>}
   {mode==='register'&&<p>Already registered? <Link className="inline-link" href="/login">Sign in</Link></p>}
   <p className="muted" style={{fontSize:12,margin:0}}>Access is restricted to authorised staff. Never share your password.</p>
  </form>;

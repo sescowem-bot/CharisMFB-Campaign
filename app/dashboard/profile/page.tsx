@@ -21,6 +21,7 @@ export default async function Profile(){
     <div><dt>Email verified</dt><dd>{user.email_confirmed_at?'Verified':'Verification required'}</dd></div>
    </dl>
    <p className="muted">Your administrator manages system access and sending permissions. For security, provider credentials and private API keys are not displayed.</p>
+   <p><Link className="btn secondary" href="/dashboard/profile/change-password">Change password</Link> <Link className="inline-link" href="/auth/forgot-password">Forgot password?</Link></p>
    {account.admin&&<p><Link className="btn secondary" href="/admin">Open administration</Link></p>}
   </section>
   <p><Link href="/dashboard" className="inline-link">Return to dashboard</Link></p>

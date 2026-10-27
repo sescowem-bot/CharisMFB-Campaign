@@ -45,6 +45,7 @@ export default async function LoanRegister({searchParams}:{searchParams:Promise<
  const queryUrl=(next:number)=>`/dashboard/loans?${new URLSearchParams({q,status,customer,page:String(next)})}`;
  return <WorkspaceShell title="Loan portfolio" org={org} subtitle="Monitor assigned loan accounts, balances, repayments and overdue positions.">
   <div className="workspace-links">
+   {account.permissions.includes("loans.manage")&&<Link href="/dashboard/loans/import">Review monthly loan file</Link>}
    {account.permissions.includes('credit_reminders.view')&&<Link href="/dashboard/credit-reminders">Repayment reminders</Link>}
    {account.permissions.includes('credit_followups.view')&&<Link href="/dashboard/credit-followups">Follow-up assignments</Link>}
   </div>
