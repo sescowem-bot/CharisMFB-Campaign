@@ -51,7 +51,7 @@ export function CreditMonthlyImportPreview(){
   setBusy(true);
   try{
    const ext=file.name.split('.').pop()?.toLowerCase();
-   const data:unknown[][]=ext==='csv'?parseCsv((await file.text()).replace(/^\uFEFF/,'')):ext==='xlsx'?(await import('read-excel-file/browser')).default?await (await import('read-excel-file/browser')).default(file):[]:[];
+   const data:unknown[][]=ext==='csv' ? parseCsv((await file.text()).replace(/^\uFEFF/,'')) : ext==='xlsx' ? (await (await import('read-excel-file/browser')).default(file)) as unknown as unknown[][] : [];
    if(ext!=='csv'&&ext!=='xlsx')throw Error('Choose .csv or .xlsx');
    setItems(review(data));setName(file.name);
   }catch(err){setError(err instanceof Error?err.message:'Unable to inspect file.');}
