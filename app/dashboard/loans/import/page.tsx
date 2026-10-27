@@ -10,3 +10,4 @@ export default async function LoanImport(){
   <p><Link className="inline-link" href="/dashboard/loans">Back to loan portfolio</Link></p>
   <CreditMonthlyImportPreview/>
  </WorkspaceShell>;
+}
