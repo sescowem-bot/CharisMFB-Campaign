@@ -19,6 +19,7 @@ export default async function Help(){
     {(account.owner||account.permissions.includes('operations.view'))&&<Link className="btn secondary" href="/dashboard/insights">Operations Reports</Link>}
    </div>
   </section>
+  <section className="panel"><h2>Install Charis on your computer</h2><p>Open Charis Campaign Centre from your desktop or Start menu with your existing staff login.</p><Link className="btn secondary" href="/dashboard/install">Install App</Link></section>
   <div className="admin-columns">
    <section className="panel"><h2>1. Create a campaign</h2><p>Choose Email or SMS, write your message, then select recipients.</p><Link className="inline-link" href="/dashboard/communications/new">Create Campaign →</Link></section>
    {viewContacts&&<section className="panel"><h2>2. Manage contacts</h2><p>Find customers, review contact details and organise groups.</p><Link className="inline-link" href={manageContacts?`/dashboard/contacts?org=${org}`:'/dashboard/customers'}>Open Contacts →</Link></section>}

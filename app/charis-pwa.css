@@ -1,0 +1,17 @@
+/* Branded install controls without extra framework dependencies. */
+.charis-premium .charis-install-hero{display:flex;align-items:center;gap:19px;background:linear-gradient(110deg,#fff 15%,#f7f4ff 100%);margin-bottom:18px}
+.charis-install-hero img{border-radius:16px;border:1px solid #e7def4;flex-shrink:0}
+.charis-install-hero strong{font-size:20px;color:#301d68}
+.charis-install-hero p{margin:7px 0 0;color:#655a74;line-height:1.55}
+.charis-install-section{max-width:760px}
+.charis-install-section h2{font-size:21px;margin:0 0 8px}
+.charis-install-section>p{color:#625d71;line-height:1.6}
+.charis-install-steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:22px 0}
+.charis-install-steps>div{padding:18px;border:1px solid #e4ddf1;border-radius:14px;background:#fcfaff}
+.charis-install-steps strong{color:#302068;font-size:15px}
+.charis-install-steps p{font-size:14px;line-height:1.6;color:#655a74;margin:7px 0 0}
+.charis-install-note{background:#f8f7fc;padding:13px 15px;border-radius:10px;font-size:13px}
+.charis-install-success{background:#f0faf4;color:#165d39!important;border:1px solid #cdebd8;padding:14px 16px;border-radius:12px}
+.charis-premium .charis-top-install{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:#40239a;border:1px solid #ddd4ee;padding:8px 10px;border-radius:10px;background:#fff}
+.charis-premium .charis-top-install:hover{background:#f7f3ff}
+@media(max-width:650px){.charis-install-steps{grid-template-columns:1fr}.charis-premium .charis-top-install{font-size:12px}.charis-install-hero strong{font-size:17px}}

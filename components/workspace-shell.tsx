@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type {ReactNode} from 'react';
-import {Activity,ArrowRight,Bell,CalendarClock,ClipboardCheck,FileText,Landmark,LayoutDashboard,Mail,Menu,Settings2,ShieldCheck,Users,UserPlus,Upload,Layers,Send,BookOpen} from 'lucide-react';
+import {Activity,ArrowRight,Bell,CalendarClock,ClipboardCheck,FileText,Landmark,LayoutDashboard,Mail,Menu,Settings2,ShieldCheck,Users,UserPlus,Upload,Layers,Send,BookOpen,Download} from 'lucide-react';
 import {currentAccount} from '@/lib/auth/account';
 import {currentVerifiedUser} from '@/lib/auth/current-user';
 import {canSendDirect} from '@/lib/auth/direct-send-access';
@@ -71,7 +71,7 @@ export async function WorkspaceShell({title,subtitle,actions,children}:{
       <header className="topbar">
         <label htmlFor="nav-toggle" className="menu-btn" aria-label="Open navigation"><Menu size={20}/></label>
         <div className="crumbs"><Link href="/dashboard">Charis</Link><ArrowRight size={13} aria-hidden="true"/><span className="topbar-title">{title}</span></div>
-        <div className="topbar-spacer"/><Link className="charis-top-help" href="/dashboard/help"><ShieldCheck size={15}/> Help</Link>
+        <div className="topbar-spacer"/><Link className="charis-top-install" href="/dashboard/install"><Download size={15}/> Install App</Link><Link className="charis-top-help" href="/dashboard/help"><ShieldCheck size={15}/> Help</Link>
 
       </header>
       <main className="page" id="main">
