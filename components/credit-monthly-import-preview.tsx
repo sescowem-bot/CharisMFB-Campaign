@@ -26,7 +26,7 @@ function review(data:unknown[][]):Loan[]{
  if(ref<0||balance<0||due<0)throw Error('Required: loan_reference, outstanding, due_date.');
  const seen=new Set<string>();
  return data.slice(1).filter(r=>r.some(v=>String(v??'').trim())).map((r,i)=>{
-  const at=(col:number)=>col<0?'':String(r[col]??'').trim();
+  const at=(col:number)=>{const v=col<0?null:r[col];return v instanceof Date&&!Number.isNaN(v.getTime())?v.toISOString().slice(0,10):String(v??'').trim();};
   const key=at(ref),person=at(name),mail=at(email),tel=at(phone);
   const raw=at(balance).replace(/[₦,\s]/g,'');const val=raw?Number(raw):NaN;
   const amount=Number.isFinite(val)&&val>=0&&val<1e13?Math.round(val*100)/100:null;
@@ -51,7 +51,7 @@ export function CreditMonthlyImportPreview(){
   setBusy(true);
   try{
    const ext=file.name.split('.').pop()?.toLowerCase();
-   const data:unknown[][]=ext==='csv' ? parseCsv((await file.text()).replace(/^\uFEFF/,'')) : ext==='xlsx' ? (await (await import('read-excel-file/browser')).default(file)) as unknown as unknown[][] : [];
+   const data:unknown[][]=ext==='csv' ? parseCsv((await file.text()).replace(/^\uFEFF/,'')) : ext==='xlsx' ? (await (await import('read-excel-file/browser')).readSheet(file)) as unknown as unknown[][] : [];
    if(ext!=='csv'&&ext!=='xlsx')throw Error('Choose .csv or .xlsx');
    setItems(review(data));setName(file.name);
   }catch(err){setError(err instanceof Error?err.message:'Unable to inspect file.');}
