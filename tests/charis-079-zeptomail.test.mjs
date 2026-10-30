@@ -62,5 +62,6 @@ test('ZeptoMail is visible as its own transactional card and navigation link, ne
  assert.match(p,/Transactional only/);
  assert.match(p,/href="\/dashboard\/zeptomail"/);
  assert.doesNotMatch(nav,/<NavLink href="\/dashboard\/zeptomail"/);
- assert.doesNotMatch(read('lib/direct/dispatch.ts'),/zeptoTransport/);
+ assert.match(read('lib/direct/dispatch.ts'),/sendZeptoNotification/);
+ assert.match(read('lib/direct/dispatch.ts'),/m.purpose!=='account_update'/);
 });

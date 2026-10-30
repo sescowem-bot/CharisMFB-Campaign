@@ -18,8 +18,8 @@ test('Email provider selection appears at final approval, defaults to Automatic 
 test('Provider choice enforced server-side and saved atomically with the campaign before any worker can claim it',()=>{
  const action=read('app/dashboard/communications/actions.ts');
  const sql=read('supabase/migrations/075_charis_campaign_provider_choice.sql');
- assert.match(action,/z\.enum\(\['auto','resend','brevo','mailjet'\]\)/);
- assert.match(action,/selectedProvider!=='auto'&&!readiness\.providers\.some/);
+ assert.match(action,/z\.enum\(\['auto','resend','brevo','mailjet','zeptomail'\]\)/);
+ assert.match(action,/selectedProvider!=='auto'&&!zeptoSelected&&!readiness\.providers\.some/);
  assert.match(action,/selectedProvider==='auto'/);
  assert.match(action,/charis_direct_create_v2/);
  assert.match(action,/charis_direct_create_provider_075/);
@@ -33,7 +33,7 @@ test('Provider choice enforced server-side and saved atomically with the campaig
 });
 test('Queued and approved later sends honour stored provider choice, without silent provider failover',()=>{
  const s=read('lib/direct/dispatch.ts');
- assert.match(s,/\.select\('preferred_provider'\)/);
+ assert.match(s,/\.select\('preferred_provider,zepto_event_reference'\)/);
  assert.match(s,/const prefs=selectedProvider\?readiness\.providers\.filter\(pref=>pref\.provider===selectedProvider\)/);
  assert.match(s,/selected_provider_unavailable/);
  assert.match(s,/for\(const pref of prefs\)/);

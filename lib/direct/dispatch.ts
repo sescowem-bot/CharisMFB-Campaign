@@ -6,6 +6,7 @@ import type {Provider} from '@/lib/email/validation';
 import {reservePreferenceLink} from '@/lib/preferences/tokens';
 import {renderCampaign} from '@/lib/campaigns/render';
 import {directEmailReadiness} from '@/lib/direct/readiness';
+import {sendZeptoNotification,zeptoNotificationBatchReady} from '@/lib/email/zeptomail-notifications';
 
 type Item={id:string;organization_id:string;message_id:string;contact_id:string;recipient_email:string|null;recipient_phone:string|null};
 type Message={id:string;organization_id:string;subject:string;body:string;design:unknown|null;channel:'email'|'sms';purpose:string;status:string};
@@ -64,16 +65,18 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
      if(optout)throw Error('optional_email_opted_out');
     }
     const readiness=await directEmailReadiness(row.organization_id);
-    if(!readiness.ready)throw Error('No verified service-email sender is ready.');
     // A provider choice is persisted on the campaign (SQL 075), not a per-request hint.
     // Old installations without 075 continue to deliver automatic campaigns unchanged.
     const {data:storedPreference,error:preferenceError}=await db.from('charis_direct_messages')
-     .select('preferred_provider').eq('organization_id',row.organization_id).eq('id',row.message_id).maybeSingle();
+     .select('preferred_provider,zepto_event_reference').eq('organization_id',row.organization_id).eq('id',row.message_id).maybeSingle();
     if(preferenceError&&!['42703','PGRST204'].includes(preferenceError.code||''))throw Error('campaign_provider_preference_unavailable');
     const selectedProvider=storedPreference?.preferred_provider||null;
-    if(selectedProvider&&!['resend','brevo','mailjet'].includes(selectedProvider))throw Error('invalid_campaign_provider');
+    if(selectedProvider&&!['resend','brevo','mailjet','zeptomail'].includes(selectedProvider))throw Error('invalid_campaign_provider');
+    if(!readiness.ready&&selectedProvider!=='zeptomail')throw Error('No verified service-email sender is ready.');
     const prefs=selectedProvider?readiness.providers.filter(pref=>pref.provider===selectedProvider):readiness.providers;
-    if(selectedProvider&&!prefs.length)throw Error('selected_provider_unavailable');
+    if(selectedProvider!=='zeptomail'&&selectedProvider&&!prefs.length)throw Error('selected_provider_unavailable');
+    if(selectedProvider==='zeptomail'&&(!zeptoNotificationBatchReady()||m.purpose!=='account_update'||!storedPreference?.zepto_event_reference))
+     throw Error('zeptomail_notification_policy_or_configuration_invalid');
     // One-time, bank-hosted preference URL. No personal data in the URL or token.
     // All manually composed direct emails respect suppressions.
     // Bank-mandated account/security notifications belong to a separate event workflow.
@@ -94,7 +97,12 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
      });
      html=rendered.html;renderedSubject=rendered.subject;
     }
-    for(const pref of prefs){
+    if(selectedProvider==='zeptomail'){
+     provider='zeptomail';
+     // Each recipient is private; uncertain SMTP outcomes are not retried or switched.
+     const outcome=await sendZeptoNotification({to:row.recipient_email,subject:renderedSubject,html,text:m.body});
+     status=outcome.status;reason=outcome.reason;providerId=outcome.providerId;
+    }else for(const pref of prefs){
      provider=pref.provider;
      const {data:sender,error:senderError}=await db.from('sender_identities').select('id,domain_id,from_name,from_email,reply_to,is_active').eq('organization_id',row.organization_id).eq('id',pref.sender_id).single();
      if(senderError||!sender?.is_active)continue;

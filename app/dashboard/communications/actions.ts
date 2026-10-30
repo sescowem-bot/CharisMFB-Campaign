@@ -8,6 +8,7 @@ import {directEmailReadiness,directWorkerIsHealthy} from '@/lib/direct/readiness
 import {readDirectDesign,checkDirectDesign,campaignParagraphs} from '@/lib/direct/campaign-design';
 import {renderCampaign} from '@/lib/campaigns/render';
 import type {EmailDesign} from '@/lib/campaign/design';
+import {zeptoNotificationBatchReady} from '@/lib/email/zeptomail-notifications';
 export type DirectState={error?:string;success?:string;id?:string;outcome?:'submitted'|'scheduled'|'approval'|'attention'|'unavailable'};
 
 /** The schedule is entered explicitly in Nigeria's WAT (+01:00), not the server's timezone. */
@@ -36,8 +37,17 @@ export async function createDirectMessage(_:DirectState,form:FormData):Promise<D
   const parsed=z.object({token:z.uuid(),subject:z.string().trim().min(3).max(180),body:z.string().trim().max(2000),channel:z.enum(['email','sms']),purpose:z.enum(['service_notice','account_update','general_notice']),product:z.enum(['general','savings','current','fixed_deposit','loans','mobile_app','other']),audience:z.enum(['selected','list','all']),mode:z.enum(['now','later'])}).parse({
    token:form.get('token'),subject:form.get('subject'),body:form.get('body'),channel:form.get('channel'),purpose:form.get('purpose'),product:form.get('product'),audience:form.get('audience'),mode:form.get('mode')
   });
-  const selectedProvider=z.enum(['auto','resend','brevo','mailjet']).parse(String(form.get('send_provider')||'auto'));
+  const selectedProvider=z.enum(['auto','resend','brevo','mailjet','zeptomail']).parse(String(form.get('send_provider')||'auto'));
   if(parsed.channel==='sms'&&selectedProvider!=='auto')throw Error('Email providers cannot send SMS.');
+  const zeptoSelected=selectedProvider==='zeptomail';
+  const zeptoReference=String(form.get('zepto_event_reference')||'').trim();
+  if(zeptoSelected){
+   if(!zeptoNotificationBatchReady())throw Error('Zoho notification sending is not enabled by the bank administrator.');
+   if(parsed.channel!=='email'||parsed.purpose!=='account_update'||parsed.audience!=='selected')
+    throw Error('Zoho is only for selected customers receiving account-specific notifications.');
+   if(form.get('zepto_event_confirm')!=='yes'||zeptoReference.length<4||zeptoReference.length>120)
+    throw Error('Confirm the genuine bank event and enter its reference (4 to 120 characters).');
+  }
   const scheduledAt=requestedSchedule(parsed.mode,String(form.get('send_at')||''));
   if(scheduledAt&&!(await directWorkerIsHealthy()))throw Error('Scheduled sending is unavailable. Ask your administrator to check the delivery worker.');
   if(process.env.CHARIS_SIMPLE_SENDING_ENABLED!=='true'||process.env.EMAIL_DELIVERY_ENABLED!=='true')
@@ -46,8 +56,8 @@ export async function createDirectMessage(_:DirectState,form:FormData):Promise<D
   if(parsed.channel==='email'){
    // Validate routing server-side without leaking admin settings to staff.
    const readiness=await directEmailReadiness(org);
-   if(selectedProvider!=='auto'&&!readiness.providers.some(x=>x.provider===selectedProvider))throw Error('The selected email provider is not currently available for Charis service emails. Choose Automatic or ask your administrator.');
-   if(!readiness.ready)throw Error(readiness.reason==='schema_missing'
+   if(selectedProvider!=='auto'&&!zeptoSelected&&!readiness.providers.some(x=>x.provider===selectedProvider))throw Error('The selected email provider is not currently available for Charis service emails. Choose Automatic or ask your administrator.');
+   if(!readiness.ready&&!zeptoSelected)throw Error(readiness.reason==='schema_missing'
     ?'Delivery tracking needs the latest database upgrade. Contact your administrator.'
     :'No verified service email sender is ready. Contact your administrator.');
   }
@@ -76,6 +86,8 @@ export async function createDirectMessage(_:DirectState,form:FormData):Promise<D
    throw Error('Enter a valid message before continuing.');
   const recipients=String(form.get('contact_ids')||'').split(',').filter(Boolean).map(id=>z.uuid().parse(id));
   const group=form.get('list_id')?z.uuid().parse(form.get('list_id')):null;
+  if(zeptoSelected&&(recipients.length<1||recipients.length>50||new Set(recipients).size!==recipients.length))
+   throw Error('Choose between 1 and 50 different customers for this bank notification.');
   const params={
    p_org:org,p_key:parsed.token,p_title:parsed.subject.slice(0,120),p_subject:parsed.subject,p_body:finalBody,
    p_purpose:parsed.purpose,p_product:parsed.product,p_channel:parsed.channel,p_audience:parsed.audience,
@@ -83,9 +95,11 @@ export async function createDirectMessage(_:DirectState,form:FormData):Promise<D
   };
   // Legacy automatic campaigns still work before additive SQL 075 is installed.
   // Explicit provider selection is persisted atomically before queue processing.
-  const {data:id,error}=selectedProvider==='auto'
-   ?await db.rpc('charis_direct_create_v2',params)
-   :await db.rpc('charis_direct_create_provider_075',{...params,p_provider:selectedProvider});
+  const {data:id,error}=zeptoSelected
+   ?await db.rpc('charis_direct_create_zepto_081',{...params,p_reference:zeptoReference})
+   :selectedProvider==='auto'
+    ?await db.rpc('charis_direct_create_v2',params)
+    :await db.rpc('charis_direct_create_provider_075',{...params,p_provider:selectedProvider});
   if(error||!id)throw Error(error?.message||'Campaign could not be saved. No messages were sent.');
   const {data:message,error:messageError}=await db.from('charis_direct_messages').select('status,scheduled_at').eq('organization_id',org).eq('id',id).maybeSingle();
   if(messageError||!message)return {id,outcome:'attention',success:'Campaign saved. Check campaign progress before trying again.'};
