@@ -7,7 +7,7 @@ ALTER TABLE public.charis_direct_messages ADD CONSTRAINT charis_direct_preferred
  CHECK (preferred_provider IS NULL OR (
   channel='email' AND preferred_provider IN ('resend','brevo','mailjet','zeptomail')
   AND (preferred_provider<>'zeptomail' OR
-   (purpose='account_update' AND length(trim(zepto_event_reference)) BETWEEN 4 AND 120))
+   (purpose='account_update' AND zepto_event_reference IS NOT NULL AND length(trim(zepto_event_reference)) BETWEEN 4 AND 120))
  ));
 CREATE OR REPLACE FUNCTION public.charis_direct_create_zepto_081(
  p_org uuid,p_key uuid,p_title text,p_subject text,p_body text,p_purpose text,

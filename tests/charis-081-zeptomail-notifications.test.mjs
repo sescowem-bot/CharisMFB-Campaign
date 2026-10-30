@@ -22,6 +22,7 @@ test('A ZeptoMail campaign is limited to 50 selected customers and a bank event'
  assert.match(u,/Zoho ZeptoMail · Account notifications/);
  assert.match(sql,/p_purpose<>'account_update'/);
  assert.match(sql,/BETWEEN 1 AND 50/);
+ assert.match(sql,/zepto_event_reference IS NOT NULL/);
  assert.match(sql,/public.charis_direct_create_v2/);
 });
 test('The established queued delivery system has no fallback on ZeptoMail uncertainty',()=>{
