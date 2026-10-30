@@ -8,15 +8,25 @@ import {mailbox} from '@/lib/email/validation';
 import {zeptoConfig,zeptoTransport,zeptoSafeError,zeptoLetter} from '@/lib/email/zeptomail';
 import {zeptoPurposes} from '@/lib/email/zeptomail-options';
 export type ZeptoState={message?:string;error?:string;uncertain?:boolean;id?:string};
-async function access(){
+/** SMTP testing is available to the verified Platform Super Admin and authorised bank staff.
+ * Customer notifications remain bank-staff-only, including when called directly as a server action.
+ */
+async function access(mode:'test'|'notice'){
  const [account,user]=await Promise.all([currentAccount(),currentVerifiedUser()]);
  if(!account||!user?.email||!user.email_confirmed_at||account.workspace.id!==charisOrgId())
   throw Error('Sign in to your verified Charis account.');
  const email=mailbox(user.email);
- if(email.split('@')[1]!=='charismfb.com')throw Error('Only verified Charis staff may use the bank Mail Agent.');
  const db=await supabaseServer();
+ // account.owner is verified server-side via the is_platform_super_admin database RPC.
+ // Even the Platform Super Admin may only send a test to their own verified login email.
+ if(mode==='test' && account.owner && account.providerAdmin)return {account,email,db};
+ if(email.split('@')[1]!=='charismfb.com')
+  throw Error(mode==='test'
+   ?'Only verified Charis staff or the Platform Super Admin may test the bank Mail Agent.'
+   :'Only verified Charis staff may send customer notifications.');
  const {data:allowed,error}=await db.rpc('charis_direct_can_send',{p_org:account.workspace.id});
- if(error||allowed!==true)throw Error('Your account does not have bank communication permissions.');
+ if(error||allowed!==true||(mode==='test'&&!account.providerAdmin))
+  throw Error('Your account does not have bank communication permissions.');
  return {account,email,db};
 }
 /** Authenticates with ZeptoMail without sending a message. */
@@ -24,19 +34,19 @@ export async function verifyZepto(_state:ZeptoState,_form:FormData):Promise<Zept
  void _state;void _form;
  try{
   if(process.env.ZEPTOMAIL_TEST_ENABLED!=='true')throw Error('ZeptoMail testing must be enabled in Vercel.');
-  await access();
+  await access('test');
   const cfg=zeptoConfig(process.env),transport=zeptoTransport(cfg);
   try{await transport.verify();return {message:'ZeptoMail SMTP authentication succeeded. No message was sent.'};}
   catch(e){return {error:zeptoSafeError(e)};}
   finally{transport.close();}
  }catch(e){return {error:e instanceof Error?e.message:'Unable to verify ZeptoMail.'};}
 }
-/** One real test to the signed-in staff mailbox only, never to arbitrary recipients. */
+/** One real test to the signed-in, verified mailbox only; no arbitrary recipient. */
 export async function testZeptoToSelf(_state:ZeptoState,_form:FormData):Promise<ZeptoState>{
  void _state;void _form;
  try{
   if(process.env.ZEPTOMAIL_TEST_ENABLED!=='true')throw Error('Enable ZeptoMail testing before sending a self-test.');
-  const {email}=await access();
+  const {email}=await access('test');
   const cfg=zeptoConfig(process.env),transport=zeptoTransport(cfg);
   try{
    const result=await transport.sendMail({
@@ -47,7 +57,7 @@ export async function testZeptoToSelf(_state:ZeptoState,_form:FormData):Promise<
    });
    if(!result.accepted?.some(v=>(typeof v==='string'?v:v.address).toLowerCase()===email))
     return {error:'ZeptoMail did not confirm accepting the test. Check Mail Agent activity before trying again.',uncertain:true};
-   return {message:'ZeptoMail accepted one test email addressed to your Charis staff mailbox. Check your Inbox and the Mail Agent logs.'};
+   return {message:'ZeptoMail accepted one test email addressed to your verified login mailbox. Check your Inbox and the Mail Agent logs.'};
   }catch(e){return {error:zeptoSafeError(e)+' Check Mail Agent activity before retrying.',uncertain:true};}
   finally{transport.close();}
  }catch(e){return {error:e instanceof Error?e.message:'Unable to test ZeptoMail.'};}
@@ -60,7 +70,7 @@ export async function sendZeptoNotice(_state:ZeptoState,form:FormData):Promise<Z
    throw Error('Transaction notices are disabled until the Mail Agent self-test and SQL 079 are completed.');
   if(String(form.get('confirmed')||'')!=='yes')
    throw Error('Review and authorise the recipient and message before sending.');
-  const {account,email,db}=await access();
+  const {account,email,db}=await access('notice');
   const cfg=zeptoConfig(process.env);
   const purpose=z.enum(zeptoPurposes.map(v=>v.value) as [
    'loan_reminder','account_notice','payment_receipt','customer_request'

@@ -12,10 +12,12 @@ export const dynamic='force-dynamic';
 export default async function ZeptoMailPage(){
  const [account,user]=await Promise.all([currentAccount(),currentVerifiedUser()]);
  if(!user)redirect('/login');
- if(!account||account.workspace.id!==charisOrgId()||!account.providerAdmin)redirect('/dashboard');
+ if(!account||!user.email||!user.email_confirmed_at||account.workspace.id!==charisOrgId()||!account.providerAdmin)redirect('/dashboard');
+ const isBankStaff=user.email.trim().toLowerCase().endsWith('@charismfb.com');
  const db=await supabaseServer();
- const {data:allowed}=await db.rpc('charis_direct_can_send',{p_org:account.workspace.id});
- if(allowed!==true)redirect('/dashboard');
+ const {data:allowed,error}=await db.rpc('charis_direct_can_send',{p_org:account.workspace.id});
+ const canSendNotices=isBankStaff&&!error&&allowed===true;
+ if(!account.owner&&!canSendNotices)redirect('/dashboard');
  const sender=process.env.ZEPTOMAIL_FROM_EMAIL||'';
  const ready=Boolean(sender&&process.env.ZEPTOMAIL_SMTP_PASSWORD);
  const testEnabled=process.env.ZEPTOMAIL_TEST_ENABLED==='true';
@@ -27,9 +29,12 @@ export default async function ZeptoMailPage(){
    {!ready&&<p className="muted" role="status">Ask the project administrator to configure ZEPTOMAIL_FROM_EMAIL, ZEPTOMAIL_SMTP_USERNAME, ZEPTOMAIL_SMTP_PASSWORD, ZEPTOMAIL_SMTP_PORT and ZEPTOMAIL_TEST_ENABLED in Vercel. Do not paste credentials into this page.</p>}
    <p><Link href="https://zeptomail.zoho.com">Open ZeptoMail Mail Agents</Link></p>
   </section>
-  <section className="panel"><ZeptoChecks ready={ready} testEnabled={testEnabled}/></section>
-  <section className="panel"><ZeptoNoticeComposer sender={sender} nonce={randomUUID()} ready={ready}
-   enabled={enabled}/></section>
+  <section className="panel"><ZeptoChecks ready={ready} testEnabled={testEnabled} testEmail={user.email}/></section>
+  {canSendNotices?<section className="panel"><ZeptoNoticeComposer sender={sender} nonce={randomUUID()} ready={ready}
+   enabled={enabled}/></section>:<section className="panel" role="note">
+   <h2>Customer notification sending is restricted</h2>
+   <p className="muted">As a technical Platform Super Admin, you may verify the connection and send a test to your own verified login address. Customer notifications require an authorised Charis staff account and bank communication permission.</p>
+  </section>}
   <section className="panel"><h2>Bank usage rules</h2><p className="muted">
    An account notification, loan reminder, receipt or response to a particular customer request is permitted when tied to a real event. ZeptoMail must not be used for unsolicited awareness campaigns, generic newsletters or promotional bulk emails. The initial safe limit is 20 individual notices per staff member per day, with a one-minute gap.</p>
    <p><Link href="/dashboard/communications/new">Go to Create Campaign for general announcements</Link></p>

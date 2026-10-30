@@ -7,7 +7,7 @@ function Feedback({state}:{state:{message?:string;error?:string;uncertain?:boole
  return <>{state.message&&<p className="feedback-success" role="status"><CheckCircle2 size={15}/> {state.message}</p>}
  {state.error&&<p className="feedback-error" role="alert">{state.error}</p>}</>;
 }
-export function ZeptoChecks({ready,testEnabled}:{ready:boolean;testEnabled:boolean}){
+export function ZeptoChecks({ready,testEnabled,testEmail}:{ready:boolean;testEnabled:boolean;testEmail:string}){
  const [verify,verifyAction,verifying]=useActionState(verifyZepto,{});
  const [send,sendAction,sending]=useActionState(testZeptoToSelf,{});
  const canTest=ready&&testEnabled;
@@ -17,7 +17,7 @@ export function ZeptoChecks({ready,testEnabled}:{ready:boolean;testEnabled:boole
    <button className="btn secondary" disabled={!canTest||verifying}><PlugZap size={16}/>{verifying?'Checking…':'Verify ZeptoMail SMTP'}</button>
    <Feedback state={verify}/></form>
   <form className="admin-form" action={sendAction}><h3>2. Send a test to myself</h3>
-   <p className="muted">One real email to your own signed-in bank address. No customer messages.</p>
+   <p className="muted">One real email to your verified signed-in address: <strong>{testEmail}</strong>. No customer messages.</p>
    <button className="btn secondary" disabled={!canTest||sending||Boolean(send.message)||Boolean(send.uncertain)}>
     {sending?'Submitting test…':'Send one test to my inbox'}</button>
    <Feedback state={send}/></form>
