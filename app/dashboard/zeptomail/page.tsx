@@ -1,4 +1,3 @@
-import {randomUUID} from 'node:crypto';
 import Link from 'next/link';
 import {redirect} from 'next/navigation';
 import {WorkspaceShell} from '@/components/workspace-shell';
@@ -6,37 +5,58 @@ import {currentAccount} from '@/lib/auth/account';
 import {currentVerifiedUser} from '@/lib/auth/current-user';
 import {charisOrgId} from '@/lib/bank';
 import {supabaseServer} from '@/lib/supabase/server';
-import {ZeptoChecks,ZeptoNoticeComposer} from './forms';
+import {zeptoNotificationBatchReady} from '@/lib/email/zeptomail-notifications';
+import {ZeptoChecks} from './forms';
 import './style.css';
+
 export const dynamic='force-dynamic';
+
 export default async function ZeptoMailPage(){
  const [account,user]=await Promise.all([currentAccount(),currentVerifiedUser()]);
  if(!user)redirect('/login');
- if(!account||!user.email||!user.email_confirmed_at||account.workspace.id!==charisOrgId()||!account.providerAdmin)redirect('/dashboard');
+ if(!account||!user.email||!user.email_confirmed_at||
+    account.workspace.id!==charisOrgId()||!account.providerAdmin)redirect('/dashboard');
+
  const db=await supabaseServer();
- const {data:allowed,error}=await db.rpc('charis_direct_can_send',{p_org:account.workspace.id});
- const canSendNotices=account.providerAdmin&&!error&&allowed===true;
- if(!account.owner&&!canSendNotices)redirect('/dashboard');
+ const {data:allowed,error:accessError}=await db.rpc('charis_direct_can_send',{p_org:account.workspace.id});
+ const canSend=account.providerAdmin&&!accessError&&allowed===true;
+ if(!account.owner&&!canSend)redirect('/dashboard');
+
  const sender=process.env.ZEPTOMAIL_FROM_EMAIL||'';
- const ready=Boolean(sender&&process.env.ZEPTOMAIL_SMTP_PASSWORD);
+ const configured=Boolean(sender&&process.env.ZEPTOMAIL_SMTP_PASSWORD);
  const testEnabled=process.env.ZEPTOMAIL_TEST_ENABLED==='true';
- const enabled=process.env.ZEPTOMAIL_TRANSACTIONAL_ENABLED==='true';
- return <WorkspaceShell title="ZeptoMail — Transactional Email" subtitle="Bank service notifications using the approved ZeptoMail Mail Agent">
-  <section className="panel"><h2>Connect ZeptoMail for Charis</h2>
-   <p className="muted">ZeptoMail uses a Mail Agent and separate SMTP credentials from your normal Zoho Mail login. Test the Mail Agent first, then send customer-specific service messages. Bulk announcements and marketing should use the Campaign Centre&apos;s approved bulk providers.</p>
-   <p className="muted">Configuration: {ready?'Mail Agent credentials are present (not yet verified).':'Mail Agent is not configured in Vercel.'}</p>
-   {!ready&&<p className="muted" role="status">Ask the project administrator to configure ZEPTOMAIL_FROM_EMAIL, ZEPTOMAIL_SMTP_USERNAME, ZEPTOMAIL_SMTP_PASSWORD, ZEPTOMAIL_SMTP_PORT and ZEPTOMAIL_TEST_ENABLED in Vercel. Do not paste credentials into this page.</p>}
-   <p><Link href="https://zeptomail.zoho.com">Open ZeptoMail Mail Agents</Link></p>
+ // This is the EXISTING notification campaign route (081/082), not the separate
+ // legacy one-recipient SQL 079 form. Never expose a disabled Send button.
+ const {error:schemaError}=await db.from('charis_direct_messages')
+  .select('zepto_event_reference',{head:true,count:'exact'}).limit(0);
+ const campaignsReady=canSend&&configured&&zeptoNotificationBatchReady()&&!schemaError;
+
+ return <WorkspaceShell title="Zoho email service" subtitle="Manage the bank email connection and send notifications through Create Campaign.">
+  <section className="panel charis-zepto-overview">
+   <h2>Charis customer notifications</h2>
+   <p>Send a notification to one customer or a selected group from one place. Charis manages the recipients and delivery history; Zoho delivers each email privately.</p>
+   <div className="charis-zepto-sender"><span>Bank sending address</span><strong>{sender||'Not yet configured'}</strong></div>
+   <div className="actions">
+    {canSend&&<Link className="btn" href="/dashboard/communications/new">Create notification campaign</Link>}
+    <Link className="btn secondary" href="/dashboard/communications">View campaigns and delivery results</Link>
+   </div>
+   {!campaignsReady&&<p className="muted" role="status">
+    The bank notification service is not active yet. You can prepare your message, but Zoho delivery will only be available after the connection and sending setup are completed.
+   </p>}
   </section>
-  <section className="panel"><ZeptoChecks ready={ready} testEnabled={testEnabled} testEmail={user.email}/></section>
-  {canSendNotices?<section className="panel"><ZeptoNoticeComposer sender={sender} nonce={randomUUID()} ready={ready}
-   enabled={enabled}/></section>:<section className="panel" role="note">
-   <h2>Customer notification sending is restricted</h2>
-   <p className="muted">Your verified account must have Mail Agent administration and bank communication permissions. The login email domain alone does not determine access.</p>
-  </section>}
-  <section className="panel"><h2>Bank usage rules</h2><p className="muted">
-   An account notification, loan reminder, receipt or response to a particular customer request is permitted when tied to a real event. ZeptoMail must not be used for unsolicited awareness campaigns, generic newsletters or promotional bulk emails. The initial safe limit is 20 individual notices per staff member per day, with a one-minute gap.</p>
-   <p><Link href="/dashboard/communications/new">Open Create Campaign for approved customer notifications</Link></p>
+
+  <details className="panel charis-zepto-settings">
+   <summary><strong>Connection settings and test email</strong></summary>
+   <p className="muted">Use these controls to check the bank email service. They do not send messages to customers.</p>
+   <ZeptoChecks ready={configured} testEnabled={testEnabled} testEmail={user.email}/>
+   {!configured&&<p className="muted">The bank email connection needs to be completed by an administrator.</p>}
+   <p><Link href="https://zeptomail.zoho.com">Open Zoho ZeptoMail</Link></p>
+  </details>
+
+  <section className="panel">
+   <h2>How notification sending works</h2>
+   <p className="muted">Create the message, select eligible customers, preview it and confirm once. The delivery queue processes them in controlled groups of up to 50 and records each outcome.</p>
+   <p className="muted">Zoho ZeptoMail is for genuine customer-specific bank notifications, such as account alerts and loan reminders, not advertisements or general newsletters.</p>
   </section>
  </WorkspaceShell>;
 }

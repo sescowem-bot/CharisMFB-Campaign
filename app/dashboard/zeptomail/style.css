@@ -12,3 +12,12 @@
 .charis-zepto-form .charis-zepto-confirm{display:flex;flex-direction:row;gap:10px;align-items:start;line-height:1.5}
 .charis-zepto-confirm input{flex:none!important;width:17px!important;height:17px!important;margin-top:2px}
 @media(max-width:760px){.charis-zepto-test-grid{grid-template-columns:1fr}.charis-zepto-preview{padding:12px}.charis-zepto-preview-body{padding:12px}}
+
+.charis-zepto-overview{display:grid;gap:14px}
+.charis-zepto-overview>p{margin:0;max-width:75ch}
+.charis-zepto-sender{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:14px 16px;border:1px solid #e8e1f2;border-radius:12px;background:#faf9ff}
+.charis-zepto-sender span{color:#645e76;font-size:13px}
+.charis-zepto-sender strong{overflow-wrap:anywhere;font-size:14px;color:#30244c}
+.charis-zepto-settings>summary{cursor:pointer;padding:4px 0;color:#30244c}
+.charis-zepto-settings[open]>summary{margin-bottom:16px}
+@media(max-width:760px){.charis-zepto-sender{align-items:flex-start;flex-direction:column}}

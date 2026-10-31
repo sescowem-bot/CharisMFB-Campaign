@@ -332,7 +332,7 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
       {readyEmailProviders.includes('zeptomail')&&purpose==='account_update'&&audience==='selected'&&<option value="zeptomail">Zoho ZeptoMail · Account notifications</option>}
      </select>
     </label>
-    <p>{!providerChoiceAvailable?'Provider selection will be available after the bank administrator applies database migration 075. Automatic sending still works.':emailProvider==='auto'?'Charis chooses from your approved providers. If one rejects a message before submission, Charis may use another approved provider.':'Only the selected provider will be used for this campaign. If it becomes unavailable, the campaign needs attention instead of silently switching services.'}</p>
+    <p>{!providerChoiceAvailable?'Email provider choices are being configured. You can continue with the available sending options.':emailProvider==='auto'?'Charis chooses from your approved providers. If one rejects a message before submission, Charis may use another approved provider.':'Only the selected provider will be used for this campaign. If it becomes unavailable, the campaign needs attention instead of silently switching services.'}</p>
    </div>}
    {zeptoChosen&&<div className="charis-flow-guidance" role="group" aria-label="Zoho notification authorisation">
     <p><strong>Zoho: customer account notifications only.</strong> Choose up to 500 specific customers, processed in groups of 50. Each receives a separate private email. No general announcements or promotions.</p>

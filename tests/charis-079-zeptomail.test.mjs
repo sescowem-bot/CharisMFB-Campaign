@@ -30,8 +30,10 @@ test('Verified Platform Super Admin can test SMTP, but bank staff permissions st
  assert.match(s,/await transport.verify/);
  assert.match(s,/to:email,replyTo:cfg.from/);
  assert.doesNotMatch(s,/bulkSend|contact_ids|sendDirectBatch/);
- assert.match(p,/canSendNotices=account.providerAdmin&&!error&&allowed===true/);
- assert.match(p,/\{canSendNotices\?/);
+ assert.match(p,/const canSend=account.providerAdmin&&!accessError&&allowed===true/);
+ assert.match(p,/href="\/dashboard\/communications\/new"/);
+ assert.doesNotMatch(p,/<ZeptoNoticeComposer/);
+ assert.doesNotMatch(p,/SQL 079/);
  assert.match(p,/testEmail=\{user.email\}/);
  assert.match(ui,/verified signed-in address/);
 });
