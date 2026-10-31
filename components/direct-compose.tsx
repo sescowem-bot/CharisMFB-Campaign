@@ -132,8 +132,8 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[draftKey]);
  const snapshot:CampaignDraft={version:1,savedAt:Date.now(),token:draftToken,step,subject,body,design,
-  templateId,simpleStyle,simpleGreeting,purpose,product,showProduct,channel,audience,
-  chosen:chosen.slice(0,500),groupId,mode,sendAt,emailProvider};
+  templateId,simpleStyle,simpleGreeting,purpose:purpose as CampaignDraft['purpose'],product:product as CampaignDraft['product'],showProduct,channel,audience,
+  chosen:chosen.slice(0,500),groupId,mode,sendAt,emailProvider:emailProvider as CampaignDraft['emailProvider']};
  lastSessionDraft.current=snapshot;
  useEffect(()=>{
   if(!draftReady||state.id||submissionFinished.current)return;
