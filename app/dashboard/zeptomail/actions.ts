@@ -8,8 +8,8 @@ import {mailbox} from '@/lib/email/validation';
 import {zeptoConfig,zeptoTransport,zeptoSafeError,zeptoLetter} from '@/lib/email/zeptomail';
 import {zeptoPurposes} from '@/lib/email/zeptomail-options';
 export type ZeptoState={message?:string;error?:string;uncertain?:boolean;id?:string};
-/** SMTP testing is available to the verified Platform Super Admin and authorised bank staff.
- * Customer notifications remain bank-staff-only, including when called directly as a server action.
+/** Require a verified bank workspace, Mail Agent administration and sending permission.
+ * The login email domain does not grant or revoke any database role.
  */
 async function access(mode:'test'|'notice'){
  const [account,user]=await Promise.all([currentAccount(),currentVerifiedUser()]);
@@ -19,14 +19,11 @@ async function access(mode:'test'|'notice'){
  const db=await supabaseServer();
  // account.owner is verified server-side via the is_platform_super_admin database RPC.
  // Even the Platform Super Admin may only send a test to their own verified login email.
- if(mode==='test' && account.owner && account.providerAdmin)return {account,email,db};
- if(email.split('@')[1]!=='charismfb.com')
-  throw Error(mode==='test'
-   ?'Only verified Charis staff or the Platform Super Admin may test the bank Mail Agent.'
-   :'Only verified Charis staff may send customer notifications.');
+ // Verified operator permissions determine access; no hard-coded login email domain.
+ // The FROM address is still validated separately against the approved bank domain.
+ if(!account.providerAdmin)throw Error('Mail Agent administrator permission required.');
  const {data:allowed,error}=await db.rpc('charis_direct_can_send',{p_org:account.workspace.id});
- if(error||allowed!==true||(mode==='test'&&!account.providerAdmin))
-  throw Error('Your account does not have bank communication permissions.');
+ if(error||allowed!==true)throw Error('Your account does not have bank communication permissions.');
  return {account,email,db};
 }
 /** Authenticates with ZeptoMail without sending a message. */

@@ -17,11 +17,21 @@ export default async function DirectHistory({searchParams}:{searchParams:Promise
  if(!id.success)redirect('/dashboard/communications');
  const [{data:canManage},{data:isAdmin},{data:message}]=await Promise.all([db.rpc('charis_direct_can_manage_history',{p_org:org}),db.rpc('charis_direct_is_admin',{p_org:org}),db.from('charis_direct_messages').select('id,title,subject,body,channel,purpose,product,status,recipient_count,created_at,archived_at,design,scheduled_at,created_by').eq('organization_id',org).eq('id',id.data).maybeSingle()]);
  if(!message)redirect('/dashboard/communications');
- const {data:rows,error}=await db.from('charis_direct_recipients').select('status,provider,error_code,updated_at').eq('organization_id',org).eq('message_id',id.data);
+ let {data:rows,error}=await db.from('charis_direct_recipients')
+  .select('status,provider,error_code,updated_at,delivery_batch')
+  .eq('organization_id',org).eq('message_id',id.data).order('delivery_batch',{ascending:true}).order('updated_at',{ascending:true});
+ if(error&&['42703','PGRST204'].includes(error.code||'')){
+  const legacy=await db.from('charis_direct_recipients')
+   .select('status,provider,error_code,updated_at')
+   .eq('organization_id',org).eq('message_id',id.data);
+  rows=(legacy.data||[]).map(x=>({...x,delivery_batch:null}));
+  error=legacy.error;
+ }
  const {data:branding}=message.design?await db.from('organization_branding').select('display_name,postal_address,primary_color').eq('organization_id',org).maybeSingle():{data:null};
  const storedDesign=designSchema.safeParse(message.design);
  let visualPreview='';
  if(storedDesign.success){try{visualPreview=renderCampaign({design:storedDesign.data,subject:message.subject,company:branding?.display_name||'Charis Microfinance Bank',address:branding?.postal_address||'',color:branding?.primary_color||'#40239a',testPreview:true,contact:{first_name:'Customer',last_name:'Example'}}).html;}catch{visualPreview='';}}
+ const phases=Array.from(new Set((rows||[]).map(r=>r.delivery_batch).filter((n):n is number=>typeof n==='number'))).sort((a,b)=>a-b);
  const totals=(rows||[]).reduce((all,row)=>({...all,[row.status]:(all[row.status]||0)+1}),{} as Record<string,number>);
  const waiting=(totals.pending||0)+(totals.sending||0);
  const attention=['failed','unknown','bounced','complained','blocked'].reduce((n,v)=>n+(totals[v]||0),0);
@@ -48,6 +58,14 @@ export default async function DirectHistory({searchParams}:{searchParams:Promise
  <section className="panel">
   <div className="workspace-heading"><h2>Delivery results</h2><Link className="inline-link" href={'/dashboard/communications/history?id='+message.id}><RefreshCcw size={15}/> Refresh results</Link></div>
   <p role="status" className="charis-delivery-summary">{deliverySummaryText(totals)}</p>
+  {phases.length>1&&<div className="charis-delivery-kpis" aria-label="Delivery groups of 50">
+   {phases.map(phase=>{
+    const items=(rows||[]).filter(r=>r.delivery_batch===phase);
+    const done=items.filter(r=>!['pending','sending'].includes(r.status)).length;
+    return <div key={phase}><span>Group {phase}</span><strong>{done} / {items.length}</strong>
+     <small>{done===items.length?'Processed; review outcomes':'Queued or processing'} · Up to 50 recipients</small></div>;
+   })}
+  </div>}
   <div className="charis-delivery-kpis">
    <div><span>Delivered</span><strong>{totals.delivered||0}</strong><small>Provider-confirmed delivery</small></div>
    <div><span>Accepted</span><strong>{totals.accepted||0}</strong><small>Accepted for processing; not inbox delivery</small></div>

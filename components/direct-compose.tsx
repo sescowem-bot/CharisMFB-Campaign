@@ -123,7 +123,7 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
  const messageReady=subject.trim().length>=3&&subject.trim().length<=180&&composedBody.trim().length>=10&&composedBody.trim().length<=2000&&!designError;
  const recipientsReady=audience==='selected'?chosen.length>0:audience==='list'?Boolean(groupId):canBulk;
  const zeptoChosen=channel==='email'&&emailProvider==='zeptomail';
- const zeptoValid=!zeptoChosen||(purpose==='account_update'&&audience==='selected'&&chosen.length>=1&&chosen.length<=50&&zeptoEventReference.trim().length>=4&&zeptoEventReference.trim().length<=120&&zeptoEventConfirmed);
+ const zeptoValid=!zeptoChosen||(purpose==='account_update'&&audience==='selected'&&chosen.length>=1&&chosen.length<=maxRecipients&&chosen.length<=500&&zeptoEventReference.trim().length>=4&&zeptoEventReference.trim().length<=120&&zeptoEventConfirmed);
  const scheduleReady=mode==='now'||(schedulingEnabled&&sendAt.trim().length>0);
  const audienceLabel=audience==='selected'?chosen.length+' selected contact'+(chosen.length===1?'':'s'):
   audience==='list'?groups.find(g=>g.id===groupId)?.name||'No group chosen':'All eligible contacts (within your limit)';
@@ -318,6 +318,7 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
    <dl className="charis-flow-summary" aria-label="Final campaign summary">
     <div><dt>Subject</dt><dd>{subject}</dd></div>
     <div><dt>Recipients</dt><dd>{audienceLabel}</dd></div>
+    {audience==='selected'&&<div><dt>Delivery groups</dt><dd>{Math.ceil(chosen.length/50)} group{Math.ceil(chosen.length/50)===1?'':'s'} of up to 50</dd></div>}
     <div><dt>Channel & type</dt><dd>{channel.toUpperCase()} · {typeLabel}</dd></div>
     {showProduct&&<div><dt>Product</dt><dd>{productLabel}</dd></div>}
    </dl>
@@ -334,7 +335,7 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
     <p>{!providerChoiceAvailable?'Provider selection will be available after the bank administrator applies database migration 075. Automatic sending still works.':emailProvider==='auto'?'Charis chooses from your approved providers. If one rejects a message before submission, Charis may use another approved provider.':'Only the selected provider will be used for this campaign. If it becomes unavailable, the campaign needs attention instead of silently switching services.'}</p>
    </div>}
    {zeptoChosen&&<div className="charis-flow-guidance" role="group" aria-label="Zoho notification authorisation">
-    <p><strong>Zoho: customer account notifications only.</strong> Choose 1 to 50 specific customers. Each receives a separate private email. No general announcements or promotions.</p>
+    <p><strong>Zoho: customer account notifications only.</strong> Choose up to 500 specific customers, processed in groups of 50. Each receives a separate private email. No general announcements or promotions.</p>
     <label>Bank event or notification reference<input type="text" maxLength={120} value={zeptoEventReference}
      placeholder="e.g. ACCOUNT-ALERT-2026-10" onChange={e=>{setZeptoEventReference(e.target.value);setZeptoEventConfirmed(false);}}/></label>
     <label className="direct-send-confirm"><input type="checkbox" checked={zeptoEventConfirmed}

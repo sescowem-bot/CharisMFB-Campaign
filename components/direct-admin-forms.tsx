@@ -1,13 +1,15 @@
  'use client';
 import {useActionState} from 'react';
 import {directAdminAction} from '@/app/admin/communications/actions';
-export function DirectSettingsForm({settings}:{settings:{approval_required:boolean;email_enabled:boolean;sms_enabled:boolean;max_recipients:number}}){
+export function DirectSettingsForm({settings}:{settings:{approval_required:boolean;email_enabled:boolean;sms_enabled:boolean;max_recipients:number;daily_recipient_limit?:number}}){
  const [state,action,pending]=useActionState(directAdminAction,{});
  return <form action={action} className="admin-form"><input name="action" type="hidden" value="settings"/><h2>Sending settings</h2>
  <label><input type="checkbox" name="approval" defaultChecked={settings.approval_required}/> Require approval before sending</label>
  <label><input type="checkbox" name="email" defaultChecked={settings.email_enabled}/> Allow email communications</label>
  <label><input type="checkbox" name="sms" defaultChecked={settings.sms_enabled}/> Allow SMS communications (also requires live Termii configuration)</label>
- <label>Maximum recipients per message<input name="max_recipients" type="number" min={1} max={50} defaultValue={settings.max_recipients}/></label>
+ <label>Maximum recipients per campaign<input name="max_recipients" type="number" min={1} max={500} defaultValue={settings.max_recipients}/></label>
+ <label>Daily recipient limit<input name="daily_recipient_limit" type="number" min={500} max={10000} defaultValue={settings.daily_recipient_limit??500}/></label>
+ <p className="muted">Up to 500 recipients in a campaign, queued in groups of 50. Increasing limits requires Charis database migration 082.</p>
  <button className="btn" disabled={pending}>Save communication policy</button>
  {state.error&&<p role="alert" className="feedback-error">{state.error}</p>}{state.success&&<p role="status" className="feedback-success">{state.success}</p>}
  </form>;

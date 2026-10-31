@@ -86,8 +86,8 @@ export async function createDirectMessage(_:DirectState,form:FormData):Promise<D
    throw Error('Enter a valid message before continuing.');
   const recipients=String(form.get('contact_ids')||'').split(',').filter(Boolean).map(id=>z.uuid().parse(id));
   const group=form.get('list_id')?z.uuid().parse(form.get('list_id')):null;
-  if(zeptoSelected&&(recipients.length<1||recipients.length>50||new Set(recipients).size!==recipients.length))
-   throw Error('Choose between 1 and 50 different customers for this bank notification.');
+  if(zeptoSelected&&(recipients.length<1||recipients.length>500||new Set(recipients).size!==recipients.length))
+   throw Error('Choose between 1 and 500 different customers for this bank notification.');
   const params={
    p_org:org,p_key:parsed.token,p_title:parsed.subject.slice(0,120),p_subject:parsed.subject,p_body:finalBody,
    p_purpose:parsed.purpose,p_product:parsed.product,p_channel:parsed.channel,p_audience:parsed.audience,

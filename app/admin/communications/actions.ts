@@ -9,8 +9,12 @@ export async function directAdminAction(_:State,form:FormData):Promise<State>{
   const {data:allowed,error:permissionError}=await db.rpc('charis_direct_is_admin',{p_org:org});if(permissionError||allowed!==true)throw Error('Super Admin or bank communication administrator required');
   const action=z.enum(['settings','provider','staff','history']).parse(form.get('action'));let error;
   if(action==='settings'){
-   const n=z.coerce.number().int().min(1).max(50).parse(form.get('max_recipients'));
-   ({error}=await db.rpc('charis_direct_settings_save',{p_org:org,p_approval:form.get('approval')==='on',p_email:form.get('email')==='on',p_sms:form.get('sms')==='on',p_max:n}));
+   const n=z.coerce.number().int().min(1).max(500).parse(form.get('max_recipients'));
+   const daily=z.coerce.number().int().min(500).max(10000).parse(form.get('daily_recipient_limit')||500);
+   ({error}=await db.rpc(n>50||daily!==500?'charis_direct_settings_save_082':'charis_direct_settings_save',{
+    p_org:org,p_approval:form.get('approval')==='on',p_email:form.get('email')==='on',
+    p_sms:form.get('sms')==='on',p_max:n,...(n>50||daily!==500?{p_daily:daily}:{})
+   }));
   }else if(action==='provider'){
    ({error}=await db.rpc('charis_direct_provider_save',{p_org:org,p_provider:z.enum(['resend','brevo','mailjet']).parse(form.get('provider')),p_sender:z.uuid().parse(form.get('sender')),p_enabled:form.get('enabled')==='on',p_priority:z.coerce.number().int().min(1).max(100).parse(form.get('priority'))}));
   }else if(action==='staff'){

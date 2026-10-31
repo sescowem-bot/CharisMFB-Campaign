@@ -19,8 +19,9 @@ test('Verified Platform Super Admin can test SMTP, but bank staff permissions st
  const ui=read('app/dashboard/zeptomail/forms.tsx');
  assert.match(s,/account.workspace.id!==charisOrgId/);
  assert.match(s,/user.email_confirmed_at/);
- assert.match(s,/account.owner && account.providerAdmin/);
- assert.match(s,/mode==='test'/);
+ assert.match(s,/account.providerAdmin/);
+ assert.doesNotMatch(s,/email.split\('@'\)\[1\]/);
+ assert.match(s,/access\(mode:'test'\|'notice'\)/);
  assert.match(s,/await access\('test'\)/);
  assert.match(s,/const \{email\}=await access\('test'\)/);
  assert.match(s,/const \{account,email,db\}=await access\('notice'\)/);
@@ -29,7 +30,7 @@ test('Verified Platform Super Admin can test SMTP, but bank staff permissions st
  assert.match(s,/await transport.verify/);
  assert.match(s,/to:email,replyTo:cfg.from/);
  assert.doesNotMatch(s,/bulkSend|contact_ids|sendDirectBatch/);
- assert.match(p,/canSendNotices=isBankStaff&&!error&&allowed===true/);
+ assert.match(p,/canSendNotices=account.providerAdmin&&!error&&allowed===true/);
  assert.match(p,/\{canSendNotices\?/);
  assert.match(p,/testEmail=\{user.email\}/);
  assert.match(ui,/verified signed-in address/);
