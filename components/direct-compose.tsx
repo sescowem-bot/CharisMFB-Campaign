@@ -123,6 +123,8 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
  const messageReady=subject.trim().length>=3&&subject.trim().length<=180&&composedBody.trim().length>=10&&composedBody.trim().length<=2000&&!designError;
  const recipientsReady=audience==='selected'?chosen.length>0:audience==='list'?Boolean(groupId):canBulk;
  const zeptoChosen=channel==='email'&&emailProvider==='zeptomail';
+ const zeptoEligible=channel==='email'&&purpose==='account_update'&&audience==='selected';
+ const zeptoReady=providerChoiceAvailable&&readyEmailProviders.includes('zeptomail');
  const zeptoValid=!zeptoChosen||(purpose==='account_update'&&audience==='selected'&&chosen.length>=1&&chosen.length<=maxRecipients&&chosen.length<=500&&zeptoEventReference.trim().length>=4&&zeptoEventReference.trim().length<=120&&zeptoEventConfirmed);
  const scheduleReady=mode==='now'||(schedulingEnabled&&sendAt.trim().length>0);
  const audienceLabel=audience==='selected'?chosen.length+' selected contact'+(chosen.length===1?'':'s'):
@@ -329,10 +331,24 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
      <select aria-label="Email provider for this campaign" value={providerChoiceAvailable?emailProvider:'auto'} disabled={!providerChoiceAvailable||!readyEmailProviders.length} onChange={e=>{setEmailProvider(e.target.value);setConfirmed(false);setZeptoEventConfirmed(false);}}>
       <option value="auto">Automatic (recommended)</option>
       {(['resend','brevo','mailjet'] as const).filter(p=>readyEmailProviders.includes(p)).map(p=><option key={p} value={p}>{p==='resend'?'Resend':p==='brevo'?'Brevo':'Mailjet'}</option>)}
-      {readyEmailProviders.includes('zeptomail')&&purpose==='account_update'&&audience==='selected'&&<option value="zeptomail">Zoho ZeptoMail · Account notifications</option>}
+      <option value="zeptomail" disabled={!zeptoEligible||!zeptoReady}>
+       {zeptoEligible
+        ?zeptoReady?'Zoho ZeptoMail · Account notifications':'Zoho ZeptoMail · Setup pending'
+        :'Zoho ZeptoMail · Select customer account notice'}
+      </option>
      </select>
     </label>
     <p>{!providerChoiceAvailable?'Email provider choices are being configured. You can continue with the available sending options.':emailProvider==='auto'?'Charis chooses from your approved providers. If one rejects a message before submission, Charis may use another approved provider.':'Only the selected provider will be used for this campaign. If it becomes unavailable, the campaign needs attention instead of silently switching services.'}</p>
+    {!zeptoEligible&&<p className="muted" role="status">
+     Zoho ZeptoMail is for a specific customer account notice, not a general announcement.
+     {audience==='selected'&&<button type="button" className="btn secondary" onClick={()=>{setPurpose('account_update');setConfirmed(false);setZeptoEventConfirmed(false);}}>
+      Change message type to Customer account notice
+     </button>}
+    </p>}
+    {zeptoEligible&&!zeptoReady&&<p className="muted" role="status">
+     Zoho is connected for email testing, but customer notification sending has not been activated by the bank administrator.
+     You can still use another approved email provider.
+    </p>}
    </div>}
    {zeptoChosen&&<div className="charis-flow-guidance" role="group" aria-label="Zoho notification authorisation">
     <p><strong>Zoho: customer account notifications only.</strong> Choose up to 500 specific customers, processed in groups of 50. Each receives a separate private email. No general announcements or promotions.</p>

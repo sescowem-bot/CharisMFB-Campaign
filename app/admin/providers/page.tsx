@@ -9,6 +9,7 @@ import {ProviderCapacityPlanner} from '@/components/provider-capacity-planner';
 import {DirectProviderForm} from '@/components/direct-admin-forms';
 import {BrevoStaffCheck} from '@/components/brevo-staff-check';
 import {providerHubState} from '@/lib/email/provider-hub-status';
+import {zeptoNotificationBatchReady} from '@/lib/email/zeptomail-notifications';
 
 export const dynamic='force-dynamic';
 
@@ -127,8 +128,13 @@ export default async function Providers(){
     <article id="provider-zeptomail" className="charis-provider-main-card">
      <header><div><h2>ZeptoMail</h2><p>Customer-specific transactional notices</p></div>
       <span className="charis-provider-status is-setup">{process.env.ZEPTOMAIL_FROM_EMAIL&&process.env.ZEPTOMAIL_SMTP_PASSWORD?'Credentials present':'Setup required'}</span></header>
-     <p className="charis-provider-main-status">Transactional only — not general bulk campaigns</p>
-     <p className="charis-provider-guidance">Use ZeptoMail&apos;s separate Mail Agent credentials for account-related notifications, loan repayment reminders and receipts. Test before enabling customer sending.</p>
+     <p className="charis-provider-main-status">Transactional only — customer account notifications</p>
+     <p className="charis-provider-guidance">SMTP credentials allow email connection tests. Campaign sending is separate and requires the bank to activate its notification service.</p>
+     <p className="charis-provider-guidance" role="status">
+      {zeptoNotificationBatchReady()
+       ?'Zoho notification transport is enabled. To use it, choose Customer account notice and Selected contacts in Create Campaign.'
+       :'Zoho notification sending is not activated. Connection testing can work even while this is off.'}
+     </p>
      <Link href="/dashboard/zeptomail" className="btn secondary">Configure &amp; test ZeptoMail</Link>
     </article>
 

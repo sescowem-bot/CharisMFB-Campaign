@@ -12,10 +12,11 @@ export function checkDirectDesign(design:EmailDesign,bankWebsite?:string|null,su
  const allText=[subject,...design.blocks.filter(b=>b.type!=='divider').map(b=>b.text)];
  for(const text of allText){
   const tokens=[...text.matchAll(/\{\{\s*([^}]+?)\s*\}\}/g)].map(match=>match[1].trim());
-  if(tokens.some(token=>!allowedCustomerToken(token))||
-    text.replace(/\{\{\s*[^}]+?\s*\}\}/g,'').includes('{{')||
+  const invalid=tokens.find(token=>!allowedCustomerToken(token));
+  if(invalid)throw Error('The customer field {{'+invalid+'}} is not recognised. Go back to Write message and use Insert customer details to replace it.');
+  if(text.replace(/\{\{\s*[^}]+?\s*\}\}/g,'').includes('{{')||
     text.replace(/\{\{\s*[^}]+?\s*\}\}/g,'').includes('}}'))
-   throw Error('Choose a customer detail from the available fields. Unsupported details cannot be used.');
+   throw Error('A customer detail has incomplete brackets. Go back to Write message and choose the detail from the menu.');
  }
  if(paragraphs.length<10||paragraphs.length>2000)throw Error('Write a message between 10 and 2,000 characters.');
  const brand=verifiedBrandWebsite(bankWebsite);
