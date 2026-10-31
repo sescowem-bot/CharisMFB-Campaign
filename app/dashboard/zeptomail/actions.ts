@@ -21,7 +21,9 @@ async function access(mode:'test'|'notice'){
  // Even the Platform Super Admin may only send a test to their own verified login email.
  // Verified operator permissions determine access; no hard-coded login email domain.
  // The FROM address is still validated separately against the approved bank domain.
- if(!account.providerAdmin)throw Error('Mail Agent administrator permission required.');
+ if(!account.providerAdmin)throw Error(mode==='test'
+  ?'Mail Agent administrator permission required for SMTP testing.'
+  :'Mail Agent administrator permission required for customer notifications.');
  const {data:allowed,error}=await db.rpc('charis_direct_can_send',{p_org:account.workspace.id});
  if(error||allowed!==true)throw Error('Your account does not have bank communication permissions.');
  return {account,email,db};
