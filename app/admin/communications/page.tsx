@@ -13,15 +13,14 @@ export default async function CommunicationSettings(){
   db.rpc('charis_access_staff_list',{p_org:org}),
   db.from('charis_direct_staff_rules').select('user_id,can_send,can_manage_history').eq('organization_id',org)
  ]);
- let s=settingsResult;
- if(s.error&&['42703','PGRST204'].includes(s.error.code||'')){
-  const legacy=await db.from('charis_direct_settings')
-   .select('approval_required,email_enabled,sms_enabled,max_recipients')
-   .eq('organization_id',org).maybeSingle();
-  s={...legacy,data:legacy.data?{...legacy.data,daily_recipient_limit:500}:null};
- }
+ const legacySettings=settingsResult.error&&['42703','PGRST204'].includes(settingsResult.error.code||'')
+  ?await db.from('charis_direct_settings').select('approval_required,email_enabled,sms_enabled,max_recipients')
+    .eq('organization_id',org).maybeSingle()
+  :null;
+ const settings=settingsResult.data||legacySettings?.data||null;
+ const settingsError=legacySettings?.error||(!legacySettings&&settingsResult.error);
  return <WorkspaceShell title="Communication settings" subtitle="Sending, providers and team access." actions={<Link className="btn secondary" href="/dashboard/communications">Back to communications</Link>}>
- {s.error||!s.data?<p className="feedback-error" role="alert">Communication settings are missing. Apply SQL 047 before using this page.</p>:<DirectSettingsForm settings={s.data}/>}
+ {settingsError||!settings?<p className="feedback-error" role="alert">Communication settings are missing. Apply SQL 047 before using this page.</p>:<DirectSettingsForm settings={settings}/>}
  <section className="panel"><h2>Email preferences</h2><p className="muted">View opt-outs, send verification links and assign staff permissions.</p><Link className="btn secondary" href="/admin/subscriptions">Manage email subscriptions</Link></section>
  <section className="panel"><h2>Email providers</h2><p className="muted">Manage Resend, Brevo, Mailjet and SendGrid from one email provider page. Select a verified sender and see which services are available for Charis communications.</p>
  <Link className="btn secondary" href="/admin/providers">Manage email providers</Link></section>
