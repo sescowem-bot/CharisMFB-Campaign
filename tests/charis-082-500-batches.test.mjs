@@ -28,5 +28,5 @@ test('ZeptoMail sending privileges follow verified roles, not operator email dom
  assert.doesNotMatch(a,/email.split\('@'\)\[1\]/);
  assert.doesNotMatch(p,/endsWith\('@charismfb.com'\)/);
  assert.match(a,/charis_direct_can_send/);
- assert.match(p,/canSendNotices=account.providerAdmin/);
+ assert.match(p,/const canSend=account.providerAdmin&&!accessError&&allowed===true/);
 });

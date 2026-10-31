@@ -25,8 +25,8 @@ export default async function ZeptoMailPage(){
  const sender=process.env.ZEPTOMAIL_FROM_EMAIL||'';
  const configured=Boolean(sender&&process.env.ZEPTOMAIL_SMTP_PASSWORD);
  const testEnabled=process.env.ZEPTOMAIL_TEST_ENABLED==='true';
- // This is the EXISTING notification campaign route (081/082), not the separate
- // legacy one-recipient SQL 079 form. Never expose a disabled Send button.
+ // Route customer notifications through the unified campaign composer.
+ // Never expose the legacy disabled one-recipient Send button.
  const {error:schemaError}=await db.from('charis_direct_messages')
   .select('zepto_event_reference',{head:true,count:'exact'}).limit(0);
  const campaignsReady=canSend&&configured&&zeptoNotificationBatchReady()&&!schemaError;
