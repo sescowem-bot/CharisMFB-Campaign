@@ -592,3 +592,12 @@ body.charis-premium .page .admin-columns {gap:16px}
 .charis-sms-campaign:last-child{border-bottom:0}
 .charis-sms-action-row{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}
 .charis-sms-compose{max-width:780px}
+
+/* High-density-safe bank identity: the official symbol is a 96px source rendered
+   at 36px; live text is vector-rendered rather than stretching a small PNG. */
+.brand-lockup .charis-crisp-lockup{display:flex;align-items:center;gap:8px;max-width:100%;min-width:0}
+.brand-lockup .charis-crisp-symbol{width:39px;height:39px;object-fit:contain;flex:none}
+.brand-lockup .charis-crisp-wordmark{display:flex;flex-direction:column;align-items:flex-start;min-width:0;line-height:1}
+.brand-lockup .charis-crisp-wordmark strong{font-size:29px;line-height:1.02;letter-spacing:-.065em;font-weight:800;color:#3c218e;font-family:'Century Gothic',CenturyGothic,'Trebuchet MS',Arial,sans-serif}
+.brand-lockup .charis-crisp-wordmark small{font-size:6.8px;letter-spacing:.10em;white-space:nowrap;font-weight:800;color:#3f278d;margin-top:3px}
+@media(max-width:760px){.brand-lockup .charis-crisp-wordmark strong{font-size:28px}}

@@ -12,18 +12,26 @@ import {campaignParagraphs,checkDirectDesign} from '@/lib/direct/campaign-design
 import {customerFieldOptions} from '@/lib/campaign/customer-fields';
 import {makeSimpleEmailDesign,simpleEmailStyles,type SimpleEmailStyle} from '@/lib/direct/simple-email';
 import {DirectCampaignReceipt} from '@/components/direct-campaign-receipt';
+import {campaignDraftKey,readCampaignDraft,storeCampaignDraft,discardCampaignDraft,type CampaignDraft} from '@/lib/direct/browser-draft';
 const GrapesEmailEditor=dynamic(()=>import('@/components/grapes-email-editor').then(m=>m.GrapesEmailEditor),{ssr:false,loading:()=> <p className="muted" role="status">Opening visual email editor…</p>});
 
 type Contact={id:string;first_name:string|null;last_name:string|null;email:string|null;phone:string|null;attributes?:Record<string,string>|null};
 type Group={id:string;name:string};
 type Template={id:string;name:string;subject:string;design:EmailDesign;source:'bank'|'starter'};
 type MediaAsset={id:string;file_name:string;public_url:string};
-export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,assets,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false,customFields=[],providerChoiceAvailable=false,readyEmailProviders=[]}:{
- token:string;contacts:Contact[];groups:Group[];canBulk:boolean;emailEnabled:boolean;smsEnabled:boolean;maxRecipients:number;
+export function DirectCompose({token,userId,organizationId,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,assets,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false,customFields=[],providerChoiceAvailable=false,readyEmailProviders=[]}:{
+ token:string;userId:string;organizationId:string;contacts:Contact[];groups:Group[];canBulk:boolean;emailEnabled:boolean;smsEnabled:boolean;maxRecipients:number;
  templates:Template[];assets:MediaAsset[];templateStudioUrl:string;brand:{name:string;color:string;address:string;website:string};schedulingEnabled:boolean;approvalRequired?:boolean;customFields?:string[];providerChoiceAvailable?:boolean;readyEmailProviders?:string[];
 }){
  const [state,submit,pending]=useActionState(createDirectMessage,{});
  const [step,setStep]=useState(0);
+ const [draftToken,setDraftToken]=useState(token);
+ const [draftStatus,setDraftStatus]=useState('Checking draft…');
+ const [draftReady,setDraftReady]=useState(false);
+ const draftKey=campaignDraftKey(organizationId,userId);
+ const lastSessionDraft=useRef<CampaignDraft|null>(null);
+ const submissionFinished=useRef(false);
+ const [draftWarning,setDraftWarning]=useState('');
  const stepNavRef=useRef<HTMLElement|null>(null);
  useEffect(()=>{if(step>0)stepNavRef.current?.scrollIntoView({behavior:'smooth',block:'start'});},[step]);
  const [confirmed,setConfirmed]=useState(false);
@@ -88,6 +96,81 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
  const [results,setResults]=useState<Contact[]>([]);
  const [selectedDetails,setSelectedDetails]=useState<Record<string,Contact>>({});
  const [searching,setSearching]=useState(false);const [searchError,setSearchError]=useState('');
+ useEffect(()=>{
+  let mounted=true;
+  const saved=readCampaignDraft(draftKey);
+  if(saved){
+   setDraftToken(saved.token);setStep(saved.step);setSubject(saved.subject);
+   setBody(saved.body);setDesign(saved.design);setTemplateId(saved.templateId);
+   setSimpleStyle(saved.simpleStyle);setSimpleGreeting(saved.simpleGreeting);
+   setPurpose(saved.purpose);setProduct(saved.product);setShowProduct(saved.showProduct);
+   setChannel(saved.channel==='sms'&&smsEnabled?'sms':emailEnabled?'email':'sms');
+   setAudience(saved.audience!=='selected'&&!canBulk?'selected':saved.audience);
+   setGroupId(groups.some(g=>g.id===saved.groupId)?saved.groupId:'');
+   setChosen(saved.chosen.slice(0,maxRecipients));
+   setMode(saved.mode==='later'&&schedulingEnabled?'later':'now');
+   setSendAt(saved.sendAt);
+   setEmailProvider(saved.emailProvider==='auto'||readyEmailProviders.includes(saved.emailProvider)?saved.emailProvider:'auto');
+   lastDraft.current={subject:saved.subject,body:saved.body,design:saved.design,templateId:saved.templateId,simpleStyle:saved.simpleStyle,simpleGreeting:saved.simpleGreeting};
+   draftHistory.current={past:[],future:[]};setHistoryCounts({undo:0,redo:0});
+   setDraftStatus('Draft restored');
+   if(saved.chosen.length){
+    fetch('/api/direct/contacts/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids:saved.chosen}),cache:'no-store'})
+     .then(async response=>{if(!response.ok)throw Error('Unavailable');return response.json();})
+     .then(data=>{if(!mounted)return;
+      const contacts=Array.isArray(data.contacts)?data.contacts as Contact[]:[];
+      const lookup=new Map(contacts.map(c=>[c.id,c]));
+      const ids=saved.chosen.filter(id=>lookup.has(id)).slice(0,maxRecipients);
+      setChosen(ids);setSelectedDetails(Object.fromEntries(ids.map(id=>[id,lookup.get(id)!])));
+      if(ids.length!==saved.chosen.length)setDraftWarning('Some customers are no longer available. Review recipients before sending.');
+     }).catch(()=>{if(mounted){setChosen([]);setSelectedDetails({});setDraftWarning('The message was restored. Please select recipients again.');}});
+   }
+  }else setDraftStatus('New draft');
+  setDraftReady(true);
+  return ()=>{mounted=false;};
+ // Reload only when staff identity changes; this effect is a one-time restore.
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ },[draftKey]);
+ const snapshot:CampaignDraft={version:1,savedAt:Date.now(),token:draftToken,step,subject,body,design,
+  templateId,simpleStyle,simpleGreeting,purpose,product,showProduct,channel,audience,
+  chosen:chosen.slice(0,500),groupId,mode,sendAt,emailProvider};
+ lastSessionDraft.current=snapshot;
+ useEffect(()=>{
+  if(!draftReady||state.id||submissionFinished.current)return;
+  setDraftStatus('Saving draft…');
+  const timer=setTimeout(()=>{
+   if(!submissionFinished.current&&lastSessionDraft.current)
+    setDraftStatus(storeCampaignDraft(draftKey,{...lastSessionDraft.current,savedAt:Date.now()})?'Draft saved in this tab':'Draft could not be saved');
+  },350);
+  return ()=>clearTimeout(timer);
+ },[draftReady,draftKey,draftToken,step,subject,body,design,templateId,simpleStyle,simpleGreeting,purpose,
+   product,showProduct,channel,audience,chosen,groupId,mode,sendAt,emailProvider,state.id]);
+ useEffect(()=>{
+  const flush=()=>{if(draftReady&&!submissionFinished.current&&lastSessionDraft.current)
+   storeCampaignDraft(draftKey,{...lastSessionDraft.current,savedAt:Date.now()});};
+  window.addEventListener('pagehide',flush);
+  return ()=>window.removeEventListener('pagehide',flush);
+ },[draftReady,draftKey]);
+ useEffect(()=>{
+  if(!state.id)return;
+  submissionFinished.current=true;discardCampaignDraft(draftKey);setDraftStatus('Campaign submitted');
+ },[state.id,draftKey]);
+ function discardDraft(){
+  if(!window.confirm('Discard this draft and your recipient selections?'))return;
+  discardCampaignDraft(draftKey);
+  setStep(0);setSubject('');setBody('');setDesign(null);setTemplateId('');
+  setSimpleStyle('classic');setSimpleGreeting('Hello {{first_name}},');
+  setPurpose('general_notice');setProduct('general');setShowProduct(false);
+  setChannel(emailEnabled?'email':'sms');setAudience('selected');setChosen([]);setSelectedDetails({});
+  setGroupId('');setQuery('');setResults([]);setMode('now');setSendAt('');
+  setEmailProvider('auto');setZeptoEventReference('');setZeptoEventConfirmed(false);
+  setConfirmed(false);setDraftWarning('');
+  draftHistory.current={past:[],future:[]};
+  lastDraft.current={subject:'',body:'',design:null,templateId:'',simpleStyle:'classic',simpleGreeting:'Hello {{first_name}},'};
+  setHistoryCounts({undo:0,redo:0});setDraftToken(crypto.randomUUID());
+  setDraftStatus('New draft');
+ }
+
  const search=query.trim();
  useEffect(()=>{
   if(search.length<2)return;
@@ -185,7 +268,7 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
     e.preventDefault();
    }
   }}>
-  <input type="hidden" name="token" value={token}/>
+  <input type="hidden" name="token" value={draftToken}/>
   <input type="hidden" name="subject" value={subject}/>
   <input type="hidden" name="body" value={composedBody}/>
   <input type="hidden" name="purpose" value={purpose}/>
@@ -204,7 +287,12 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
    <h2>Create campaign</h2><p>Write your message, choose customers, preview it, then send.</p></div>
    <span className="charis-flow-safe"><ShieldCheck size={15}/> Nothing sends before confirmation</span>
   </div>
-  <nav ref={stepNavRef} aria-label="Campaign steps" className="charis-wizard-progress">
+  <div className="charis-draft-bar" role="status" aria-live="polite">
+    <div><strong>{draftStatus}</strong><small>Saved in this signed-in browser tab, not on another device. Refreshing or navigating away will not erase the draft.</small></div>
+    <button className="btn secondary" type="button" onClick={discardDraft} disabled={!draftReady||pending||Boolean(state.id)}>Discard draft</button>
+   </div>
+   {draftWarning&&<p role="status" className="charis-flow-guidance"><Info size={16}/>{draftWarning}</p>}
+   <nav ref={stepNavRef} aria-label="Campaign steps" className="charis-wizard-progress">
    <ol>{steps.map((item,index)=><li key={item.label} className={step===index?'current':step>index?'complete':''} aria-current={step===index?'step':undefined}>
     <span className="charis-wizard-progress-number">{step>index?<Check size={16}/>:index+1}</span>
     <span className="charis-wizard-progress-label">{item.label}</span>

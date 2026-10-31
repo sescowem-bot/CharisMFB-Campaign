@@ -120,3 +120,10 @@
 .charis-final-provider-choice select:disabled{opacity:.68;cursor:not-allowed}
 .charis-final-provider-choice p{font-size:12px;line-height:1.55;color:#756986;margin:8px 0 0}
 @media(max-width:520px){.charis-final-provider-choice{padding:12px}}
+
+/* In-tab draft status, compact on desktop and mobile. */
+.charis-draft-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:0 0 18px;padding:11px 14px;border:1px solid #e8e0f1;background:#f9f7fd;border-radius:12px}
+.charis-draft-bar>div{flex:1 1 210px;min-width:0}
+.charis-draft-bar strong{display:block;font-size:13px;font-weight:750;color:#39256b}
+.charis-draft-bar small{display:block;margin-top:3px;font-size:11px;line-height:1.5;color:#766d86}
+@media(max-width:520px){.charis-draft-bar button{width:100%}}

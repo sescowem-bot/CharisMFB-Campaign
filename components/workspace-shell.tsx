@@ -5,7 +5,6 @@ import {Activity,ArrowRight,Bell,CalendarClock,ClipboardCheck,FileText,Landmark,
 import {currentAccount} from '@/lib/auth/account';
 import {currentVerifiedUser} from '@/lib/auth/current-user';
 import {canSendDirect} from '@/lib/auth/direct-send-access';
-import {charisBrandAssets} from '@/lib/charis-brand-assets';
 import {SignOutForm} from '@/components/signout-form';
 import {NavLink} from '@/components/nav-link';
 import {SidebarSection} from '@/components/sidebar-section';
@@ -14,7 +13,7 @@ import {SidebarSection} from '@/components/sidebar-section';
 export async function WorkspaceShell({title,subtitle,actions,children}:{
   title:string;subtitle?:string;actions?:ReactNode;org?:string;admin?:boolean;children:ReactNode;
 }) {
-  const [account,assets,verifiedUser]=await Promise.all([currentAccount(),charisBrandAssets(),currentVerifiedUser()]);
+  const [account,verifiedUser]=await Promise.all([currentAccount(),currentVerifiedUser()]);
   const permitted=(key:string)=>account?.permissions?.includes(key)===true;
   const canAny=(...keys:string[])=>keys.some(permitted);
   const canAdmin=Boolean(account?.owner||canAny('staff.manage','access.manage','departments.manage','branches.manage','providers.manage','settings.manage','audit.view'));
@@ -29,7 +28,10 @@ export async function WorkspaceShell({title,subtitle,actions,children}:{
     <label htmlFor="nav-toggle" className="nav-scrim" aria-hidden="true"/>
     <aside className="sidebar">
       <Link href="/dashboard" className="brand-lockup" aria-label="Charis Campaign Centre dashboard">
-        <Image unoptimized src={assets.logo||'/charis-official-logo.png'} width={165} height={40} alt="Charis Microfinance Bank Ltd" priority/>
+        <span className="charis-crisp-lockup">
+          <Image src="/charis-official-mark.png" width={96} height={96} alt="" priority className="charis-crisp-symbol"/>
+          <span className="charis-crisp-wordmark"><strong>Charis</strong><small>MICROFINANCE BANK LTD</small></span>
+        </span>
         <span className="brand-product">Campaign Centre</span>
       </Link>
       <nav aria-label="Charis workspace navigation">
