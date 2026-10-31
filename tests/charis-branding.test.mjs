@@ -26,7 +26,7 @@ test('Charis has bundled official logo and favicon fallback',()=>{
  const layout=read('app/layout.tsx');
  const shell=read('components/workspace-shell.tsx');
  assert.match(layout,/favicon\.ico/);
- assert.match(shell,/charis-official-mark\\.png/);
+ assert.match(shell,/charis-official-mark\.png/);
  assert.match(shell,/charis-crisp-wordmark/);
  assert.match(read('app/charis-premium.css'),/--charis-purple/);
 });
