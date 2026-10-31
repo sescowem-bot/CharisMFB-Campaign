@@ -13,7 +13,7 @@ export function checkDirectDesign(design:EmailDesign,bankWebsite?:string|null,su
  for(const text of allText){
   const tokens=[...text.matchAll(/\{\{\s*([^}]+?)\s*\}\}/g)].map(match=>match[1].trim());
   const invalid=tokens.find(token=>!allowedCustomerToken(token));
-  if(invalid)throw Error('The customer field {{'+invalid+'}} is not recognised. Go back to Write message and use Insert customer details to replace it.');
+  if(invalid)throw Error('Unsupported customer field {{'+invalid+'}}. Go back to Write message and use Insert customer details to replace it.');
   if(text.replace(/\{\{\s*[^}]+?\s*\}\}/g,'').includes('{{')||
     text.replace(/\{\{\s*[^}]+?\s*\}\}/g,'').includes('}}'))
    throw Error('A customer detail has incomplete brackets. Go back to Write message and choose the detail from the menu.');
