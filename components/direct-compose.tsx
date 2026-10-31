@@ -123,9 +123,9 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
  const messageReady=subject.trim().length>=3&&subject.trim().length<=180&&composedBody.trim().length>=10&&composedBody.trim().length<=2000&&!designError;
  const recipientsReady=audience==='selected'?chosen.length>0:audience==='list'?Boolean(groupId):canBulk;
  const zeptoChosen=channel==='email'&&emailProvider==='zeptomail';
- const zeptoEligible=channel==='email'&&purpose==='account_update'&&audience==='selected';
+ const zeptoEligible=channel==='email'&&audience==='selected';
  const zeptoReady=providerChoiceAvailable&&readyEmailProviders.includes('zeptomail');
- const zeptoValid=!zeptoChosen||(purpose==='account_update'&&audience==='selected'&&chosen.length>=1&&chosen.length<=maxRecipients&&chosen.length<=500&&zeptoEventReference.trim().length>=4&&zeptoEventReference.trim().length<=120&&zeptoEventConfirmed);
+ const zeptoValid=!zeptoChosen||(audience==='selected'&&chosen.length>=1&&chosen.length<=maxRecipients&&chosen.length<=500&&zeptoEventReference.trim().length>=4&&zeptoEventReference.trim().length<=120&&zeptoEventConfirmed);
  const scheduleReady=mode==='now'||(schedulingEnabled&&sendAt.trim().length>0);
  const audienceLabel=audience==='selected'?chosen.length+' selected contact'+(chosen.length===1?'':'s'):
   audience==='list'?groups.find(g=>g.id===groupId)?.name||'No group chosen':'All eligible contacts (within your limit)';
@@ -217,7 +217,7 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
      {smsEnabled&&<button type="button" aria-pressed={channel==='sms'} onClick={()=>{if(design){setBody(richBody.replace(/\{\{[^}]*\}\}/g,'').trim());setDesign(null);setTemplateId('');}setChannel('sms');setChosen([]);setSelectedDetails({});setAudience('selected');}}><Smartphone size={17}/> SMS</button>}
     </fieldset>
     <div className="charis-purpose-choice">
-     <label>What is this message about?<select aria-label="Message purpose" value={purpose} onChange={e=>{setPurpose(e.target.value);if(e.target.value!=='account_update'){setEmailProvider('auto');setZeptoEventConfirmed(false);}}}>
+     <label>What is this message about?<select aria-label="Message purpose" value={purpose} onChange={e=>{setPurpose(e.target.value);setConfirmed(false);setZeptoEventConfirmed(false);}}>
       <option value="general_notice">General announcement</option>
       <option value="service_notice">Bank service update</option>
       <option value="account_update">Customer account notice</option>
@@ -332,31 +332,33 @@ export function DirectCompose({token,contacts,groups,canBulk,emailEnabled,smsEna
       <option value="auto">Automatic (recommended)</option>
       {(['resend','brevo','mailjet'] as const).filter(p=>readyEmailProviders.includes(p)).map(p=><option key={p} value={p}>{p==='resend'?'Resend':p==='brevo'?'Brevo':'Mailjet'}</option>)}
       <option value="zeptomail" disabled={!zeptoEligible||!zeptoReady}>
-       {zeptoEligible
-        ?zeptoReady?'Zoho ZeptoMail · Account notifications':'Zoho ZeptoMail · Setup pending'
-        :'Zoho ZeptoMail · Select customer account notice'}
+       {!zeptoEligible?'Zoho ZeptoMail · Select individual customers'
+        :zeptoReady?'Zoho ZeptoMail · Transactional notifications':'Zoho ZeptoMail · Setup pending'}
       </option>
      </select>
     </label>
     <p>{!providerChoiceAvailable?'Email provider choices are being configured. You can continue with the available sending options.':emailProvider==='auto'?'Charis chooses from your approved providers. If one rejects a message before submission, Charis may use another approved provider.':'Only the selected provider will be used for this campaign. If it becomes unavailable, the campaign needs attention instead of silently switching services.'}</p>
     {!zeptoEligible&&<p className="muted" role="status">
-     Zoho ZeptoMail is for a specific customer account notice, not a general announcement.
-     {audience==='selected'&&<button type="button" className="btn secondary" onClick={()=>{setPurpose('account_update');setConfirmed(false);setZeptoEventConfirmed(false);}}>
-      Change message type to Customer account notice
-     </button>}
+     To use Zoho, select the individual customers who need this notification.
     </p>}
+    <p className="muted" role="note">
+     <strong>About Zoho:</strong> Choose any message category above. ZeptoMail can only deliver genuine
+     customer-specific transactional information, such as account activity, requested services,
+     receipts or repayment reminders. A general announcement, newsletter or promotional broadcast
+     is not eligible just because you select Zoho.
+    </p>
     {zeptoEligible&&!zeptoReady&&<p className="muted" role="status">
      Zoho is connected for email testing, but customer notification sending has not been activated by the bank administrator.
      You can still use another approved email provider.
     </p>}
    </div>}
    {zeptoChosen&&<div className="charis-flow-guidance" role="group" aria-label="Zoho notification authorisation">
-    <p><strong>Zoho: customer account notifications only.</strong> Choose up to 500 specific customers, processed in groups of 50. Each receives a separate private email. No general announcements or promotions.</p>
+    <p><strong>Zoho transactional sending.</strong> Your message category is {typeLabel}. This route is only for a real bank event or request relevant to each selected customer. You can queue up to 500 recipients in groups of 50. General announcements, newsletters and promotional messages must use another approved provider.</p>
     <label>Bank event or notification reference<input type="text" maxLength={120} value={zeptoEventReference}
      placeholder="e.g. ACCOUNT-ALERT-2026-10" onChange={e=>{setZeptoEventReference(e.target.value);setZeptoEventConfirmed(false);}}/></label>
     <label className="direct-send-confirm"><input type="checkbox" checked={zeptoEventConfirmed}
      onChange={e=>{setZeptoEventConfirmed(e.target.checked);setConfirmed(false);}}/>
-     I confirm every selected customer has a genuine account-related event for this notification.
+     I confirm each selected customer has a genuine bank event or request relevant to this notification. This is not a general announcement or promotional broadcast.
     </label>
    </div>}
    <label>When to send<select value={mode} onChange={e=>{setConfirmed(false);setMode(e.target.value as 'now'|'later');}}><option value="now">Send now</option>{schedulingEnabled&&<option value="later">Schedule for later</option>}</select></label>

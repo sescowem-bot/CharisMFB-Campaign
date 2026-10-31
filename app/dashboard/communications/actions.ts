@@ -43,8 +43,10 @@ export async function createDirectMessage(_:DirectState,form:FormData):Promise<D
   const zeptoReference=String(form.get('zepto_event_reference')||'').trim();
   if(zeptoSelected){
    if(!zeptoNotificationBatchReady())throw Error('Zoho notification sending is not enabled by the bank administrator.');
-   if(parsed.channel!=='email'||parsed.purpose!=='account_update'||parsed.audience!=='selected')
-    throw Error('Zoho is only for selected customers receiving account-specific notifications.');
+   if(parsed.channel!=='email'||parsed.audience!=='selected')
+    throw Error('Zoho requires individually selected customers with a genuine transactional notification.');
+   const {error:policySchemaError}=await db.from('charis_direct_messages').select('zepto_transactional_acknowledged',{head:true,count:'exact'}).limit(0);
+   if(policySchemaError)throw Error('Zoho notification policy setup is not complete. Please contact the bank administrator.');
    if(form.get('zepto_event_confirm')!=='yes'||zeptoReference.length<4||zeptoReference.length>120)
     throw Error('Confirm the genuine bank event and enter its reference (4 to 120 characters).');
   }

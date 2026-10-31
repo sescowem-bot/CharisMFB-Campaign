@@ -10,6 +10,7 @@ import {DirectProviderForm} from '@/components/direct-admin-forms';
 import {BrevoStaffCheck} from '@/components/brevo-staff-check';
 import {providerHubState} from '@/lib/email/provider-hub-status';
 import {zeptoNotificationBatchReady} from '@/lib/email/zeptomail-notifications';
+import {isCharisSenderEmail} from '@/lib/email/charis-sender';
 
 export const dynamic='force-dynamic';
 
@@ -42,15 +43,15 @@ export default async function Providers(){
  const domainMap=new Map((domains.data||[]).map(d=>[d.id,d]));
  const approved=(provider:Provider)=>(senders.data||[]).filter(s=>{
   const d=domainMap.get(s.domain_id);
-  return s.is_active&&d?.provider===provider&&d?.verification_status==='verified'&&d?.charis_connected===true;
+  return isCharisSenderEmail(s.from_email)&&s.is_active&&d?.provider===provider&&d?.verification_status==='verified'&&d?.charis_connected===true;
  }).map(s=>({id:s.id,name:s.from_name,email:s.from_email}));
  const allVerified=(provider:Provider)=>(senders.data||[]).filter(s=>{
-  const d=domainMap.get(s.domain_id);return s.is_active&&d?.provider===provider&&d.verification_status==='verified';
+  const d=domainMap.get(s.domain_id);return isCharisSenderEmail(s.from_email)&&s.is_active&&d?.provider===provider&&d.verification_status==='verified';
  }).map(s=>({id:s.id,name:s.from_name,email:s.from_email}));
  const canSetService=directAccess.error===null&&directAccess.data===true&&!directPrefs.error;
  const deliveryEnabled=process.env.EMAIL_DELIVERY_ENABLED==='true';
  const providerHasApi=(provider:Provider)=>Boolean(process.env[provider==='resend'?'RESEND_API_KEY':provider==='brevo'?'BREVO_API_KEY':'MAILJET_API_KEY']);
- const flaggedSender=(senders.data||[]).filter(s=>s.is_active&&s.from_email.toLowerCase().endsWith('@salemmedicals.com'));
+
  return <WorkspaceShell admin title="Email providers" subtitle="Manage all four email services in one place.">
   <main className="charis-provider-page charis-provider-hub">
    <section className="charis-provider-intro">
@@ -65,10 +66,7 @@ export default async function Providers(){
      <Link className="btn secondary" href="/admin/communications">Staff &amp; sending rules</Link>
     </div>
    </section>
-   {flaggedSender.length>0&&<div className="charis-provider-domain-warning" role="note">
-    <strong>Check the bank sender address</strong>
-    <p>A verified sender currently uses the Salem Medicals domain. Provider verification does not make that address a suitable Charis bank identity. Use an address authorised for Charis communications before sending.</p>
-   </div>}
+   <p className="muted">Only approved Charis bank-domain addresses are available for customer sending. Older test sender addresses are excluded.</p>
    {(settings.error||senders.error||domains.error||directPrefs.error)&&<div className="feedback-error" role="alert">Some sender settings could not be loaded. The existing sending setup has not been changed.</div>}
    <section className="charis-provider-help" aria-label="How to set up email">
     <div><strong>1. Verify sender</strong><span>Authenticate your email address with the provider.</span></div>
@@ -128,11 +126,11 @@ export default async function Providers(){
     <article id="provider-zeptomail" className="charis-provider-main-card">
      <header><div><h2>ZeptoMail</h2><p>Customer-specific transactional notices</p></div>
       <span className="charis-provider-status is-setup">{process.env.ZEPTOMAIL_FROM_EMAIL&&process.env.ZEPTOMAIL_SMTP_PASSWORD?'Credentials present':'Setup required'}</span></header>
-     <p className="charis-provider-main-status">Transactional only — customer account notifications</p>
+     <p className="charis-provider-main-status">Transactional only — customer-specific notifications across message categories</p>
      <p className="charis-provider-guidance">SMTP credentials allow email connection tests. Campaign sending is separate and requires the bank to activate its notification service.</p>
      <p className="charis-provider-guidance" role="status">
       {zeptoNotificationBatchReady()
-       ?'Zoho notification transport is enabled. To use it, choose Customer account notice and Selected contacts in Create Campaign.'
+       ?'Zoho notification transport is enabled. Choose your message category, then select specific customers with a genuine bank event or request.'
        :'Zoho notification sending is not activated. Connection testing can work even while this is off.'}
      </p>
      <Link href="/dashboard/zeptomail" className="btn secondary">Configure &amp; test ZeptoMail</Link>

@@ -28,7 +28,7 @@ export default async function ZeptoMailPage(){
  // Route customer notifications through the unified campaign composer.
  // Never expose the legacy disabled one-recipient Send button.
  const {error:schemaError}=await db.from('charis_direct_messages')
-  .select('zepto_event_reference',{head:true,count:'exact'}).limit(0);
+  .select('zepto_event_reference,zepto_transactional_acknowledged',{head:true,count:'exact'}).limit(0);
  const campaignsReady=canSend&&configured&&zeptoNotificationBatchReady()&&!schemaError;
 
  return <WorkspaceShell title="Zoho email service" subtitle="Manage the bank email connection and send notifications through Create Campaign.">

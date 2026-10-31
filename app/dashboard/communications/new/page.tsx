@@ -29,7 +29,7 @@ export default async function NewCommunication(){
   process.env.CHARIS_SCHEDULING_ENABLED==='true'?directWorkerIsHealthy():Promise.resolve(false),
   directEmailReadiness(org),
   db.from('charis_direct_messages').select('preferred_provider',{head:true,count:'exact'}).limit(0),
-  db.from('charis_direct_messages').select('zepto_event_reference',{head:true,count:'exact'}).limit(0)
+  db.from('charis_direct_messages').select('zepto_event_reference,zepto_transactional_acknowledged',{head:true,count:'exact'}).limit(0)
  ]);
  if(!allowed)redirect('/dashboard');
  if(settingsError||!settings)return <WorkspaceShell title="Create Campaign"><p role="alert" className="feedback-error">Communication settings are unavailable.</p></WorkspaceShell>;

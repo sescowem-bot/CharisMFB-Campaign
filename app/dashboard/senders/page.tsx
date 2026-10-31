@@ -6,6 +6,7 @@ import {WorkspaceShell} from '@/components/workspace-shell';
 import {SenderForm} from '@/components/sender-form';
 import {CharisResendForm,DisableCharisSender,CharisDomainConnectForm,CharisDomainCheckForm,CharisDomainUnlinkForm,RemoveUnusedCharisSender} from '@/components/charis-resend-form';
 import {CheckCircle2,MailCheck,ShieldCheck} from 'lucide-react';
+import {isCharisSenderDomain,isCharisSenderEmail} from '@/lib/email/charis-sender';
 
 /** Charis-only interface. Resend is contacted on admin actions, never on routine page loads. */
 export default async function Senders({searchParams}:{searchParams:Promise<{org?:string}>}) {
@@ -23,13 +24,14 @@ export default async function Senders({searchParams}:{searchParams:Promise<{org?
   db.from('email_test_attempts').select('id,status,created_at').eq('organization_id',org).order('created_at',{ascending:false}).limit(5)
  ]);
  if(domains.error||senders.error||history.error)return <WorkspaceShell org={org} title="Email sender settings"><p role="alert" className="feedback-error">Sender settings could not be loaded. Confirm Charis migration 018 is installed.</p></WorkspaceShell>;
- const activeDomains=(domains.data||[]).filter(d=>d.verification_status==='verified'&&d.charis_connected===true&&Boolean(d.provider_domain_id));
+ const activeDomains=(domains.data||[]).filter(d=>isCharisSenderDomain(d.domain)&&d.verification_status==='verified'&&d.charis_connected===true&&Boolean(d.provider_domain_id));
  const connected=activeDomains.map(d=>d.domain);
  const resendDomainIds=new Set(activeDomains.map(d=>d.id));
- const current=(senders.data||[]).find(s=>s.is_active&&resendDomainIds.has(s.domain_id));
+ const bankSenders=(senders.data||[]).filter(s=>isCharisSenderEmail(s.from_email));
+ const current=bankSenders.find(s=>s.is_active&&resendDomainIds.has(s.domain_id));
  const email=current?.from_email||'';
  const selected=connected.includes(email.split('@')[1])?email.split('@')[1]:connected[0]||'';
- const pending=(domains.data||[]).filter(d=>d.verification_status!=='verified'&&d.verification_status!=='revoked'&&d.charis_connected===true);
+ const pending=(domains.data||[]).filter(d=>isCharisSenderDomain(d.domain)&&d.verification_status!=='verified'&&d.verification_status!=='revoked'&&d.charis_connected===true);
  return <WorkspaceShell org={org} title="Email sender settings">
   <div className="charis-guide-card"><ShieldCheck size={17}/> Your Resend API key stays securely in Vercel. Sender names and addresses are managed here. Domains already verified in the same Resend account can be connected without repeating DNS setup.</div>
   <section className="panel" style={{marginBottom:20}}><div className="workspace-heading"><div><h2>1. Connect your verified domain</h2><p className="muted">Choose an existing verified domain from your Resend account. No provider IDs or new domain registrations.</p></div><span className="status-chip">{connected.length?'Connected':'Needs setup'}</span></div>
@@ -41,8 +43,8 @@ export default async function Senders({searchParams}:{searchParams:Promise<{org?
    {connected.length?<CharisResendForm org={org} domains={connected} defaultName={String(current?.from_name||'Charis Microfinance Bank')} defaultLocal={email.split('@')[0]||'campaigns'} defaultDomain={selected} defaultReply={String(current?.reply_to||'')}/>:<div className="notice">Connect an existing verified domain above to unlock sender details. <Link className="inline-link" href="https://resend.com/domains">Check your Resend account</Link> if it does not appear.</div>}
   </section>
   <section className="panel"><div className="workspace-heading"><div><h2>3. Send a test</h2><p className="muted">Test delivery to your verified staff email before starting a customer campaign.</p></div><MailCheck size={23}/></div>
-   {!senders.data?.length&&<p className="muted">No saved sender yet. Complete steps 1 and 2 first.</p>}
-   {(senders.data||[]).map(s=>{const ready=s.is_active&&resendDomainIds.has(s.domain_id);return <div className="sender-domain" key={s.id}><div className="workspace-heading"><div><strong>{s.from_name}</strong><p className="muted">{s.from_email} · Reply-to: {s.reply_to}</p></div><span className={`status-chip ${ready?'status-granted':''}`}>{ready?'Ready to test':s.is_active?'Needs verification':'Disabled'}</span></div>
+   {!bankSenders.length&&<p className="muted">No saved sender yet. Complete steps 1 and 2 first.</p>}
+   {bankSenders.map(s=>{const ready=s.is_active&&resendDomainIds.has(s.domain_id);return <div className="sender-domain" key={s.id}><div className="workspace-heading"><div><strong>{s.from_name}</strong><p className="muted">{s.from_email} · Reply-to: {s.reply_to}</p></div><span className={`status-chip ${ready?'status-granted':''}`}>{ready?'Ready to test':s.is_active?'Needs verification':'Disabled'}</span></div>
     {ready&&<SenderForm org={org} action="test" label="Send test to my email"><input type="hidden" name="sender_id" value={s.id}/></SenderForm>}
     {s.is_active?<DisableCharisSender org={org} id={s.id}/>:<RemoveUnusedCharisSender org={org} id={s.id}/>}
    </div>})}

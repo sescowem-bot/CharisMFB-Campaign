@@ -6,9 +6,9 @@ test('Zoho option remains visible and explains when it cannot yet be chosen',()=
  const c=read('components/direct-compose.tsx');
  assert.match(c,/<option value="zeptomail" disabled=\{!zeptoEligible\|\|!zeptoReady\}/);
  assert.match(c,/Zoho ZeptoMail · Setup pending/);
- assert.match(c,/Select customer account notice/);
- assert.match(c,/Change message type to Customer account notice/);
- assert.match(c,/setPurpose\('account_update'\)/);
+ assert.match(c,/Select individual customers/);
+ assert.match(c,/Choose any message category above/);
+ assert.match(c,/A general announcement, newsletter or promotional broadcast/);
  assert.match(c,/setConfirmed\(false\)/);
 });
 test('Mail Agent provider page separates SMTP availability from notification campaign activation',()=>{

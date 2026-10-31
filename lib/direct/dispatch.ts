@@ -7,6 +7,7 @@ import {reservePreferenceLink} from '@/lib/preferences/tokens';
 import {renderCampaign} from '@/lib/campaigns/render';
 import {directEmailReadiness} from '@/lib/direct/readiness';
 import {sendZeptoNotification,zeptoNotificationBatchReady} from '@/lib/email/zeptomail-notifications';
+import {isCharisSenderDomain,isCharisSenderEmail} from '@/lib/email/charis-sender';
 
 type Item={id:string;organization_id:string;message_id:string;contact_id:string;recipient_email:string|null;recipient_phone:string|null};
 type Message={id:string;organization_id:string;subject:string;body:string;design:unknown|null;channel:'email'|'sms';purpose:string;status:string};
@@ -67,15 +68,25 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
     const readiness=await directEmailReadiness(row.organization_id);
     // A provider choice is persisted on the campaign (SQL 075), not a per-request hint.
     // Old installations without 075 continue to deliver automatic campaigns unchanged.
-    const {data:storedPreference,error:preferenceError}=await db.from('charis_direct_messages')
-     .select('preferred_provider,zepto_event_reference').eq('organization_id',row.organization_id).eq('id',row.message_id).maybeSingle();
+    const {data:policyPreference,error:policyError}=await db.from('charis_direct_messages')
+     .select('preferred_provider,zepto_event_reference,zepto_transactional_acknowledged')
+     .eq('organization_id',row.organization_id).eq('id',row.message_id).maybeSingle();
+    let storedPreference:{preferred_provider:string|null;zepto_event_reference:string|null;zepto_transactional_acknowledged:boolean|null}|null=policyPreference;
+    let preferenceError=policyError;
+    if(policyError&&['42703','PGRST204'].includes(policyError.code||'')){
+     // Keep older non-Zoho campaigns working before migration 083 is installed.
+     const legacy=await db.from('charis_direct_messages').select('preferred_provider,zepto_event_reference')
+      .eq('organization_id',row.organization_id).eq('id',row.message_id).maybeSingle();
+     storedPreference=legacy.data?{...legacy.data,zepto_transactional_acknowledged:false}:null;
+     preferenceError=legacy.error;
+    }
     if(preferenceError&&!['42703','PGRST204'].includes(preferenceError.code||''))throw Error('campaign_provider_preference_unavailable');
     const selectedProvider=storedPreference?.preferred_provider||null;
     if(selectedProvider&&!['resend','brevo','mailjet','zeptomail'].includes(selectedProvider))throw Error('invalid_campaign_provider');
     if(!readiness.ready&&selectedProvider!=='zeptomail')throw Error('No verified service-email sender is ready.');
     const prefs=selectedProvider?readiness.providers.filter(pref=>pref.provider===selectedProvider):readiness.providers;
     if(selectedProvider!=='zeptomail'&&selectedProvider&&!prefs.length)throw Error('selected_provider_unavailable');
-    if(selectedProvider==='zeptomail'&&(!zeptoNotificationBatchReady()||m.purpose!=='account_update'||!storedPreference?.zepto_event_reference))
+    if(selectedProvider==='zeptomail'&&(!zeptoNotificationBatchReady()||!storedPreference?.zepto_transactional_acknowledged||!storedPreference?.zepto_event_reference))
      throw Error('zeptomail_notification_policy_or_configuration_invalid');
     // One-time, bank-hosted preference URL. No personal data in the URL or token.
     // All manually composed direct emails respect suppressions.
@@ -105,9 +116,9 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
     }else for(const pref of prefs){
      provider=pref.provider;
      const {data:sender,error:senderError}=await db.from('sender_identities').select('id,domain_id,from_name,from_email,reply_to,is_active').eq('organization_id',row.organization_id).eq('id',pref.sender_id).single();
-     if(senderError||!sender?.is_active)continue;
+     if(senderError||!sender?.is_active||!isCharisSenderEmail(sender.from_email))continue;
      const {data:domain,error:domainError}=await db.from('sending_domains').select('provider,verification_status,charis_connected,domain').eq('organization_id',row.organization_id).eq('id',sender.domain_id).single();
-     if(domainError||!domain||domain.provider!==provider||!domain.charis_connected||domain.verification_status!=='verified')continue;
+     if(domainError||!domain||!isCharisSenderDomain(domain.domain)||domain.provider!==provider||!domain.charis_connected||domain.verification_status!=='verified')continue;
      let transportStarted=false;
      try{
       const domainKey=row.organization_id+':'+sender.domain_id;

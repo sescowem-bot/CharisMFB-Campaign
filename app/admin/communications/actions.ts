@@ -3,6 +3,7 @@ import {revalidatePath} from 'next/cache';
 import {z} from 'zod';
 import {currentAccount} from '@/lib/auth/account';
 import {supabaseServer} from '@/lib/supabase/server';
+import {isCharisSenderEmail} from '@/lib/email/charis-sender';
 type State={error?:string;success?:string};
 export async function directAdminAction(_:State,form:FormData):Promise<State>{
  try{const account=await currentAccount();if(!account)throw Error('Sign in first');const db=await supabaseServer(),org=account.workspace.id;
@@ -16,7 +17,10 @@ export async function directAdminAction(_:State,form:FormData):Promise<State>{
     p_sms:form.get('sms')==='on',p_max:n,...(n>50||daily!==500?{p_daily:daily}:{})
    }));
   }else if(action==='provider'){
-   ({error}=await db.rpc('charis_direct_provider_save',{p_org:org,p_provider:z.enum(['resend','brevo','mailjet']).parse(form.get('provider')),p_sender:z.uuid().parse(form.get('sender')),p_enabled:form.get('enabled')==='on',p_priority:z.coerce.number().int().min(1).max(100).parse(form.get('priority'))}));
+   const senderId=z.uuid().parse(form.get('sender'));
+   const {data:identity,error:identityError}=await db.from('sender_identities').select('from_email,is_active').eq('organization_id',org).eq('id',senderId).maybeSingle();
+   if(identityError||!identity?.is_active||!isCharisSenderEmail(identity.from_email))throw Error('Choose an approved Charis bank sending address.');
+   ({error}=await db.rpc('charis_direct_provider_save',{p_org:org,p_provider:z.enum(['resend','brevo','mailjet']).parse(form.get('provider')),p_sender:senderId,p_enabled:form.get('enabled')==='on',p_priority:z.coerce.number().int().min(1).max(100).parse(form.get('priority'))}));
   }else if(action==='staff'){
    ({error}=await db.rpc('charis_direct_staff_rule_save',{p_org:org,p_user:z.uuid().parse(form.get('user')),p_can_send:form.get('can_send')==='yes'}));
   }else{

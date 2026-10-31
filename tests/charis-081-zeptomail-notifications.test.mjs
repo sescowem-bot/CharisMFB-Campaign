@@ -10,16 +10,17 @@ test('ZeptoMail batch notifications reuse SMTP safely and require explicit activ
  assert.match(s,/to:mail.to/);
  assert.match(s,/status:'unknown'/);
 });
-test('A ZeptoMail campaign is limited to 50 selected customers and a bank event',()=>{
+test('A ZeptoMail campaign remains limited to 500 selected customers and a bank event',()=>{
  const a=read('app/dashboard/communications/actions.ts');
  const u=read('components/direct-compose.tsx');
  const sql=read('supabase/migrations/081_charis_zeptomail_notification_batches.sql');
- assert.match(a,/parsed.purpose!=='account_update'/);
  assert.match(a,/parsed.audience!=='selected'/);
- assert.match(a,/recipients.length>50/);
+ assert.match(a,/zepto_transactional_acknowledged/);
+ assert.match(a,/parsed.audience!=='selected'/);
+ assert.match(a,/recipients.length>500/);
  assert.match(a,/zepto_event_confirm/);
  assert.match(a,/charis_direct_create_zepto_081/);
- assert.match(u,/Zoho ZeptoMail · Account notifications/);
+ assert.match(u,/Zoho ZeptoMail · Transactional notifications/);
  assert.match(sql,/p_purpose<>'account_update'/);
  assert.match(sql,/BETWEEN 1 AND 50/);
  assert.match(sql,/zepto_event_reference IS NOT NULL/);
