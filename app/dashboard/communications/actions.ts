@@ -110,7 +110,7 @@ export async function createDirectMessage(_:DirectState,form:FormData):Promise<D
   if(message?.scheduled_at&&new Date(message.scheduled_at).getTime()>Date.now())return {id,outcome:'scheduled',success:'Campaign scheduled. View Campaigns to track it.'};
   if(message?.status!=='queued')return {id,outcome:'attention',success:'Campaign saved. Check its status before sending again.'};
   try{
-   const result=await sendDirectBatch(3,{org,message:id});
+   const result=await sendDirectBatch(50,{org,message:id});
    if(result.outcomes.disabled)return {id,outcome:'unavailable',success:'Campaign saved. Sending is currently unavailable.'};
    const accepted=result.outcomes.accepted||0,failed=result.outcomes.failed||0,uncertain=result.outcomes.unknown||0;
    if(uncertain)return {id,outcome:'attention',success:'Campaign saved. Delivery needs review before taking further action.'};
@@ -125,7 +125,7 @@ export async function approveDirectMessage(_:DirectState,form:FormData):Promise<
   revalidatePath('/dashboard/communications');
   const {data:message}=await db.from('charis_direct_messages').select('scheduled_at').eq('organization_id',org).eq('id',id).maybeSingle();
   if(message?.scheduled_at&&new Date(message.scheduled_at).getTime()>Date.now())return {id,success:'Campaign approved and scheduled.'};
-  try{const result=await sendDirectBatch(3,{org,message:id});
+  try{const result=await sendDirectBatch(50,{org,message:id});
    if(result.outcomes.disabled)return {id,success:'Approved. Sending is currently disabled.'};
    if(result.outcomes.unknown)return {id,success:'Approved, but a delivery outcome needs review. Do not resubmit.'};
    return {id,success:`Approved. ${result.outcomes.accepted||0} accepted by provider; ${result.outcomes.failed||0} failed. Check delivery history.`};}
