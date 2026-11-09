@@ -1,5 +1,6 @@
 import 'server-only';
 import nodemailer from 'nodemailer';
+import type SMTPPool from 'nodemailer/lib/smtp-pool';
 import {zeptoConfig} from '@/lib/email/zeptomail';
 export function zeptoNotificationBatchReady():boolean{
  if(process.env.ZEPTOMAIL_NOTIFICATION_BATCH_ENABLED!=='true')return false;
@@ -7,7 +8,7 @@ export function zeptoNotificationBatchReady():boolean{
 }
 type Mail={to:string;subject:string;text:string;html:string;unsubscribe?:string};
 // One pooled SMTP connection set is reused by every recipient in a burst (no new TLS handshake per email).
-let pooled:{key:string;transport:nodemailer.Transporter}|null=null;
+let pooled:{key:string;transport:nodemailer.Transporter<SMTPPool.SentMessageInfo>}|null=null;
 function pooledTransport(cfg:ReturnType<typeof zeptoConfig>){
  const key=[cfg.username,cfg.password,cfg.port].join('|');
  if(pooled?.key===key)return pooled.transport;
@@ -30,7 +31,7 @@ export async function sendZeptoNotification(mail:Mail):Promise<{status:'accepted
    subject:mail.subject,text:mail.text,html:mail.html,disableFileAccess:true,disableUrlAccess:true,
    ...(mail.unsubscribe&&/^https:\/\//.test(mail.unsubscribe)?{headers:{'List-Unsubscribe':`<${mail.unsubscribe}>`,'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'}}:{})
   });
-  if(!result.accepted?.some(value=>(typeof value==='string'?value:value.address).toLowerCase()===mail.to.toLowerCase()))
+  if(!(result.accepted as Array<string|{address:string}>|undefined)?.some(value=>(typeof value==='string'?value:value.address).toLowerCase()===mail.to.toLowerCase()))
    return {status:'unknown',reason:'zeptomail_acceptance_unconfirmed',providerId:result.messageId||null};
   return {status:'accepted',reason:'zeptomail_smtp_accepted',providerId:result.messageId||null};
  }catch{
