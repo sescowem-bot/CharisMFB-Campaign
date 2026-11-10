@@ -26,7 +26,7 @@ export default async function PlatformSuperAdmins({searchParams}:{searchParams:P
   <section className="panel">
    <h2>Current super administrators</h2>
    {(data||[]).length===0?<p className="muted">No administrator records were returned.</p>:<div className="table-wrap"><table><thead><tr><th>Email</th><th>Added</th><th>Action</th></tr></thead><tbody>{(data||[]).map((row:{user_id:string,email:string,created_at:string})=><tr key={row.user_id}><td>{row.email}</td><td>{new Date(row.created_at).toLocaleDateString('en-NG')}</td><td><form action={setPlatformSuperAdmin}><input type="hidden" name="email" value={row.email}/><input type="hidden" name="enabled" value="no"/><button className="btn secondary" type="submit" disabled={row.user_id===account.id}>Remove access</button></form></td></tr>)}</tbody></table></div>}
-   <p className="muted">The last remaining super administrator cannot be removed. Removing access does not delete the user's account.</p>
+   <p className="muted">The last remaining super administrator cannot be removed. Removing access does not delete the user account.</p>
   </section>
  </WorkspaceShell>;
 }
