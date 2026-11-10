@@ -15,9 +15,9 @@ async function admin(){
  return {account,user,org,db:emailServiceDb()};
 }
 
-export async function syncZohoContacts(_formData:FormData){
+export async function syncZohoContacts(){
  let runId:string|undefined;
- let db:any,org:string|undefined;
+ let db:ReturnType<typeof emailServiceDb>|undefined,org:string|undefined;
  try{
   const access=await admin();db=access.db;org=access.org;
   const snapshot=await fetchZohoContactSnapshot();
