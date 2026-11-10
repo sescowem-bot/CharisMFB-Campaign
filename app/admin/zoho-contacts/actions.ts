@@ -159,10 +159,14 @@ export async function attestSignedAccountOpeningForms(form:FormData){
  }catch(e){return {error:e instanceof Error?e.message:'Could not record consent attestation.'};}
 }
 
-// HTML form actions must resolve to void; keep the structured result in the
-// underlying action for callers that need it, and adapt it for native forms.
-export async function syncZohoContactsForm(_formData: FormData): Promise<void> {
- await syncZohoContacts();
+// Return the structured result to the client form so administrators can see
+// whether the sync completed or why it failed.
+export type ZohoSyncActionState = {success:boolean;message:string} | null;
+export async function syncZohoContactsForm(
+ _previousState: ZohoSyncActionState,
+ _formData: FormData
+): Promise<ZohoSyncActionState> {
+ return await syncZohoContacts();
 }
 
 export async function attestSignedAccountOpeningFormsForm(formData: FormData): Promise<void> {
