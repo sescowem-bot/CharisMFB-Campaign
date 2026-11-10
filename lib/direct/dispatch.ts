@@ -31,12 +31,14 @@ export async function sendDirectSms(text:string,phone:string):Promise<{status:'a
 export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}){
  const outcomes:Record<string,number>={};let processed=0;
  if(process.env.CHARIS_SIMPLE_SENDING_ENABLED!=='true'||process.env.EMAIL_DELIVERY_ENABLED!=='true')return {processed,outcomes:{disabled:1}};
- preparedOrigin();const db=emailServiceDb(),n=Math.min(Math.max(Math.floor(limit),1),6);
+ preparedOrigin();const db=emailServiceDb(),n=Math.min(Math.max(Math.floor(limit),1),100);
+ const concurrency=Math.min(Math.max(Math.floor(Number(process.env.CHARIS_SEND_CONCURRENCY)||5),1),10);
  const checkedDomains=new Map<string,Promise<boolean>>();
- for(let i=0;i<n;i++){
+ /** Processes one claimed recipient. Returns false when the run must stop (queue empty or uncertain outcome). */
+ const runOne=async():Promise<boolean>=>{
   const {data:claimed,error:claimError}=await db.rpc('charis_direct_claim',{p_org:scope?.org||null,p_message:scope?.message||null});
   if(claimError)throw Error('Unable to claim communication safely: '+claimError.message);
-  if(!claimed){outcomes.idle=(outcomes.idle||0)+1;break;}
+  if(!claimed){outcomes.idle=(outcomes.idle||0)+1;return false;}
   processed++;
   const {data:item,error:itemError}=await db.from('charis_direct_recipients').select('id,organization_id,message_id,contact_id,recipient_email,recipient_phone').eq('id',claimed).single();
   let provider='none',status:'accepted'|'failed'|'unknown'|'skipped'='failed',reason='preparation_failed',providerId:string|null=null;
@@ -111,7 +113,7 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
     if(selectedProvider==='zeptomail'){
      provider='zeptomail';
      // Each recipient is private; uncertain SMTP outcomes are not retried or switched.
-     const outcome=await sendZeptoNotification({to:row.recipient_email,subject:renderedSubject,html,text:m.body});
+     const outcome=await sendZeptoNotification({to:row.recipient_email,subject:renderedSubject,html,text:m.body,unsubscribe:m.purpose==='general_notice'?preference.replace('/unsubscribe?','/api/preferences/unsubscribe?'):undefined});
      status=outcome.status;reason=outcome.reason;providerId=outcome.providerId;
     }else for(const pref of prefs){
      provider=pref.provider;
@@ -161,7 +163,18 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
    if(reconcileError)throw Error('Delivery event reconciliation unavailable. Check history before retrying.');
   }
   outcomes[status]=(outcomes[status]||0)+1;
-  if(status==='unknown')break;
- }
+  return status!=='unknown';
+ };
+ // Parallel workers: each claim is atomic in the database, so no recipient is sent twice.
+ // An uncertain outcome or an empty queue stops every worker; nothing is replayed.
+ let remaining=n,stop=false,fatal:unknown=null;
+ const worker=async()=>{
+  while(!stop&&remaining>0){
+   remaining--;
+   try{if(!await runOne())stop=true;}catch(e){fatal=fatal||e;stop=true;}
+  }
+ };
+ await Promise.all(Array.from({length:Math.min(concurrency,n)},worker));
+ if(fatal)throw fatal;
  return {processed,outcomes};
 }

@@ -24,7 +24,8 @@ test('promotion requests blocked from transactional notice workflow',()=>{
 test('dispatch blocks on unknown provider outcomes and prevents unsafe replay',()=>{
  const s=read('lib/direct/dispatch.ts');
  assert.match(s,/sendQueuedEmail/);
- assert.match(s,/if\(status==='unknown'\)break/);
+ assert.match(s,/return status!=='unknown'/);
+ assert.match(s,/if\(!await runOne\(\)\)stop=true/);
  assert.match(s,/charis_direct_claim/);
  assert.match(s,/charis_direct_finish/);
  const sql=read('supabase/migrations/047_charis_simple_communications.sql');

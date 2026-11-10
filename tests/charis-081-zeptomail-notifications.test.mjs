@@ -6,7 +6,9 @@ test('ZeptoMail batch notifications reuse SMTP safely and require explicit activ
  const s=read('lib/email/zeptomail-notifications.ts');
  assert.match(s,/ZEPTOMAIL_NOTIFICATION_BATCH_ENABLED/);
  assert.match(s,/zeptoConfig\(process.env\)/);
- assert.match(s,/zeptoTransport\(cfg\)/);
+ assert.match(s,/pooledTransport\(cfg\)/);
+ assert.match(s,/pool:true/);
+ assert.match(s,/List-Unsubscribe/);
  assert.match(s,/to:mail.to/);
  assert.match(s,/status:'unknown'/);
 });

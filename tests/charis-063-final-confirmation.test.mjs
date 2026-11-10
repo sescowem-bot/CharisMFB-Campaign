@@ -26,7 +26,7 @@ test('Server rejects unconfirmed submits before database access and send attempt
  assert.ok(guard>0);
  assert.ok(guard<action.indexOf('const account=await currentAccount()'));
  assert.ok(guard<action.indexOf("db.rpc('charis_direct_create_v2'"));
- assert.match(action,/sendDirectBatch\(3,\{org,message:id\}\)/);
+ assert.match(action,/sendDirectBatch\(50,\{org,message:id\}\)/);
 });
 test('Rich preview renders at review and final confirmation while typing stays light',()=>{
  assert.match(composer,/if\(step<2\|\|channel!=='email'\)/);
