@@ -23,6 +23,7 @@ export default async function Administration(){
   {title:'Departments & branches',description:'Maintain the organisational structure and authorised staff assignments.',href:'/dashboard/departments',icon:Building2,show:departments},
   {title:'Communication settings',description:'Configure bank sending rules, service messages and staff permissions.',href:'/admin/communications',icon:Mail,show:isOwner||has('settings.manage')},
   {title:'Email delivery settings',description:'Configure verified email addresses, delivery providers and connection tests.',href:'/admin/providers',icon:Mail,show:providers},
+  {title:'Zoho contact synchronisation',description:'Import existing Zoho contacts, reconcile duplicates and record signed-form permission evidence.',href:'/admin/zoho-contacts',icon:Users,show:providers||isOwner},
   {title:'Campaign reports',description:'Review campaign activity, delivery results and export reports.',href:'/dashboard/reports',icon:FileText,show:reports},
   {title:'Operations reports',description:'Review customer operations and credit activity.',href:'/dashboard/insights',icon:BarChart3,show:operations},
   {title:'Brand & media',description:'Approved logo, styles and images for bank communications.',href:`/dashboard/branding?org=${org}`,icon:Palette,show:branding},
@@ -33,6 +34,5 @@ export default async function Administration(){
    <span className="charis-admin-card-icon"><Icon size={23}/></span><span><strong>{title}</strong><small>{description}</small></span><ArrowUpRight size={19}/>
   </Link>)}</div>
   {(staff||access)&&<p className="muted">Role and permission changes are audited. Permissions control both available menus and protected server operations; hiding navigation alone is not access control.</p>}
-
  </WorkspaceShell>;
 }
