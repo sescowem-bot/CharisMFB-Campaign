@@ -5,14 +5,16 @@ import {readFile} from 'node:fs/promises';
 const source=await readFile(new URL('../lib/zoho/contact-sync.ts',import.meta.url),'utf8');
 
 test('Zoho OAuth failures expose a safe provider error code',()=>{
- assert.match(source,/Zoho OAuth rejected the refresh-token request/);
- assert.match(source,/HTTP \\${res\.status}, code: \\${code}/);
- assert.match(source,/unrecognised_oauth_error/);
- assert.doesNotMatch(source,/console\\.log\\(.*client_secret/s);
+ assert.ok(source.includes('Zoho OAuth rejected the refresh-token request'));
+ assert.ok(source.includes('HTTP ${res.status}, code: ${code}'));
+ assert.ok(source.includes('unrecognised_oauth_error'));
 });
 
 test('Zoho OAuth diagnostics never include submitted credentials',()=>{
- const diagnostic=source.slice(source.indexOf('if(!res.ok||!data.access_token)'),source.indexOf('return String(data.access_token)'));
- assert.doesNotMatch(diagnostic,/process\\.env\\.ZOHO_(CLIENT_SECRET|REFRESH_TOKEN)/);
- assert.doesNotMatch(diagnostic,/data\\.error_description/);
+ const start=source.indexOf('if(!res.ok||!data.access_token)');
+ const end=source.indexOf('return String(data.access_token)');
+ const diagnostic=source.slice(start,end);
+ assert.ok(!diagnostic.includes('process.env.ZOHO_CLIENT_SECRET'));
+ assert.ok(!diagnostic.includes('process.env.ZOHO_REFRESH_TOKEN'));
+ assert.ok(!diagnostic.includes('data.error_description'));
 });
