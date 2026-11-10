@@ -4,7 +4,7 @@ Zoho Campaigns is a background delivery provider. Staff create, prepare, send an
 
 ## Migrations
 
-The Zoho broadcast base migration is `084_charis_zoho_broadcasts.sql`. The reporting and suppression migration is `085_charis_zoho_reporting_and_suppressions.sql`. Migration 085 adds report metrics, the Zoho event inbox and a provider-specific suppression table. It is additive and does not replace Charis contacts, consent, Resend or manual correspondence.
+The Zoho broadcast base migration is `084_charis_zoho_broadcasts.sql`. The reporting and suppression migration is `085_charis_zoho_reporting_and_suppressions.sql`. Migration 085 adds report metrics, the Zoho event inbox and a provider-specific suppression table. Migration 086 adds the administrator-only Zoho contact inventory, sync history, list membership and signed-form attestation tables.
 
 ## Vercel environment variables
 
@@ -13,7 +13,7 @@ Set these in the Charis Campaign Vercel project, for Production:
 | Variable | Value |
 |---|---|
 | `ZOHO_CAMPAIGNS_ENABLED` | `true` |
-| `ZOHO_REGION` | Actual Zoho data centre: `com`, `eu`, `in`, or `com.au` |
+| `ZOHO_REGION` | Actual Zoho data centre; for the supplied campaigns.zoho.com account use `com` |
 | `ZOHO_CLIENT_ID` | Zoho Self Client ID |
 | `ZOHO_CLIENT_SECRET` | Zoho Self Client Secret |
 | `ZOHO_REFRESH_TOKEN` | OAuth refresh token |
@@ -29,11 +29,19 @@ Keep credentials server-side. Never commit them to GitHub or expose them in brow
 1. Sign in to the Zoho account that owns the Charis sending domain.
 2. Verify the sender address (for example, `info@charismfb.com`) in Zoho Campaigns.
 3. Open the Zoho API Console at https://api-console.zoho.com/ and create a Self Client.
-4. Generate an authorisation code with scopes `ZohoCampaigns.campaign.ALL,ZohoCampaigns.contact.ALL`.
+4. Generate an authorisation code with scopes `ZohoCampaigns.campaign.ALL,ZohoCampaigns.contact.ALL`. The contact scope includes the read permission needed for list and contact inventory.
 5. Exchange the grant code for a refresh token using the OAuth endpoint for the account's own data centre.
 6. Use the region matching the Zoho account domain, not the user's country.
 
 The application exchanges the refresh token for short-lived access tokens automatically. The refresh token is not regenerated for each campaign.
+
+## Existing contact synchronisation
+
+The administrator-only page is `/admin/zoho-contacts`. It reads the existing Zoho mailing-list inventory and retrieves each list's active, unsubscribed and bounced contacts in pages. It matches contacts by normalized email, imports missing contacts into Charis, records each Zoho list membership, and carries unsubscribe/bounce states into Charis suppression controls. Staff do not access Zoho or select Zoho lists.
+
+Zoho active status confirms the address is active in Zoho; it does not independently prove the wording or scope of a signed account-opening form. An authorised Charis administrator must attest to the bank-held signed-form register and select the permission scope before previously unknown active contacts can be treated as eligible for general marketing. Existing denials, unsubscribes, bounces and bank suppression records are not re-enabled by this attestation.
+
+The first synchronisation is an import and inventory operation. It does not delete, rename or consolidate Zoho mailing lists. This is deliberate: old lists may be referenced by existing or historical campaigns. Review the inventory and recipient counts before any later cleanup. Staff should use Charis contact groups and segments, not Zoho list selection.
 
 ## Webhook
 
@@ -49,13 +57,13 @@ Do not put the secret in the URL. Ensure webhook payloads include a Zoho list ke
 
 ## Safe test procedure
 
-1. Set the Production variables and redeploy.
-2. Prepare a test campaign for one to three staff-approved addresses.
-3. Verify the audience count in Charis.
-4. Send from Charis.
-5. Refresh the report in Charis after Zoho has made it available.
-6. Test unsubscribe with a controlled test address and verify that Charis suppresses it.
-7. Only then send to a small customer segment with recorded consent.
+1. Apply the database migrations in order, including migration 086.
+2. Set the Production variables and redeploy.
+3. Open Administration → Zoho contact synchronisation and run the initial read/import.
+4. Review the list inventory, unique-contact count, newly imported contacts and suppression count.
+5. Verify the account-opening form wording and record the bank evidence-register reference and actual permission scope.
+6. Test with one to three staff-approved addresses before any customer broadcast.
+7. Test unsubscribe with a controlled address and verify that Charis suppresses it.
 
 ## Safeguards
 
