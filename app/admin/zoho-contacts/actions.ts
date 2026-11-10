@@ -29,15 +29,19 @@ export async function syncZohoContacts(_formData:FormData){
   runId=run.id;
   let inserted=0,matched=0,suppressed=0,membershipCount=0;
   const contactIds=new Map<string,string>();
+  // Read the existing directory in pages and match case-insensitively.
+  // This avoids creating a second record when a legacy address uses different casing.
+  for(let offset=0;offset<50000;offset+=1000){
+   const {data:rows,error:readError}=await db.from('contacts').select('id,email').eq('organization_id',org).range(offset,offset+999);
+   if(readError)throw new Error('Could not read the existing Charis contact directory.');
+   for(const row of rows||[])if(row.email)contactIds.set(String(row.email).trim().toLowerCase(),row.id);
+   if((rows||[]).length<1000)break;
+  }
   for(let i=0;i<snapshot.contacts.length;i+=100){
    const batch=snapshot.contacts.slice(i,i+100);
-   const emails=batch.map(x=>x.email);
-   const {data:existing,error}=await db.from('contacts').select('id,email').eq('organization_id',org).in('email',emails);
-   if(error)throw new Error('Could not match existing Charis contacts.');
-   for(const c of existing||[])contactIds.set(c.email,c.id);
    const newRows=batch.filter(x=>!contactIds.has(x.email)).map(x=>({
     organization_id:org,first_name:x.first_name,last_name:x.last_name,email:x.email,
-    phone:null,source:'import',consent_status:'unknown',attributes:{zoho_campaigns_import:true}
+    phone:x.phone||null,source:'import',consent_status:'unknown',attributes:{zoho_campaigns_import:true}
    }));
    if(newRows.length){
     const {data:created,error:createError}=await db.from('contacts').insert(newRows).select('id,email');
@@ -48,20 +52,23 @@ export async function syncZohoContacts(_formData:FormData){
    matched+=batch.length-newRows.length;
    for(const x of batch){
     const id=contactIds.get(x.email);if(!id)continue;
-    if(x.status==='unsubscribe'||x.status==='bounce'){
-     const reason=x.status==='unsubscribe'?'unsubscribe':'bounce';
-     const {error:supError}=await db.from('email_suppressions').upsert({organization_id:org,email:x.email,reason},{onConflict:'organization_id,email'});
+    if(x.status==='unsubscribe'||x.status==='bounce'||x.status==='complaint'){
+     const reason=x.status==='unsubscribe'?'unsubscribe':x.status==='complaint'?'complaint':'bounce';
+     const {data:prior}=await db.from('email_suppressions').select('reason').eq('organization_id',org).eq('email',x.email).maybeSingle();
+     const priority:Record<string,number>={unsubscribe:1,bounce:2,complaint:3,admin:4};
+     const finalReason=(prior?.reason&&priority[prior.reason]>=priority[reason])?prior.reason:reason;
+     const {error:supError}=await db.from('email_suppressions').upsert({organization_id:org,email:x.email,reason:finalReason},{onConflict:'organization_id,email'});
      if(supError)throw new Error('Could not apply a Zoho suppression to the Charis delivery blocklist.');
-     if(x.status==='unsubscribe'){
+     if(x.status==='unsubscribe'||x.status==='complaint'){
       const {error:contactError}=await db.from('contacts').update({
        unsubscribed_at:new Date().toISOString(),consent_status:'denied',
-       consent_evidence:'Unsubscribed in Zoho Campaigns; imported during administrator sync.',
+       consent_evidence:x.status==='complaint'?'Spam complaint reported in Zoho Campaigns; imported during administrator sync.':'Unsubscribed in Zoho Campaigns; imported during administrator sync.',
        consent_recorded_at:new Date().toISOString()
       }).eq('organization_id',org).eq('id',id);
       if(contactError)throw new Error('Could not apply the Zoho unsubscribe to the Charis contact record.');
      }
      const {error:zohoSuppressionError}=await db.from('charis_zoho_email_suppressions').upsert({
-      organization_id:org,email:x.email,reason,source:'zoho_contact_sync',
+      organization_id:org,email:x.email,reason:finalReason,source:'zoho_contact_sync',
       zoho_list_key:x.list_key,suppressed_at:new Date().toISOString()
      },{onConflict:'organization_id,email'});
      if(zohoSuppressionError)throw new Error('Could not save the Zoho suppression audit record.');
@@ -93,7 +100,7 @@ export async function syncZohoContacts(_formData:FormData){
    matched_count:matched,suppressed_count:suppressed,membership_count:membershipCount
   }).eq('id',runId).eq('organization_id',org);
   revalidatePath('/admin/zoho-contacts');revalidatePath('/dashboard/contacts');
-  return {success:true,message:`Sync complete. ${snapshot.contacts.length} unique Zoho contacts reviewed, ${inserted} new contacts imported, ${matched} matched to existing Charis records, and ${suppressed} opt-outs or bounces blocked.`};
+  return {success:true,message:`Sync complete. ${snapshot.contacts.length} unique Zoho contacts reviewed, ${inserted} new contacts imported, ${matched} matched to existing Charis records, and ${suppressed} opt-outs, bounces or complaints blocked.`};
  }catch(e){
   if(db&&org&&runId)await db.from('charis_zoho_contact_sync_runs').update({status:'failed',finished_at:new Date().toISOString(),error_summary:'Zoho contact synchronisation failed. Review server logs.'}).eq('id',runId).eq('organization_id',org);
   return {success:false,message:e instanceof Error?e.message:'Zoho contact synchronisation failed.'};
