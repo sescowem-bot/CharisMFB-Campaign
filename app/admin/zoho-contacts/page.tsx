@@ -3,7 +3,7 @@ import {currentAccount} from '@/lib/auth/account';
 import {charisOrgId} from '@/lib/bank';
 import {emailServiceDb} from '@/lib/email/server';
 import {WorkspaceShell} from '@/components/workspace-shell';
-import {syncZohoContacts,attestSignedAccountOpeningForms} from './actions';
+import {syncZohoContactsForm,attestSignedAccountOpeningForms} from './actions';
 export const dynamic='force-dynamic';
 export default async function ZohoContactsAdmin(){
  const account=await currentAccount();const org=charisOrgId();
@@ -21,7 +21,7 @@ export default async function ZohoContactsAdmin(){
    <h2>One contact directory for Charis</h2>
    <p>Synchronise the existing Zoho Campaigns mailing lists into Charis. Contacts are matched by email, duplicate records are consolidated, and Zoho opt-outs and bounces are added to the bank suppression records. Staff continue to work only in Charis.</p>
    <div className="audience-kpis"><div className="audience-kpi"><span>Charis contacts</span><strong>{(contacts.count||0).toLocaleString()}</strong></div><div className="audience-kpi"><span>Zoho lists found</span><strong>{(lists.data||[]).length.toLocaleString()}</strong></div><div className="audience-kpi"><span>Zoho list memberships</span><strong>{(memberships.count||0).toLocaleString()}</strong></div></div>
-   <form action={syncZohoContacts}><button className="btn" type="submit">Synchronise Zoho contacts</button></form>
+   <form action={syncZohoContactsForm}><button className="btn" type="submit">Synchronise Zoho contacts</button></form>
    {latest&&<p className="muted">Last sync: {new Date(latest.started_at).toLocaleString('en-NG')} · {latest.zoho_contact_count||0} unique Zoho contacts · {latest.inserted_count||0} new · {latest.matched_count||0} already in Charis · {latest.suppressed_count||0} suppressed.</p>}
   </section>
   <section className="panel">
