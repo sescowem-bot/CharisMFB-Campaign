@@ -4,7 +4,7 @@ Zoho Campaigns is a background delivery provider. Staff create, prepare, send an
 
 ## Migrations
 
-The Zoho broadcast base migration is `084_charis_zoho_broadcasts.sql`. The reporting and suppression migration is `085_charis_zoho_reporting_and_suppressions.sql`. Migration 085 adds report metrics, the Zoho event inbox and a provider-specific suppression table. Migration 086 adds the administrator-only Zoho contact inventory, sync history, list membership and signed-form attestation tables.
+The Zoho broadcast base migration is `084_charis_zoho_broadcasts.sql`. The reporting and suppression migration is `085_charis_zoho_reporting_and_suppressions.sql`. Migration 085 adds report metrics, the Zoho event inbox and a provider-specific suppression table. Migration 086 adds the administrator-only Zoho contact inventory, sync history, list membership and signed-form attestation tables. Migration 087 adds secure platform super-administrator management.
 
 ## Vercel environment variables
 
@@ -48,6 +48,8 @@ The first synchronisation is an import and inventory operation. It does not dele
 Configure the Zoho Campaigns contact events for unsubscribe, bounce and spam/complaint where available. The Charis endpoint is:
 
 `https://charismfbcampaign.vercel.app/api/webhooks/zoho-campaigns`
+
+The endpoint validates `X-Charis-Zoho-Webhook-Secret`, records incoming events idempotently and applies unsubscribe, bounce and complaint suppression. Configure `ZOHO_WEBHOOK_SECRET` in Vercel (at least 32 random characters).
 
 Use POST and configure the authentication/custom header:
 
