@@ -26,7 +26,7 @@ export default async function ZohoContactsAdmin(){
   </section>
   <section className="panel">
    <h2>Confirm signed account-opening form permission</h2>
-   <p>The active status in Zoho confirms the address is active in Zoho; it does not independently prove the permission the customer granted. If the bank's signed account-opening form expressly covers marketing communications, record the bank's evidence-register reference here. Existing opt-outs, denials and bounces are not re-enabled.</p>
+   <p>The active status in Zoho confirms the address is active in Zoho; it does not independently prove the permission the customer granted. If the bank&apos;s signed account-opening form expressly covers marketing communications, record the bank&apos;s evidence-register reference here. Existing opt-outs, denials and bounces are not re-enabled.</p>
    <form action={attestSignedAccountOpeningForms} className="form-grid">
     <label>Evidence register / form reference<input name="reference" minLength={8} maxLength={200} required placeholder="e.g. Account opening form register, batch reference"/></label>
     <label>Permission scope<select name="scope" defaultValue="all_marketing"><option value="all_marketing">General bank marketing communications</option><option value="product_specific">Specific product communications only</option></select></label>
