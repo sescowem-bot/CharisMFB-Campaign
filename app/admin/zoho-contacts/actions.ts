@@ -164,3 +164,7 @@ export async function attestSignedAccountOpeningForms(form:FormData){
 export async function syncZohoContactsForm(_formData: FormData): Promise<void> {
  await syncZohoContacts();
 }
+
+export async function attestSignedAccountOpeningFormsForm(formData: FormData): Promise<void> {
+ await attestSignedAccountOpeningForms(formData);
+}
