@@ -8,14 +8,13 @@ export async function sendQueuedEmail(input:{provider:Provider;key:string;campai
  if(!input.subject.trim()||input.subject.length>200||/[\r\n]/.test(input.subject))throw new Error('Invalid subject');
  const unsubscribe=input.unsubscribe?new URL(input.unsubscribe):null;
  if(unsubscribe&&unsubscribe.protocol!=='https:')throw new Error('HTTPS unsubscribe URL required');
- const body=input.provider==='sendbyte'?{from:`${name} <${from}>`,to:[to],reply_to:replyTo,subject:input.subject,html:input.html,tags:['charis-campaign',input.campaignId||input.id],...(unsubscribe?{list_unsubscribe:{url:unsubscribe.href}}:{})}
+ const body=input.provider==='sendbyte'?{from:`${name} <${from}>`,to:[to],reply_to:[replyTo],subject:input.subject,html:input.html,idempotency_key:`charis-campaign-${input.id}`,tags:['charis-campaign',input.campaignId||input.id],...(unsubscribe?{list_unsubscribe:{url:unsubscribe.href}}:{})}
  :input.provider==='resend'?{from:`${name} <${from}>`,to:[to],reply_to:replyTo,subject:input.subject,html:input.html,headers:unsubscribe?{'List-Unsubscribe':`<${unsubscribe.href}>`,'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'}:{},tags:[{name:'delivery_id',value:input.id}]}
  :{sender:{name,email:from},to:[{email:to}],replyTo:{email:replyTo},subject:input.subject,htmlContent:input.html,headers:{...(unsubscribe?{'List-Unsubscribe':`<${unsubscribe.href}>`,'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'}:{}),'X-Mailin-custom':`charis_delivery=${input.id}`}};
  const endpoint=input.provider==='sendbyte'?'https://api.sendbyte.africa/v1/emails':input.provider==='resend'?'https://api.resend.com/emails':'https://api.brevo.com/v3/smtp/email';
  const headers:Record<string,string>={'Content-Type':'application/json'};
  if(input.provider==='brevo')headers['api-key']=input.key;else headers.Authorization=`Bearer ${input.key}`;
  if(input.provider==='resend')headers['Idempotency-Key']=`campaign-delivery/${input.id}`;
- if(input.provider==='sendbyte')headers['X-SendByte-Idempotency-Key']=`charis-campaign-${input.id}`;
  let response:Response;
  try{response=await transport(endpoint,{method:'POST',headers,body:JSON.stringify(body),signal:AbortSignal.timeout(20000),cache:'no-store'});}catch{return {status:'unknown',reason:'network_outcome_unconfirmed'};}
  if(response.status===429)return {status:'retry',reason:'provider_rate_limit'};

@@ -54,6 +54,6 @@ export default async function NewCommunication(){
   {!settings.email_enabled&&!settings.sms_enabled?<p role="alert" className="feedback-error">Email and SMS are currently disabled.</p>:
    <DirectCompose token={randomUUID()} userId={account.id} organizationId={org} contacts={contacts||[]} groups={bankWide===true?groups||[]:[]} canBulk={bankWide===true} emailEnabled={settings.email_enabled} smsEnabled={settings.sms_enabled} maxRecipients={settings.max_recipients}
     templates={[...templates.map(t=>({...t,source:'bank' as const})),...starters]} assets={media||[]} templateStudioUrl={`/dashboard/templates?org=${org}`} brand={{name:branding?.display_name||'Charis Microfinance Bank',color:branding?.primary_color||'#40239a',address:branding?.postal_address||'',website:branding?.website_url||''}}
-    schedulingEnabled={schedulingReady} approvalRequired={settings.approval_required} customFields={customFields} providerChoiceAvailable={!providerColumnError} readyEmailProviders={providerReadiness.providers.map(p=>p.provider)}/>}
+    schedulingEnabled={schedulingReady} approvalRequired={settings.approval_required} customFields={customFields} providerChoiceAvailable={!providerColumnError} readyEmailProviders={['sendbyte','resend','brevo'].filter(provider=>providerReadiness.providers.some(p=>p.provider===provider))}/>}
  </WorkspaceShell>;
 }

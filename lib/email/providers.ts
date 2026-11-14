@@ -72,7 +72,7 @@ export function providerAdapter(provider:Provider,key:string,transport:typeof fe
    const name=senderName(input.name),email=mailbox(input.email),to=mailbox(input.to),replyTo=mailbox(input.replyTo);
    const subject=input.subject??'Charis sender test';
    if(!subject.trim()||subject.length>207||/[\r\n]/.test(subject))throw new Error('Invalid test email subject.');
-   const body=provider==='sendbyte'?{from:`${name} <${email}>`,to:[to],reply_to:replyTo,subject,html:input.html}
+   const body=provider==='sendbyte'?{from:`${name} <${email}>`,to:[to],reply_to:[replyTo],subject,html:input.html,idempotency_key:`charis-test-${input.attempt}`}
     :provider==='resend'?{from:`${name} <${email}>`,to:[to],reply_to:replyTo,subject,html:input.html,headers:{'X-Charis-Test-ID':input.attempt}}
     :{sender:{name,email},to:[{email:to}],replyTo:{email:replyTo},subject,htmlContent:input.html,headers:{'X-Charis-Test-ID':input.attempt}};
    const result=await request(provider==='sendbyte'?'/v1/emails':provider==='resend'?'/emails':'/smtp/email','POST',body),payload=obj(result.data??result),id=String(payload.id??payload.messageId??'');

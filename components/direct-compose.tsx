@@ -35,7 +35,8 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
  const stepNavRef=useRef<HTMLElement|null>(null);
  useEffect(()=>{if(step>0)stepNavRef.current?.scrollIntoView({behavior:'smooth',block:'start'});},[step]);
  const [confirmed,setConfirmed]=useState(false);
- const [emailProvider,setEmailProvider]=useState('sendbyte');
+ const defaultEmailProvider=readyEmailProviders.includes('sendbyte')?'sendbyte':readyEmailProviders.includes('resend')?'resend':readyEmailProviders.includes('brevo')?'brevo':'sendbyte';
+ const [emailProvider,setEmailProvider]=useState(defaultEmailProvider);
  const [channel,setChannel]=useState<'email'|'sms'>(emailEnabled?'email':'sms');
  const [purpose,setPurpose]=useState('general_notice');
  const [product,setProduct]=useState('general');
@@ -108,7 +109,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
    setChosen(saved.chosen.slice(0,maxRecipients));
    setMode(saved.mode==='later'&&schedulingEnabled?'later':'now');
    setSendAt(saved.sendAt);
-   setEmailProvider(readyEmailProviders.includes(saved.emailProvider)?saved.emailProvider:'sendbyte');
+   setEmailProvider(readyEmailProviders.includes(saved.emailProvider)?saved.emailProvider:defaultEmailProvider);
    lastDraft.current={subject:saved.subject,body:saved.body,design:saved.design,templateId:saved.templateId,simpleStyle:saved.simpleStyle,simpleGreeting:saved.simpleGreeting};
    draftHistory.current={past:[],future:[]};setHistoryCounts({undo:0,redo:0});
    setDraftStatus('Draft restored');
@@ -161,7 +162,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
   setPurpose('general_notice');setProduct('general');setShowProduct(false);
   setChannel(emailEnabled?'email':'sms');setAudience('selected');setChosen([]);setSelectedDetails({});
   setGroupId('');setQuery('');setResults([]);setMode('now');setSendAt('');
-  setEmailProvider('sendbyte');
+  setEmailProvider(defaultEmailProvider);
   setConfirmed(false);setDraftWarning('');
   draftHistory.current={past:[],future:[]};
   lastDraft.current={subject:'',body:'',design:null,templateId:'',simpleStyle:'classic',simpleGreeting:'Hello {{first_name}},'};

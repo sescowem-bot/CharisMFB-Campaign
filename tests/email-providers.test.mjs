@@ -76,6 +76,7 @@ test('SendByte adapter uses bearer authentication and its fixed API endpoints',a
  assert.equal(id,'sendbyte-test-id');assert.equal(calls[0].url,'https://api.sendbyte.africa/v1/domains');
  assert.equal(calls[0].options.headers.Authorization,'Bearer secret');
  assert.equal(calls[2].url,'https://api.sendbyte.africa/v1/emails');
+ const testBody=JSON.parse(calls[2].options.body);assert.deepEqual(testBody.reply_to,['reply@example.com']);assert.equal(testBody.idempotency_key,'charis-test-attempt-1');
 });
 test('Campaign configuration exposes SendByte, Resend and Brevo only',()=>{
  const page=readFileSync(new URL('../app/admin/providers/page.tsx',import.meta.url),'utf8');

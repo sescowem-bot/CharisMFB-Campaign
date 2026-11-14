@@ -40,8 +40,8 @@ test('SendByte campaign delivery uses a stable idempotency key and unsubscribe U
  let req;const result=await sendQueuedEmail(sendbyteInput,async(url,options)=>{req={url,options};return Response.json({id:'sendbyte-message'});});
  assert.equal(result.status,'accepted');assert.equal(req.url,'https://api.sendbyte.africa/v1/emails');
  assert.equal(req.options.headers.Authorization,'Bearer sendbyte-secret');
- assert.equal(req.options.headers['X-SendByte-Idempotency-Key'],'charis-campaign-'+sendbyteInput.id);
- const body=JSON.parse(req.options.body);assert.deepEqual(body.to,[sendbyteInput.to]);assert.equal(body.list_unsubscribe.url,sendbyteInput.unsubscribe);
+ assert.equal(req.options.headers['X-SendByte-Idempotency-Key'],undefined);
+ const body=JSON.parse(req.options.body);assert.deepEqual(body.to,[sendbyteInput.to]);assert.deepEqual(body.reply_to,[sendbyteInput.replyTo]);assert.equal(body.idempotency_key,'charis-campaign-'+sendbyteInput.id);assert.equal(body.list_unsubscribe.url,sendbyteInput.unsubscribe);
 });
 test('SendByte webhook signatures authenticate the original body and reject tampering',()=>{
  const secret='sendbyte-webhook-secret-which-is-long-enough',timestamp=Math.floor(Date.now()/1000);

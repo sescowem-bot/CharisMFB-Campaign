@@ -36,7 +36,7 @@ BEGIN
   v_def:=pg_get_functiondef(r.signature);
   v_def:=replace(v_def,$old$'resend','brevo','mailjet'$old$,$new$'sendbyte','resend','brevo'$new$);
   v_def:=replace(v_def,$old$v_rec.provider NOT IN ('resend','brevo','mailjet')$old$,$new$v_rec.provider NOT IN ('sendbyte','resend','brevo')$new$);
-  v_def:=replace(v_def,$old$p_provider<>'mailjet'$old$,$new$p_provider NOT IN ('sendbyte','resend')$new$);
+  v_def:=replace(v_def,$old$p_provider<>'mailjet'$old$,$new$p_provider NOT IN ('sendbyte','resend','brevo')$new$);
   IF r.proname='charis_direct_create_provider_075' THEN
    v_def:=replace(v_def,$old$IF p_provider IS NOT NULL THEN$old$,$new$IF p_provider IS NULL THEN RAISE EXCEPTION 'Choose an email provider.'; END IF;
  IF p_provider IS NOT NULL THEN$new$);
