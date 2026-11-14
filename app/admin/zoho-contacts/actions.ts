@@ -80,7 +80,7 @@ export async function syncZohoContacts(){
     return id?x.list_keys.map(zoho_list_key=>({
      organization_id:org,contact_id:id,email:x.email,zoho_list_key,
      zoho_status:x.status,zoho_contact_id:x.zoho_contact_id||null,last_synced_at:new Date().toISOString()
-    })):[];
+    })):[] ;
    });
    if(memberships.length){
     const {error:memberError}=await db.from('charis_zoho_contact_memberships').upsert(memberships,{onConflict:'organization_id,zoho_list_key,email'});
@@ -163,10 +163,12 @@ export async function attestSignedAccountOpeningForms(form:FormData){
 // whether the sync completed or why it failed.
 export type ZohoSyncActionState = {success:boolean;message:string} | null;
 export async function syncZohoContactsForm(
- _previousState: ZohoSyncActionState,
- _formData: FormData
+ previousState: ZohoSyncActionState,
+ formData: FormData
 ): Promise<ZohoSyncActionState> {
- return await syncZohoContacts();
+ void previousState;
+ void formData;
+ return syncZohoContacts();
 }
 
 export async function attestSignedAccountOpeningFormsForm(formData: FormData): Promise<void> {
