@@ -8,3 +8,7 @@ export function isValidSenderEmail(value:string):boolean{
  const email=value.trim().toLowerCase(),at=email.lastIndexOf('@');
  return at>0&&at===email.indexOf('@')&&isValidSenderDomain(email.slice(at+1));
 }
+
+/** Backward-compatible exports for existing call sites. These now use generic syntax validation. */
+export const isCharisSenderDomain = isValidSenderDomain;
+export const isCharisSenderEmail = isValidSenderEmail;
