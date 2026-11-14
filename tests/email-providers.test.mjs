@@ -83,5 +83,5 @@ test('Campaign configuration exposes SendByte, Resend and Brevo only',()=>{
  const composer=readFileSync(new URL('../components/direct-compose.tsx',import.meta.url),'utf8');
  assert.match(page,/SendByte/);assert.match(page,/Resend/);assert.match(page,/Brevo/);
  assert.doesNotMatch(page,/Mailjet|Zoho|ZeptoMail/);
- assert.match(composer,/value="sendbyte"/);assert.doesNotMatch(composer,/Automatic \(recommended\)|value="mailjet"|value="zeptomail"/);
+ assert.match(composer,/const defaultEmailProvider='sendbyte'/);assert.match(composer,/value="sendbyte"/);assert.doesNotMatch(composer,/Automatic \(recommended\)|value="mailjet"|value="zeptomail"/);
 });

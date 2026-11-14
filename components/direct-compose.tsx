@@ -35,7 +35,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
  const stepNavRef=useRef<HTMLElement|null>(null);
  useEffect(()=>{if(step>0)stepNavRef.current?.scrollIntoView({behavior:'smooth',block:'start'});},[step]);
  const [confirmed,setConfirmed]=useState(false);
- const defaultEmailProvider=readyEmailProviders.includes('sendbyte')?'sendbyte':readyEmailProviders.includes('resend')?'resend':readyEmailProviders.includes('brevo')?'brevo':'sendbyte';
+ const defaultEmailProvider='sendbyte';
  const [emailProvider,setEmailProvider]=useState(defaultEmailProvider);
  const [channel,setChannel]=useState<'email'|'sms'>(emailEnabled?'email':'sms');
  const [purpose,setPurpose]=useState('general_notice');
