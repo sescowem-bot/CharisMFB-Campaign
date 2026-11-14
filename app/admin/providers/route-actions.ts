@@ -9,6 +9,22 @@ import {isValidSenderDomain,isValidSenderEmail} from '@/lib/email/charis-sender'
 
 type State={error?:string;success?:string};
 const providerSchema=z.enum(['sendbyte','resend','brevo']);
+
+/**
+ * Support both deployed sender identity schemas without requiring a database migration.
+ * Newer schemas key identities by organisation + domain + mailbox; older schemas
+ * still key them by organisation + mailbox. Fall back only when Postgres reports
+ * that the requested conflict target has no matching unique constraint.
+ */
+async function saveVerifiedSender(service:ReturnType<typeof emailServiceDb>,values:{
+ organization_id:string;domain_id:string;from_name:string;from_email:string;reply_to:string;is_active:boolean
+}){
+ const current=await service.from('sender_identities').upsert(values,{onConflict:'organization_id,domain_id,from_email'});
+ if(!current.error)return;
+ if(current.error.code!=='42P10')throw new Error(current.error.message);
+ const legacy=await service.from('sender_identities').upsert(values,{onConflict:'organization_id,from_email'});
+ if(legacy.error)throw new Error(legacy.error.message);
+}
 async function access(){
  const org=z.string().uuid().parse(process.env.SINGLE_COMPANY_ORG_ID);
  const db=await supabaseServer();const {data:{user}}=await db.auth.getUser();
@@ -57,8 +73,8 @@ export async function connectVerifiedBrevoSender(_:State,form:FormData):Promise<
    const {data,error}=await service.from('sending_domains').insert({organization_id:org,domain,provider:'brevo',provider_domain_id:verified.id,verification_status:'verified',ownership_method:'provider_account',charis_connected:true,created_by:user.id}).select('id').single();
    if(error||!data)throw new Error('Could not save Brevo domain.');domainId=data.id;
   }
-  const {error:senderError}=await service.from('sender_identities').upsert({organization_id:org,domain_id:domainId,from_name:name,from_email:email,reply_to:replyTo,is_active:true},{onConflict:'organization_id,from_email'});
-  if(senderError)throw new Error('Could not save verified Brevo sender.');
+  try{await saveVerifiedSender(service,{organization_id:org,domain_id:domainId,from_name:name,from_email:email,reply_to:replyTo,is_active:true});}
+  catch(error){throw new Error('Could not save verified Brevo sender: '+(error instanceof Error?error.message:'database error'));}
   await service.from('audit_logs').insert({organization_id:org,actor_id:user.id,action:'sender.brevo_verified',entity_type:'sending_domain',entity_id:domainId});
   revalidatePath('/admin/providers');return {success:'Brevo sender verified and saved. Configure its route before sending.'};
  }catch(e){return {error:e instanceof Error?e.message:'Brevo sender setup failed.'};}
@@ -84,8 +100,8 @@ export async function connectVerifiedSendByteSender(_:State,form:FormData):Promi
    const {data,error}=await service.from('sending_domains').insert({...values,organization_id:org,domain,created_by:user.id}).select('id').single();
    if(error||!data)throw Error('Could not save the verified SendByte domain.');domainId=data.id;
   }
-  const {error:senderError}=await service.from('sender_identities').upsert({organization_id:org,domain_id:domainId,from_name:name,from_email:email,reply_to:replyTo,is_active:true},{onConflict:'organization_id,from_email'});
-  if(senderError)throw Error('Could not save the SendByte sender address.');
+  try{await saveVerifiedSender(service,{organization_id:org,domain_id:domainId,from_name:name,from_email:email,reply_to:replyTo,is_active:true});}
+  catch(error){throw Error('Could not save the SendByte sender address: '+(error instanceof Error?error.message:'database error'));}
   const {error:enableError}=await service.from('email_provider_settings').update({enabled:true,health_status:'healthy',checked_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('provider','sendbyte');
   if(enableError)throw Error('Sender saved, but SendByte could not be enabled.');
   await service.from('audit_logs').insert({organization_id:org,actor_id:user.id,action:'sender.sendbyte_verified',entity_type:'sending_domain',entity_id:domainId,details:{domain,from_email:email}});
