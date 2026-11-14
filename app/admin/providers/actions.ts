@@ -14,7 +14,6 @@ export async function providerAction(_:ProviderResult,form:FormData):Promise<Pro
   if(accessError||charisAdmin!==true)throw new Error('Charis provider administration permission required.');
   const provider=z.enum(['sendbyte','resend','brevo']).parse(form.get('provider'));
   if(form.get('action')==='save') {
-   if(provider==='mailjet' && form.get('enabled')==='on' && (!process.env.MAILJET_API_KEY||!process.env.MAILJET_SECRET_KEY||!(process.env.MAILJET_WEBHOOK_SECRET||'').length || (process.env.MAILJET_WEBHOOK_SECRET||'').length<32))throw new Error('Mailjet requires API credentials and a secure delivery webhook secret before enabling.');
    const {error}=await db.rpc('charis_provider_configure',{p_org:org,p_provider:provider,p_enabled:form.get('enabled')==='on'});if(error)throw new Error(error.message);
   } else if(form.get('action')==='limits') {
    const daily=z.coerce.number().int().min(1).max(100000).parse(form.get('daily_limit'));
