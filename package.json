@@ -12,9 +12,7 @@
     "test:smoke": "node scripts/smoke.mjs",
     "worker:once": "node scripts/run-delivery-worker.mjs",
     "check:release": "node scripts/check-release.mjs",
-    "backup:database": "node scripts/backup-database.mjs",
-    "check:zoho": "node --env-file=.env.local scripts/check-zoho-smtp.mjs",
-    "check:zoho:self": "node --env-file=.env.local scripts/check-zoho-smtp.mjs --send-to-self"
+    "backup:database": "node scripts/backup-database.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",

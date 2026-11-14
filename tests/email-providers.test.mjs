@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {domainName,mailbox,matchesDomain,senderName,escapeHtml} from '../lib/email/validation.ts';
 import {providerAdapter,normalizeDomain} from '../lib/email/providers.ts';
 const resend={id:'domain-id',name:'mail.example.com',status:'verified',capabilities:{sending:'enabled'},records:[{type:'TXT',name:'resend._domainkey',value:'public-key',status:'verified'}]};
@@ -59,4 +60,27 @@ test('campaign test subjects are passed through and header injection is rejected
  const input={name:'Brand',email:'hello@example.com',replyTo:'reply@example.com',to:'owner@example.com',domain:'example.com',html:'Test',attempt:'id',subject:'[TEST] Campaign update'};
  await adapter.sendTest(input);assert.equal(calls[0].subject,input.subject);
  await assert.rejects(adapter.sendTest({...input,subject:'Injected\r\nBcc: other@example.com'}),/Invalid test email subject/);assert.equal(calls.length,1);
+});
+
+const sendbyteDomain={id:'sb-domain-1',domain:'mail.example.com',status:'verified',deliverability_ready:true,dns_records:[{type:'TXT',host:'mail._domainkey',value:'dkim'}]};
+test('SendByte domain is ready only after verification and deliverability checks',()=>{
+ assert.equal(normalizeDomain('sendbyte',sendbyteDomain,'mail.example.com').verified,true);
+ assert.equal(normalizeDomain('sendbyte',{...sendbyteDomain,deliverability_ready:false},'mail.example.com').verified,false);
+ assert.throws(()=>normalizeDomain('sendbyte',sendbyteDomain,'other.example.com'));
+});
+test('SendByte adapter uses bearer authentication and its fixed API endpoints',async()=>{
+ const calls=[];const adapter=providerAdapter('sendbyte','secret',async(url,options)=>{calls.push({url,options});return url.endsWith('/v1/domains')?Response.json({data:[sendbyteDomain]}):Response.json({id:'sendbyte-test-id'});});
+ await adapter.health();
+ const state=await adapter.findVerifiedSendByteDomain('mail.example.com');assert.equal(state.verified,true);
+ const id=await adapter.sendTest({name:'Charis',email:'hello@mail.example.com',replyTo:'reply@example.com',to:'test@example.com',domain:'mail.example.com',html:'<p>Test</p>',attempt:'attempt-1'});
+ assert.equal(id,'sendbyte-test-id');assert.equal(calls[0].url,'https://api.sendbyte.africa/v1/domains');
+ assert.equal(calls[0].options.headers.Authorization,'Bearer secret');
+ assert.equal(calls[2].url,'https://api.sendbyte.africa/v1/emails');
+});
+test('Campaign configuration exposes SendByte, Resend and Brevo only',()=>{
+ const page=readFileSync(new URL('../app/admin/providers/page.tsx',import.meta.url),'utf8');
+ const composer=readFileSync(new URL('../components/direct-compose.tsx',import.meta.url),'utf8');
+ assert.match(page,/SendByte/);assert.match(page,/Resend/);assert.match(page,/Brevo/);
+ assert.doesNotMatch(page,/Mailjet|Zoho|ZeptoMail/);
+ assert.match(composer,/value="sendbyte"/);assert.doesNotMatch(composer,/Automatic \(recommended\)|value="mailjet"|value="zeptomail"/);
 });

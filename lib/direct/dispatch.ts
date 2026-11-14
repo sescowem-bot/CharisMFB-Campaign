@@ -6,7 +6,6 @@ import type {Provider} from '@/lib/email/validation';
 import {reservePreferenceLink} from '@/lib/preferences/tokens';
 import {renderCampaign} from '@/lib/campaigns/render';
 import {directEmailReadiness} from '@/lib/direct/readiness';
-import {sendZeptoNotification,zeptoNotificationBatchReady} from '@/lib/email/zeptomail-notifications';
 import {isCharisSenderDomain,isCharisSenderEmail} from '@/lib/email/charis-sender';
 
 type Item={id:string;organization_id:string;message_id:string;contact_id:string;recipient_email:string|null;recipient_phone:string|null};
@@ -69,32 +68,19 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
     }
     const readiness=await directEmailReadiness(row.organization_id);
     // A provider choice is persisted on the campaign (SQL 075), not a per-request hint.
-    // Old installations without 075 continue to deliver automatic campaigns unchanged.
     const {data:policyPreference,error:policyError}=await db.from('charis_direct_messages')
-     .select('preferred_provider,zepto_event_reference,zepto_transactional_acknowledged')
+     .select('preferred_provider')
      .eq('organization_id',row.organization_id).eq('id',row.message_id).maybeSingle();
-    let storedPreference:{preferred_provider:string|null;zepto_event_reference:string|null;zepto_transactional_acknowledged:boolean|null}|null=policyPreference;
-    let preferenceError=policyError;
-    if(policyError&&['42703','PGRST204'].includes(policyError.code||'')){
-     // Keep older non-Zoho campaigns working before migration 083 is installed.
-     const legacy=await db.from('charis_direct_messages').select('preferred_provider,zepto_event_reference')
-      .eq('organization_id',row.organization_id).eq('id',row.message_id).maybeSingle();
-     storedPreference=legacy.data?{...legacy.data,zepto_transactional_acknowledged:false}:null;
-     preferenceError=legacy.error;
-    }
-    if(preferenceError&&!['42703','PGRST204'].includes(preferenceError.code||''))throw Error('campaign_provider_preference_unavailable');
-    const selectedProvider=storedPreference?.preferred_provider||null;
-    if(selectedProvider&&!['resend','brevo','mailjet','zeptomail'].includes(selectedProvider))throw Error('invalid_campaign_provider');
-    if(!readiness.ready&&selectedProvider!=='zeptomail')throw Error('No verified service-email sender is ready.');
-    const prefs=selectedProvider?readiness.providers.filter(pref=>pref.provider===selectedProvider):readiness.providers;
-    if(selectedProvider!=='zeptomail'&&selectedProvider&&!prefs.length)throw Error('selected_provider_unavailable');
-    if(selectedProvider==='zeptomail'&&(!zeptoNotificationBatchReady()||!storedPreference?.zepto_transactional_acknowledged||!storedPreference?.zepto_event_reference))
-     throw Error('zeptomail_notification_policy_or_configuration_invalid');
+    if(policyError)throw Error('campaign_provider_preference_unavailable');
+    const selectedProvider=policyPreference?.preferred_provider||null;
+    if(!selectedProvider||!['sendbyte','resend','brevo'].includes(selectedProvider))throw Error('campaign_provider_required');
+    const prefs=readiness.providers.filter(pref=>pref.provider===selectedProvider);
+    if(!prefs.length)throw Error('selected_provider_unavailable');
     // One-time, bank-hosted preference URL. No personal data in the URL or token.
     // All manually composed direct emails respect suppressions.
     // Bank-mandated account/security notifications belong to a separate event workflow.
     const preference=await reservePreferenceLink({org:row.organization_id,contact:row.contact_id,email:row.recipient_email});
-    const preferenceFooter=`<p style="font-size:12px;color:#64748b"><a href="${escapeHtml(preference)}" style="color:#40239a">${m.purpose==='general_notice'?'Unsubscribe from optional updates':'Manage optional email preferences'}</a></p>`;
+    const preferenceFooter=`<p style="font-size:12px;color:#64748b"><a href="${escapeHtml(preference)}" style="color:#40239a">Unsubscribe from customer updates</a></p>`;
     const textBody=escapeHtml(m.body).replace(/\r?\n/g,'<br/>');
     let html=`<!doctype html><html><body style="margin:0;background:#f5f6fa;padding:28px;font-family:Arial,sans-serif"><main style="max-width:640px;margin:auto;background:white;border:1px solid #e4e8f2;padding:28px"><h2 style="color:#41259a;margin-top:0">Charis Microfinance Bank</h2><div style="font-size:15px;line-height:1.7;color:#243047">${textBody}</div><hr style="border:0;border-top:1px solid #e5e7eb;margin-top:30px"><p style="font-size:12px;color:#64748b">This is an official bank service communication. Do not share your PIN, password or OTP by email.</p>${preferenceFooter}</main></body></html>`;
     let renderedSubject=m.subject;
@@ -106,16 +92,11 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
       address:brand.postal_address||'',color:brand.primary_color||'#40239a',
       contact:{first_name:contact.first_name||'Customer',last_name:contact.last_name||'',email:contact.email||'',attributes:(contact.attributes&&typeof contact.attributes==='object'&&!Array.isArray(contact.attributes)?contact.attributes:{} as Record<string,string>) as Record<string,string>},
       unsubscribeUrl:preference,
-      preferenceLabel:m.purpose==='general_notice'?'Unsubscribe from optional updates':'Manage optional email preferences'
+      preferenceLabel:'Unsubscribe from customer updates'
      });
      html=rendered.html;renderedSubject=rendered.subject;
     }
-    if(selectedProvider==='zeptomail'){
-     provider='zeptomail';
-     // Each recipient is private; uncertain SMTP outcomes are not retried or switched.
-     const outcome=await sendZeptoNotification({to:row.recipient_email,subject:renderedSubject,html,text:m.body,unsubscribe:m.purpose==='general_notice'?preference.replace('/unsubscribe?','/api/preferences/unsubscribe?'):undefined});
-     status=outcome.status;reason=outcome.reason;providerId=outcome.providerId;
-    }else for(const pref of prefs){
+    for(const pref of prefs){
      provider=pref.provider;
      const {data:sender,error:senderError}=await db.from('sender_identities').select('id,domain_id,from_name,from_email,reply_to,is_active').eq('organization_id',row.organization_id).eq('id',pref.sender_id).single();
      if(senderError||!sender?.is_active||!isCharisSenderEmail(sender.from_email))continue;
@@ -130,7 +111,7 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
        checkedDomains.set(domainKey,verified);
       }
       if(!await verified)continue;
-      const key=process.env[provider==='resend'?'RESEND_API_KEY':provider==='brevo'?'BREVO_API_KEY':'MAILJET_API_KEY']||'';
+      const key=process.env[provider==='sendbyte'?'SENDBYTE_API_KEY':provider==='resend'?'RESEND_API_KEY':'BREVO_API_KEY']||'';
       if(!key)continue;
       await providerFor(provider as Provider);
       const {data:providerLimit}=await db.from('email_provider_settings').select('daily_limit').eq('provider',provider).maybeSingle();
@@ -139,14 +120,14 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
       const [{count:used},{count:legacyUsed}]=await Promise.all([db.from('charis_direct_recipients').select('id',{head:true,count:'exact'}).eq('provider',provider).in('status',['accepted','failed','unknown']).gte('updated_at',day),db.from('delivery_quota_reservations').select('id',{head:true,count:'exact'}).eq('provider',provider).gte('reserved_at',day)]);
       if((used||0)+(legacyUsed||0)>=providerLimit.daily_limit)continue;
       transportStarted=true;
-      const result=await sendQueuedEmail({provider:provider as Provider,key,mailjetSecret:process.env.MAILJET_SECRET_KEY,id:row.id,name:sender.from_name,from:sender.from_email,replyTo:sender.reply_to||sender.from_email,domain:mailbox(sender.from_email).split('@')[1],to:row.recipient_email,subject:renderedSubject,html,unsubscribe:m.purpose==='general_notice'?preference.replace('/unsubscribe?','/api/preferences/unsubscribe?'):undefined});
+      const result=await sendQueuedEmail({provider:provider as Provider,key,id:row.id,name:sender.from_name,from:sender.from_email,replyTo:sender.reply_to||sender.from_email,domain:mailbox(sender.from_email).split('@')[1],to:row.recipient_email,subject:renderedSubject,html,unsubscribe:preference.replace('/unsubscribe?','/api/preferences/unsubscribe?')});
       status=result.status==='retry'?'failed':result.status;reason=result.reason;providerId=result.message||null;
       if(status==='accepted'||status==='unknown')break;
       // Definitive rejection only; never fail over after a potentially accepted submission.
      }catch(e){
       // A known preparation error happened before transport: try another configured route.
       // Once submission could have begun, stop rather than risk duplicating a message.
-      if(!transportStarted){status='failed';reason='sender_preparation_failed';continue;}
+      if(!transportStarted){status='failed';reason='sender_preparation_failed';break;}
       status='unknown';reason=e instanceof Error?'provider_response_uncertain':'provider_error_uncertain';break;
      }
     }

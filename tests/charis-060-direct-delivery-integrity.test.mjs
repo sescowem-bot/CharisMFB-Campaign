@@ -14,7 +14,7 @@ test('new provider events require service role and preserve verified event ledge
 test('webhook and reconciliation support provider acknowledgments that arrive later',()=>{
  assert.match(sql,/charis_direct_reconcile_060/);
  assert.match(sql,/FOR ev IN SELECT provider,event_key/);
- const routes=['resend','brevo','mailjet'];
+ const routes=['sendbyte','resend','brevo'];
  routes.forEach(provider=>assert.match(read(`app/api/email/webhooks/${provider}/route.ts`),/recordProviderEvent/));
  assert.match(read('lib/direct/dispatch.ts'),/charis_direct_reconcile_060/);
 });

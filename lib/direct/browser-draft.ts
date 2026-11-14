@@ -16,7 +16,7 @@ const values=z.object({
  showProduct:z.boolean(),channel:z.enum(['email','sms']),
  audience:z.enum(['selected','list','all']),chosen:z.array(uuid).max(500),
  groupId:z.union([uuid,z.literal('')]),mode:z.enum(['now','later']),
- sendAt:z.string().max(24),emailProvider:z.enum(['auto','resend','brevo','mailjet','zeptomail'])
+ sendAt:z.string().max(24),emailProvider:z.enum(['sendbyte','resend','brevo'])
 }).strict();
 export type CampaignDraft=z.infer<typeof values>;
 export const campaignDraftKey=(org:string,user:string)=>'charis-campaign-draft:v1:'+org+':'+user;

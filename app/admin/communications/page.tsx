@@ -22,7 +22,7 @@ export default async function CommunicationSettings(){
  return <WorkspaceShell title="Communication settings" subtitle="Sending, providers and team access." actions={<Link className="btn secondary" href="/dashboard/communications">Back to communications</Link>}>
  {settingsError||!settings?<p className="feedback-error" role="alert">Communication settings are missing. Apply SQL 047 before using this page.</p>:<DirectSettingsForm settings={settings}/>}
  <section className="panel"><h2>Email preferences</h2><p className="muted">View opt-outs, send verification links and assign staff permissions.</p><Link className="btn secondary" href="/admin/subscriptions">Manage email subscriptions</Link></section>
- <section className="panel"><h2>Email providers</h2><p className="muted">Manage Resend, Brevo, Mailjet and SendGrid from one email provider page. Select a verified sender and see which services are available for Charis communications.</p>
+ <section className="panel"><h2>Email providers</h2><p className="muted">Manage SendByte, Resend and Brevo. Choose the provider for each customer campaign.</p>
  <Link className="btn secondary" href="/admin/providers">Manage email providers</Link></section>
  <section className="panel">{team.error?<p role="alert" className="feedback-error">Staff directory could not be loaded.</p>:<><DirectStaffForm staff={(Array.isArray(team.data)?team.data:[]).map((u:{id:string;email:string})=>({id:u.id,email:u.email}))} rules={rules.data||[]}/><DirectHistoryStaffForm staff={(Array.isArray(team.data)?team.data:[]).map((u:{id:string;email:string})=>({id:u.id,email:u.email}))} rules={rules.data||[]}/></>}</section>
  </WorkspaceShell>;

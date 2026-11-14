@@ -1,4 +1,4 @@
-import {createHash,timingSafeEqual} from 'node:crypto';
+import {createHash,createHmac,timingSafeEqual} from 'node:crypto';
 import {Webhook} from 'svix';
 import {z} from 'zod';
 export function bearerMatches(value:string|null,secret:string|undefined):boolean {
@@ -24,16 +24,24 @@ export function brevoEvent(raw:string):DeliveryEvent|null {
  return {key:createHash('sha256').update(JSON.stringify([message,data.event,seconds])).digest('hex'),message,type:map[data.event],time};
 }
 
-/** Mailjet Event API: accept signed access to this endpoint only at the route layer. */
-export function mailjetEvent(raw:string):DeliveryEvent|null {
- const data=z.object({event:z.string(),MessageID:z.union([z.string(),z.number()]),time:z.number().finite(),
-  CustomID:z.string().uuid().optional(),hard_bounce:z.boolean().optional()}).passthrough().parse(JSON.parse(raw));
- const map:Record<string,string>={sent:'accepted',bounce:data.hard_bounce===false?'delayed':'bounce',spam:'complaint',
-  blocked:'blocked',unsub:'unsubscribe',open:'opened',click:'clicked'};
- if(!map[data.event])return null;
- const message=String(data.MessageID);
- const time=new Date(data.time*1000).toISOString();
- if(time==='Invalid Date')throw new Error('Invalid Mailjet event time');
- return {key:createHash('sha256').update(JSON.stringify([message,data.event,data.time,data.CustomID||''])).digest('hex'),
-  message,type:map[data.event],time};
+
+/** Verify SendByte's timestamped HMAC signature before accepting delivery events. */
+export function sendbyteEvent(raw:string,headers:Headers,secret:string):DeliveryEvent|null{
+ const signature=headers.get('sendbyte-signature')||'';
+ const parts=new Map(signature.split(',').map(part=>{const i=part.indexOf('=');return [part.slice(0,i),part.slice(i+1)] as const;}));
+ const timestamp=Number(parts.get('t')),provided=parts.get('v1')||'';
+ if(!Number.isFinite(timestamp)||!provided||Math.abs(Date.now()/1000-timestamp)>300)throw new Error('Invalid SendByte signature timestamp.');
+ const digest=createHmac('sha256',secret).update(`${timestamp}.${raw}`).digest('hex');
+ const a=Buffer.from(digest,'hex'),b=Buffer.from(provided,'hex');
+ if(a.length!==b.length||!timingSafeEqual(a,b))throw new Error('Invalid SendByte signature.');
+ const payload=z.record(z.string(),z.unknown()).parse(JSON.parse(raw));
+ const data=payload.data&&typeof payload.data==='object'?payload.data as Record<string,unknown>:{};
+ const type=String(payload.type||payload.event||''),message=String(data.id||data.email_id||data.message_id||'');
+ if(!message)return null;
+ const map:Record<string,string>={'email.sent':'accepted','email.delivered':'delivered','email.bounced':'bounce','email.complained':'complaint','email.failed':'failed','email.delivery_delayed':'delayed','email.opened':'opened','email.clicked':'clicked','email.unsubscribed':'unsubscribe','email.suppressed':'blocked'};
+ if(!map[type])return null;
+ const rawTime=payload.created_at??payload.timestamp??new Date().toISOString();
+ const time=new Date(typeof rawTime==='number'?rawTime*1000:String(rawTime)).toISOString();
+ const key=String(payload.id||payload.event_id||createHash('sha256').update(raw).digest('hex'));
+ return {key,message,type:map[type],time};
 }

@@ -9,22 +9,20 @@ export function DirectSettingsForm({settings}:{settings:{approval_required:boole
  <label><input type="checkbox" name="sms" defaultChecked={settings.sms_enabled}/> Allow SMS communications (also requires live Termii configuration)</label>
  <label>Maximum recipients per campaign<input name="max_recipients" type="number" min={1} max={500} defaultValue={settings.max_recipients}/></label>
  <label>Daily recipient limit<input name="daily_recipient_limit" type="number" min={500} max={10000} defaultValue={settings.daily_recipient_limit??500}/></label>
- <p className="muted">Up to 500 recipients in a campaign, queued in groups of 50. Increasing limits requires Charis database migration 082.</p>
+ <p className="muted">Choose the number of customers staff can include in each campaign.</p>
  <button className="btn" disabled={pending}>Save communication policy</button>
  {state.error&&<p role="alert" className="feedback-error">{state.error}</p>}{state.success&&<p role="status" className="feedback-success">{state.success}</p>}
  </form>;
 }
-export function DirectProviderForm({provider,senders,current}:{provider:'resend'|'brevo'|'mailjet';senders:{id:string;name:string;email:string}[];current?:{sender_id:string;enabled:boolean;priority:number}}){
+export function DirectProviderForm({provider,senders,current}:{provider:'sendbyte'|'resend'|'brevo';senders:{id:string;name:string;email:string}[];current?:{sender_id:string;enabled:boolean;priority:number}}){
  const [state,action,pending]=useActionState(directAdminAction,{});
  return <form className="admin-form" action={action}><input name="action" type="hidden" value="provider"/><input name="provider" type="hidden" value={provider}/>
- <h3>{provider==='resend'?'Resend':provider==='brevo'?'Brevo':'Mailjet'}</h3>
+ <h3>{provider==='sendbyte'?'SendByte':provider==='resend'?'Resend':'Brevo'}</h3>
  <label>Send emails from<select name="sender" required defaultValue={current?.sender_id||''}><option value="">Choose a verified sender</option>{senders.map(s=><option key={s.id} value={s.id}>{s.name} — {s.email}</option>)}</select></label>
- <label><input name="enabled" type="checkbox" defaultChecked={current?.enabled===true}/> Use this provider for Charis service emails</label>
- <details className="charis-sender-order"><summary>Sending order (advanced)</summary>
-  <p className="muted">When more than one provider is enabled, the lower number is tried first.</p>
-  <label>Priority number<input name="priority" type="number" defaultValue={current?.priority??10} min={1} max={100}/></label>
- </details>
- <button className="btn secondary" disabled={pending||!senders.length}>Save email provider</button>
+ <label><input name="enabled" type="checkbox" defaultChecked={current?.enabled===true}/> Make this provider available for campaigns</label>
+ <input type="hidden" name="priority" value="10"/>
+>
+ <button className="btn secondary" disabled={pending||!senders.length}>Save provider settings</button>
  {state.error&&<p role="alert" className="feedback-error">{state.error}</p>}{state.success&&<p role="status" className="feedback-success">{state.success}</p>}
  </form>;
 }

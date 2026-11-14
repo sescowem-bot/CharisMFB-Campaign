@@ -20,7 +20,7 @@ export async function directAdminAction(_:State,form:FormData):Promise<State>{
    const senderId=z.uuid().parse(form.get('sender'));
    const {data:identity,error:identityError}=await db.from('sender_identities').select('from_email,is_active').eq('organization_id',org).eq('id',senderId).maybeSingle();
    if(identityError||!identity?.is_active||!isCharisSenderEmail(identity.from_email))throw Error('Choose an approved Charis bank sending address.');
-   ({error}=await db.rpc('charis_direct_provider_save',{p_org:org,p_provider:z.enum(['resend','brevo','mailjet']).parse(form.get('provider')),p_sender:senderId,p_enabled:form.get('enabled')==='on',p_priority:z.coerce.number().int().min(1).max(100).parse(form.get('priority'))}));
+   ({error}=await db.rpc('charis_direct_provider_save',{p_org:org,p_provider:z.enum(['sendbyte','resend','brevo']).parse(form.get('provider')),p_sender:senderId,p_enabled:form.get('enabled')==='on',p_priority:z.coerce.number().int().min(1).max(100).parse(form.get('priority'))}));
   }else if(action==='staff'){
    ({error}=await db.rpc('charis_direct_staff_rule_save',{p_org:org,p_user:z.uuid().parse(form.get('user')),p_can_send:form.get('can_send')==='yes'}));
   }else{

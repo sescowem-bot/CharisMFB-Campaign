@@ -3,7 +3,7 @@ import {emailServiceDb} from '@/lib/email/server';
 import type {Provider} from '@/lib/email/validation';
 import {isCharisSenderDomain,isCharisSenderEmail} from '@/lib/email/charis-sender';
 
-const supported=['resend','brevo','mailjet'] as const;
+const supported=['sendbyte','resend','brevo'] as const;
 type SenderPreference={provider:Provider;sender_id:string;priority:number};
 export type DirectReadiness={ready:boolean;reason:'ready'|'schema_missing'|'sender_missing'|'provider_disabled'|'configuration_unavailable';providers:SenderPreference[]};
 
@@ -23,8 +23,7 @@ export async function directEmailReadiness(org:string):Promise<DirectReadiness>{
  const choices:SenderPreference[]=[];
  for(const pref of prefs.data){
   if(!supported.includes(pref.provider as typeof supported[number])||!enabled.has(pref.provider))continue;
-  if(!process.env[pref.provider==='resend'?'RESEND_API_KEY':pref.provider==='brevo'?'BREVO_API_KEY':'MAILJET_API_KEY'])continue;
-  if(pref.provider==='mailjet'&&!process.env.MAILJET_SECRET_KEY)continue;
+  if(!process.env[pref.provider==='sendbyte'?'SENDBYTE_API_KEY':pref.provider==='resend'?'RESEND_API_KEY':'BREVO_API_KEY'])continue;
   const {data:sender,error:senderError}=await db.from('sender_identities')
    .select('id,domain_id,is_active,from_email').eq('organization_id',org).eq('id',pref.sender_id).maybeSingle();
   if(senderError||!sender?.is_active||!isCharisSenderEmail(sender.from_email))continue;

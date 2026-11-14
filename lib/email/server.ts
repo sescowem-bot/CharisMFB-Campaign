@@ -21,7 +21,7 @@ export async function providerFor(provider:Provider) {
   const db=emailServiceDb();
   const {data,error}=await db.from('email_provider_settings').select('enabled').eq('provider',provider).single();
   if(error||!data?.enabled) throw new Error('This provider is disabled. Contact the platform administrator.');
-  const key=process.env[provider==='resend'?'RESEND_API_KEY':provider==='brevo'?'BREVO_API_KEY':'MAILJET_API_KEY'];
+  const key=process.env[provider==='sendbyte'?'SENDBYTE_API_KEY':provider==='resend'?'RESEND_API_KEY':'BREVO_API_KEY'];
   return providerAdapter(provider,key||'');
 }
 export async function ownershipVerified(domain:string,token:string):Promise<boolean> {
@@ -43,7 +43,7 @@ export async function refreshDomain(org:string,id:string,trigger=false) {
   // Old SESCO owner-workspace membership is not relevant to the Charis application.
   const {data:own}=!charis&&row.ownership_method==='provider_account'?await db.from('platform_workspace').select('organization_id').eq('organization_id',org).maybeSingle():{data:null};
   const owned=charis
-    ? ['resend','brevo','mailjet'].includes(row.provider) && row.ownership_method==='provider_account' && row.charis_connected===true && Boolean(row.provider_domain_id)
+    ? ['sendbyte','resend','brevo'].includes(row.provider) && row.ownership_method==='provider_account' && row.charis_connected===true && Boolean(row.provider_domain_id)
     : row.ownership_method==='provider_account'?!!own:await ownershipVerified(row.domain,row.ownership_token);
   const {error:save}=await db.rpc('email_domain_sync',{p_id:id,p_provider_id:state.id,p_records:state.records,p_verified:state.verified&&owned});
   if(save) throw new Error('Domain status could not be saved.');

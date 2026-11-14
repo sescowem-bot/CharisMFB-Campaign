@@ -8,7 +8,7 @@ import {mailbox,senderName,domainName} from '@/lib/email/validation';
 import {isCharisSenderDomain,isCharisSenderEmail} from '@/lib/email/charis-sender';
 
 type State={error?:string;success?:string};
-const providerSchema=z.enum(['resend','brevo','mailjet']);
+const providerSchema=z.enum(['sendbyte','resend','brevo']);
 async function access(){
  const org=z.string().uuid().parse(process.env.SINGLE_COMPANY_ORG_ID);
  const db=await supabaseServer();const {data:{user}}=await db.auth.getUser();
@@ -28,7 +28,7 @@ export async function saveDeliveryRoute(_:State,form:FormData):Promise<State>{
   const confirmed=form.get('confirmed')==='on';
   const {data:identity,error:identityError}=await db.from('sender_identities').select('from_email,is_active').eq('organization_id',org).eq('id',sender).maybeSingle();
   if(identityError||!identity?.is_active||!isCharisSenderEmail(identity.from_email))throw Error('Choose an approved Charis bank sending address.');
-  if(enabled&&kind==='marketing'&&provider==='brevo')throw new Error('Brevo transactional API cannot be used for promotional broadcasts. Resend marketing uses the separate Broadcasts adapter.');
+  if(enabled&&kind==='marketing'&&provider==='brevo')throw new Error('Brevo is currently configured for service updates only.');
   const {error}=await db.rpc('charis_email_route_save',{p_org:org,p_provider:provider,p_sender:sender,p_enabled:enabled,p_confirmed:confirmed,p_kind:kind});
   if(error)throw new Error(error.message);
   revalidatePath('/admin/providers');return {success:'Delivery route updated. This does not enable live customer sending.'};
@@ -57,44 +57,42 @@ export async function connectVerifiedBrevoSender(_:State,form:FormData):Promise<
    const {data,error}=await service.from('sending_domains').insert({organization_id:org,domain,provider:'brevo',provider_domain_id:verified.id,verification_status:'verified',ownership_method:'provider_account',charis_connected:true,created_by:user.id}).select('id').single();
    if(error||!data)throw new Error('Could not save Brevo domain.');domainId=data.id;
   }
-  const {error:senderError}=await service.from('sender_identities').upsert({organization_id:org,domain_id:domainId,from_name:name,from_email:email,reply_to:replyTo,is_active:true},{onConflict:'organization_id,domain_id,from_email'});
+  const {error:senderError}=await service.from('sender_identities').upsert({organization_id:org,domain_id:domainId,from_name:name,from_email:email,reply_to:replyTo,is_active:true},{onConflict:'organization_id,from_email'});
   if(senderError)throw new Error('Could not save verified Brevo sender.');
   await service.from('audit_logs').insert({organization_id:org,actor_id:user.id,action:'sender.brevo_verified',entity_type:'sending_domain',entity_id:domainId});
   revalidatePath('/admin/providers');return {success:'Brevo sender verified and saved. Configure its route before sending.'};
  }catch(e){return {error:e instanceof Error?e.message:'Brevo sender setup failed.'};}
 }
-/** Connect a sender already active in the bank's Mailjet account; never register DNS implicitly. */
-export async function connectVerifiedMailjetSender(_:State,form:FormData):Promise<State>{
+/** Connect a domain already authenticated in SendByte and its Charis sender address. */
+export async function connectVerifiedSendByteSender(_:State,form:FormData):Promise<State>{
  try{
   const {org,user}=await access();
-  const email=mailbox(String(form.get('email')||''));
-  const name=senderName(String(form.get('name')||''));
-  const replyTo=mailbox(String(form.get('reply_to')||'')||email);
-  const domain=domainName(email.split('@')[1]);
-  if(!isCharisSenderDomain(domain))throw Error('Only verified Charis bank senders are available.');
-  const api=providerAdapter('mailjet',process.env.MAILJET_API_KEY||'');
-  const verified=await api.findVerifiedMailjetSender(email);
-  const state=await api.check(domain,verified.id);
-  if(!state.verified)throw new Error('Mailjet sender is not active.');
+  const email=mailbox(String(form.get('email')||'')),name=senderName(String(form.get('name')||''));
+  const replyTo=mailbox(String(form.get('reply_to')||'')||email),domain=domainName(email.split('@')[1]);
+  if(!isCharisSenderDomain(domain))throw Error('Only approved Charis bank domains can be connected.');
+  const api=providerAdapter('sendbyte',process.env.SENDBYTE_API_KEY||'');
+  const verified=await api.findVerifiedSendByteDomain(domain);
   const service=emailServiceDb();
-  const {data:existing,error:read}=await service.from('sending_domains').select('id,verification_status').eq('organization_id',org).eq('provider','mailjet').eq('domain',domain).maybeSingle();
-  if(read)throw new Error('Mailjet sender record unavailable.');
-  if(existing?.verification_status==='revoked')throw new Error('Domain was previously revoked by an administrator.');
+  const {data:existing,error:read}=await service.from('sending_domains').select('id,verification_status').eq('organization_id',org).eq('provider','sendbyte').eq('domain',domain).maybeSingle();
+  if(read||existing?.verification_status==='revoked')throw Error('SendByte domain requires administrator review.');
   let domainId=existing?.id;
+  const values={provider:'sendbyte',provider_domain_id:verified.id,verification_status:'verified',charis_connected:true,dns_records:verified.records,ownership_method:'provider_account',last_checked_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   if(domainId){
-   const {error}=await service.from('sending_domains').update({verification_status:'verified',provider_domain_id:verified.id,ownership_method:'provider_account',charis_connected:true,last_checked_at:new Date().toISOString()}).eq('id',domainId).eq('organization_id',org);
-   if(error)throw new Error('Could not update Mailjet domain.');
+   const {error}=await service.from('sending_domains').update(values).eq('organization_id',org).eq('id',domainId);
+   if(error)throw Error('Could not update the verified SendByte domain.');
   }else{
-   const {data,error}=await service.from('sending_domains').insert({organization_id:org,domain,provider:'mailjet',provider_domain_id:verified.id,verification_status:'verified',ownership_method:'provider_account',charis_connected:true,created_by:user.id}).select('id').single();
-   if(error||!data)throw new Error('Could not save Mailjet domain.');domainId=data.id;
+   const {data,error}=await service.from('sending_domains').insert({...values,organization_id:org,domain,created_by:user.id}).select('id').single();
+   if(error||!data)throw Error('Could not save the verified SendByte domain.');domainId=data.id;
   }
-  const {error:senderError}=await service.from('sender_identities').upsert({organization_id:org,domain_id:domainId,from_name:name,from_email:email,reply_to:replyTo,is_active:true},{onConflict:'organization_id,domain_id,from_email'});
-  if(senderError)throw new Error('Could not save verified Mailjet sender.');
-  await service.from('audit_logs').insert({organization_id:org,actor_id:user.id,action:'sender.mailjet_verified',entity_type:'sending_domain',entity_id:domainId});
-  revalidatePath('/admin/providers');return {success:'Mailjet sender verified and saved. Configure its route before sending.'};
- }catch(e){return {error:e instanceof Error?e.message:'Mailjet sender setup failed.'};}
+  const {error:senderError}=await service.from('sender_identities').upsert({organization_id:org,domain_id:domainId,from_name:name,from_email:email,reply_to:replyTo,is_active:true},{onConflict:'organization_id,from_email'});
+  if(senderError)throw Error('Could not save the SendByte sender address.');
+  const {error:enableError}=await service.from('email_provider_settings').update({enabled:true,health_status:'healthy',checked_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('provider','sendbyte');
+  if(enableError)throw Error('Sender saved, but SendByte could not be enabled.');
+  await service.from('audit_logs').insert({organization_id:org,actor_id:user.id,action:'sender.sendbyte_verified',entity_type:'sending_domain',entity_id:domainId,details:{domain,from_email:email}});
+  revalidatePath('/admin/providers');revalidatePath('/dashboard/communications/new');
+  return {success:'SendByte sender connected and verified.'};
+ }catch(e){return {error:e instanceof Error?e.message:'SendByte sender could not be connected.'};}
 }
-
 export async function saveEmailMonthlyBudget(_:State,form:FormData):Promise<State>{
  try{
   const {db,org}=await access();

@@ -34,7 +34,7 @@ function autoMap(field:MainField,header:string){
 /**
  * The four core fields map directly to the contacts table. Up to 12 explicitly
  * chosen extra columns are saved to contacts.attributes and can be used in
- * campaign personalization. Consent for marketing emails is confirmed against bank records, not inferred from spreadsheets.
+ * campaign personalization. Email permission is confirmed against the bank's existing records, not inferred from spreadsheets.
  */
 export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;name:string}[]}){
  const [preview,setPreview]=useState<Preview|null>(null);
@@ -42,7 +42,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
  const [extraColumns,setExtraColumns]=useState<Record<number,ExtraColumn>>({});
  const [consentConfirmed,setConsentConfirmed]=useState(false);
  const [consentScope,setConsentScope]=useState<'all_marketing'|'product_specific'>('all_marketing');
- const [consentSource,setConsentSource]=useState('consent_register');
+ const [consentSource,setConsentSource]=useState('signed_form');
  const [consentReference,setConsentReference]=useState('');
  const [consentDate,setConsentDate]=useState('');
  const [consentProduct,setConsentProduct]=useState('');
@@ -146,7 +146,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
    if(names.has(entry.key))return `You have used the field name "${entry.key}" twice. Give each extra field a different name.`;
    names.add(entry.key);
   }
-  if(!consentConfirmed)return 'Confirm that each included customer has already consented to the selected marketing purpose.';
+  if(!consentConfirmed)return 'Confirm that each included customer has already agreed to receive the selected bank campaigns and updates.';
   if(consentReference.trim().length<8)return 'Enter a consent register, signed-form or CRM record reference (at least 8 characters).';
   if(!/^\d{4}-\d{2}-\d{2}$/.test(consentDate)||consentDate>new Date().toISOString().slice(0,10))return 'Enter the actual date the permission was recorded.';
   if(consentScope==='product_specific'&&consentProduct.trim().length<2)return 'Enter the product or service covered by the permission.';
@@ -216,11 +216,11 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
     {listTarget==='new'&&<label>New group name<input value={newListName} disabled={busy||complete} maxLength={100} onChange={e=>{setNewListName(e.target.value);listRef.current=null;invalidate();}} placeholder="October account updates"/></label>}
    </div>
    <div className="admin-form">
-    <h2>Step 4 · Verify existing customer marketing permission</h2>
-    <p className="muted">Import only people who already gave documented permission. A new upload will never undo a previous opt-out. Contacts whose permission is limited to one product are stored without eligibility for general marketing broadcasts.</p>
-    <label>Permission covers<select value={consentScope} disabled={busy||complete} onChange={e=>{setConsentScope(e.target.value as 'all_marketing'|'product_specific');invalidate();}}><option value="all_marketing">All Charis promotional updates (explicit permission required)</option><option value="product_specific">Only one product or service (not eligible for general broadcasts)</option></select></label>
+    <h2>Step 4 · Confirm existing customer email permission</h2>
+    <p className="muted">Import only customers whose existing bank application or consent records confirm permission. A new upload will never undo a previous opt-out. Contacts whose permission is limited to one product are stored without eligibility for general marketing broadcasts.</p>
+    <label>Permission covers<select value={consentScope} disabled={busy||complete} onChange={e=>{setConsentScope(e.target.value as 'all_marketing'|'product_specific');invalidate();}}><option value="all_marketing">All Charis customer campaigns and updates (existing permission required)</option><option value="product_specific">Only one product or service (not eligible for general broadcasts)</option></select></label>
     {consentScope==='product_specific'&&<label>Approved product/service<input value={consentProduct} maxLength={80} disabled={busy||complete} onChange={e=>{setConsentProduct(e.target.value);invalidate();}} placeholder="e.g. Fixed deposits"/></label>}
-    <label>Where was permission recorded?<select value={consentSource} disabled={busy||complete} onChange={e=>{setConsentSource(e.target.value);invalidate();}}><option value="consent_register">Bank consent register / CRM</option><option value="signed_form">Signed customer opt-in form</option><option value="digital_form">Online opt-in form</option><option value="recorded_call">Recorded customer permission</option><option value="other">Other documented evidence</option></select></label>
+    <label>Where was permission recorded?<select value={consentSource} disabled={busy||complete} onChange={e=>{setConsentSource(e.target.value);invalidate();}}><option value="consent_register">Bank consent register / CRM</option><option value="signed_form">Signed bank application / account-opening form</option><option value="digital_form">Online opt-in form</option><option value="recorded_call">Recorded customer permission</option><option value="other">Other documented evidence</option></select></label>
     <label>Evidence/register reference<input value={consentReference} maxLength={200} disabled={busy||complete} onChange={e=>{setConsentReference(e.target.value);invalidate();}} placeholder="Consent register batch, form or record ID"/></label>
     <label>Date of existing permission<input type="date" value={consentDate} max={new Date().toISOString().slice(0,10)} disabled={busy||complete} onChange={e=>{setConsentDate(e.target.value);invalidate();}}/></label>
     <label><input type="checkbox" checked={consentConfirmed} disabled={busy||complete} onChange={e=>{setConsentConfirmed(e.target.checked);invalidate();}}/> I confirm that evidence is available for each contact in this file, and that this import does not include people who declined or withdrew promotional permission.</label>

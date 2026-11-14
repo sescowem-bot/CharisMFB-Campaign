@@ -2,7 +2,7 @@
 import {useActionState,useEffect,useMemo,useRef,useState} from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import {Check,ShieldCheck,MessageSquareText,UsersRound,Eye,ArrowRight,ArrowLeft,Info,ClipboardCheck,Undo2,Redo2,Mail,Smartphone} from 'lucide-react';
+import {Check,MessageSquareText,UsersRound,Eye,ArrowRight,ArrowLeft,Info,ClipboardCheck,Undo2,Redo2,Mail,Smartphone} from 'lucide-react';
 import './direct-campaign-wizard.css';
 import {createDirectMessage} from '@/app/dashboard/communications/actions';
 import {designSchema,resolveBrandLinks,type EmailBlock,type EmailDesign} from '@/lib/campaign/design';
@@ -35,9 +35,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
  const stepNavRef=useRef<HTMLElement|null>(null);
  useEffect(()=>{if(step>0)stepNavRef.current?.scrollIntoView({behavior:'smooth',block:'start'});},[step]);
  const [confirmed,setConfirmed]=useState(false);
- const [emailProvider,setEmailProvider]=useState('auto');
- const [zeptoEventReference,setZeptoEventReference]=useState('');
- const [zeptoEventConfirmed,setZeptoEventConfirmed]=useState(false);
+ const [emailProvider,setEmailProvider]=useState('sendbyte');
  const [channel,setChannel]=useState<'email'|'sms'>(emailEnabled?'email':'sms');
  const [purpose,setPurpose]=useState('general_notice');
  const [product,setProduct]=useState('general');
@@ -110,7 +108,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
    setChosen(saved.chosen.slice(0,maxRecipients));
    setMode(saved.mode==='later'&&schedulingEnabled?'later':'now');
    setSendAt(saved.sendAt);
-   setEmailProvider(saved.emailProvider==='auto'||readyEmailProviders.includes(saved.emailProvider)?saved.emailProvider:'auto');
+   setEmailProvider(readyEmailProviders.includes(saved.emailProvider)?saved.emailProvider:'sendbyte');
    lastDraft.current={subject:saved.subject,body:saved.body,design:saved.design,templateId:saved.templateId,simpleStyle:saved.simpleStyle,simpleGreeting:saved.simpleGreeting};
    draftHistory.current={past:[],future:[]};setHistoryCounts({undo:0,redo:0});
    setDraftStatus('Draft restored');
@@ -163,7 +161,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
   setPurpose('general_notice');setProduct('general');setShowProduct(false);
   setChannel(emailEnabled?'email':'sms');setAudience('selected');setChosen([]);setSelectedDetails({});
   setGroupId('');setQuery('');setResults([]);setMode('now');setSendAt('');
-  setEmailProvider('auto');setZeptoEventReference('');setZeptoEventConfirmed(false);
+  setEmailProvider('sendbyte');
   setConfirmed(false);setDraftWarning('');
   draftHistory.current={past:[],future:[]};
   lastDraft.current={subject:'',body:'',design:null,templateId:'',simpleStyle:'classic',simpleGreeting:'Hello {{first_name}},'};
@@ -205,10 +203,6 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
  },[step,channel,effectiveDesign,subject,body,brand,designError,sampleContact,customFields]);
  const messageReady=subject.trim().length>=3&&subject.trim().length<=180&&composedBody.trim().length>=10&&composedBody.trim().length<=2000&&!designError;
  const recipientsReady=audience==='selected'?chosen.length>0:audience==='list'?Boolean(groupId):canBulk;
- const zeptoChosen=channel==='email'&&emailProvider==='zeptomail';
- const zeptoEligible=channel==='email'&&audience==='selected';
- const zeptoReady=providerChoiceAvailable&&readyEmailProviders.includes('zeptomail');
- const zeptoValid=!zeptoChosen||(audience==='selected'&&chosen.length>=1&&chosen.length<=maxRecipients&&chosen.length<=500&&zeptoEventReference.trim().length>=4&&zeptoEventReference.trim().length<=120&&zeptoEventConfirmed);
  const scheduleReady=mode==='now'||(schedulingEnabled&&sendAt.trim().length>0);
  const audienceLabel=audience==='selected'?chosen.length+' selected contact'+(chosen.length===1?'':'s'):
   audience==='list'?groups.find(g=>g.id===groupId)?.name||'No group chosen':'All eligible contacts (within your limit)';
@@ -263,7 +257,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
   onKeyDown={e=>{if(e.key==='Enter'&&['INPUT','SELECT'].includes((e.target as HTMLElement).tagName))e.preventDefault();}}
   onSubmit={e=>{
    const submitter=(e.nativeEvent as SubmitEvent).submitter;
-   if(step!==3||!confirmed||!messageReady||!recipientsReady||!scheduleReady||!zeptoValid||pending||!!state.id||
+   if(step!==3||!confirmed||!messageReady||!recipientsReady||!scheduleReady||pending||!!state.id||
       submitter?.getAttribute('name')!=='commit_send'||submitter?.getAttribute('value')!=='yes'){
     e.preventDefault();
    }
@@ -274,9 +268,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
   <input type="hidden" name="purpose" value={purpose}/>
   <input type="hidden" name="product" value={showProduct?product:'general'}/>
   <input type="hidden" name="channel" value={channel}/>
-  <input type="hidden" name="send_provider" value={channel==='email'&&providerChoiceAvailable?emailProvider:'auto'}/>
-  <input type="hidden" name="zepto_event_reference" value={zeptoChosen?zeptoEventReference.trim():''}/>
-  <input type="hidden" name="zepto_event_confirm" value={zeptoChosen&&zeptoEventConfirmed?'yes':'no'}/>
+  <input type="hidden" name="send_provider" value={channel==='email'?emailProvider:''}/>
   <input type="hidden" name="audience" value={audience}/>
   <input type="hidden" name="contact_ids" value={chosen.join(',')}/>
   <input type="hidden" name="list_id" value={audience==='list'?groupId:''}/>
@@ -285,7 +277,6 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
   <input type="hidden" name="send_at" value={mode==='later'?sendAt:''}/>
   <div className="charis-flow-intro"><div><div className="charis-flow-eyebrow"><MessageSquareText size={15}/> CHARIS CAMPAIGN CENTRE</div>
    <h2>Create campaign</h2><p>Write your message, choose customers, preview it, then send.</p></div>
-   <span className="charis-flow-safe"><ShieldCheck size={15}/> Nothing sends before confirmation</span>
   </div>
   <div className="charis-draft-bar" role="status" aria-live="polite">
     <div><strong>{draftStatus}</strong><small>Saved in this signed-in browser tab, not on another device. Refreshing or navigating away will not erase the draft.</small></div>
@@ -305,7 +296,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
      {smsEnabled&&<button type="button" aria-pressed={channel==='sms'} onClick={()=>{if(design){setBody(richBody.replace(/\{\{[^}]*\}\}/g,'').trim());setDesign(null);setTemplateId('');}setChannel('sms');setChosen([]);setSelectedDetails({});setAudience('selected');}}><Smartphone size={17}/> SMS</button>}
     </fieldset>
     <div className="charis-purpose-choice">
-     <label>What is this message about?<select aria-label="Message purpose" value={purpose} onChange={e=>{setPurpose(e.target.value);setConfirmed(false);setZeptoEventConfirmed(false);}}>
+     <label>What is this message about?<select aria-label="Message purpose" value={purpose} onChange={e=>{setPurpose(e.target.value);setConfirmed(false);}}>
       <option value="general_notice">General announcement</option>
       <option value="service_notice">Bank service update</option>
       <option value="account_update">Customer account notice</option>
@@ -416,42 +407,16 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
     <div className="direct-review" style={{whiteSpace:'pre-wrap'}} aria-label="Final SMS preview">{composedBody}</div>}
    {channel==='email'&&<div className="charis-final-provider-choice">
     <label>Send using
-     <select aria-label="Email provider for this campaign" value={providerChoiceAvailable?emailProvider:'auto'} disabled={!providerChoiceAvailable||!readyEmailProviders.length} onChange={e=>{setEmailProvider(e.target.value);setConfirmed(false);setZeptoEventConfirmed(false);}}>
-      <option value="auto">Automatic (recommended)</option>
-      {(['resend','brevo','mailjet'] as const).filter(p=>readyEmailProviders.includes(p)).map(p=><option key={p} value={p}>{p==='resend'?'Resend':p==='brevo'?'Brevo':'Mailjet'}</option>)}
-      <option value="zeptomail" disabled={!zeptoEligible||!zeptoReady}>
-       {!zeptoEligible?'Zoho ZeptoMail · Select individual customers'
-        :zeptoReady?'Zoho ZeptoMail · Transactional notifications':'Zoho ZeptoMail · Setup pending'}
-      </option>
+     <select aria-label="Email provider for this campaign" value={emailProvider} disabled={!providerChoiceAvailable||!readyEmailProviders.length} onChange={e=>{setEmailProvider(e.target.value);setConfirmed(false);}}>
+      <option value="sendbyte" disabled={!readyEmailProviders.includes('sendbyte')}>SendByte · Primary</option>
+      <option value="resend" disabled={!readyEmailProviders.includes('resend')}>Resend</option>
+      <option value="brevo" disabled={!readyEmailProviders.includes('brevo')}>Brevo</option>
      </select>
     </label>
-    <p>{!providerChoiceAvailable?'Email provider choices are being configured. You can continue with the available sending options.':emailProvider==='auto'?'Charis chooses from your approved providers. If one rejects a message before submission, Charis may use another approved provider.':'Only the selected provider will be used for this campaign. If it becomes unavailable, the campaign needs attention instead of silently switching services.'}</p>
-    {!zeptoEligible&&<p className="muted" role="status">
-     To use Zoho, select the individual customers who need this notification.
-    </p>}
-    <p className="muted" role="note">
-     <strong>About Zoho:</strong> Choose any message category above. ZeptoMail can only deliver genuine
-     customer-specific transactional information, such as account activity, requested services,
-     receipts or repayment reminders. A general announcement, newsletter or promotional broadcast
-     is not eligible just because you select Zoho.
-    </p>
-    {zeptoEligible&&!zeptoReady&&<p className="muted" role="status">
-     Zoho is connected for email testing, but customer notification sending has not been activated by the bank administrator.
-     You can still use another approved email provider.
-    </p>}
-   </div>}
-   {zeptoChosen&&<div className="charis-flow-guidance" role="group" aria-label="Zoho notification authorisation">
-    <p><strong>Zoho transactional sending.</strong> Your message category is {typeLabel}. This route is only for a real bank event or request relevant to each selected customer. You can queue up to 500 recipients in groups of 50. General announcements, newsletters and promotional messages must use another approved provider.</p>
-    <label>Bank event or notification reference<input type="text" maxLength={120} value={zeptoEventReference}
-     placeholder="e.g. ACCOUNT-ALERT-2026-10" onChange={e=>{setZeptoEventReference(e.target.value);setZeptoEventConfirmed(false);}}/></label>
-    <label className="direct-send-confirm"><input type="checkbox" checked={zeptoEventConfirmed}
-     onChange={e=>{setZeptoEventConfirmed(e.target.checked);setConfirmed(false);}}/>
-     I confirm each selected customer has a genuine bank event or request relevant to this notification. This is not a general announcement or promotional broadcast.
-    </label>
-   </div>}
+    <p>{!providerChoiceAvailable?'Email sending is not available yet.':!readyEmailProviders.length?'No email provider is connected yet. Please contact your administrator.':'This campaign will use only the provider selected here. If it is unavailable, the campaign will stop for review.'}</p>
    <label>When to send<select value={mode} onChange={e=>{setConfirmed(false);setMode(e.target.value as 'now'|'later');}}><option value="now">Send now</option>{schedulingEnabled&&<option value="later">Schedule for later</option>}</select></label>
    {mode==='later'&&<label>Send on (Nigeria time · WAT)<input type="datetime-local" value={sendAt} onChange={e=>{setConfirmed(false);setSendAt(e.target.value);}}/></label>}
-   <div className="charis-flow-guidance"><Info size={16}/><span>Check the final preview above and recipient list before authorising delivery. Delivery may be queued or require approval, depending on bank settings.</span></div>
+   <div className="charis-flow-guidance"><Info size={16}/><span>Review the message and recipient list before sending.</span></div>
    <label className="direct-send-confirm charis-flow-approval"><input type="checkbox" name="confirmed" value="yes" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>
     I have reviewed the message and recipients, and I authorise this campaign to be {mode==='later'?'scheduled':'submitted'}.
    </label>
@@ -463,7 +428,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
   <div className="direct-wizard-actions"><p className="charis-flow-navigation-note">Step {step+1} of 4 · You can go back without losing the message you have written.</p><div className="charis-flow-button-group">
    {step>0&&<button type="button" className="btn secondary" disabled={pending||!!state.id} onClick={()=>{setConfirmed(false);setStep(s=>s-1);}}><ArrowLeft size={15}/> Back</button>}
    {step<3?<button type="button" className="btn" disabled={pending||!!state.id||(step===0?!messageReady:step===1?!recipientsReady:!!preview.error)} onClick={()=>{setConfirmed(false);setStep(s=>Math.min(3,s+1));}} >{step===2?'Continue to confirmation':'Continue'} <ArrowRight size={15}/></button>:
-    <button type="submit" name="commit_send" value="yes" className="btn" disabled={pending||!!state.id||!confirmed||!messageReady||!recipientsReady||!scheduleReady||!zeptoValid}>{pending?'Submitting…':approvalRequired?'Confirm & Submit for Approval':mode==='later'?'Confirm & Schedule':'Confirm & Send'}</button>}
+    <button type="submit" name="commit_send" value="yes" className="btn" disabled={pending||!!state.id||!confirmed||!messageReady||!recipientsReady||!scheduleReady}>{pending?'Submitting…':approvalRequired?'Confirm & Submit for Approval':mode==='later'?'Confirm & Schedule':'Confirm & Send'}</button>}
    </div></div>
   {state.error&&<p role="alert" className="feedback-error">{state.error}</p>}
   {state.id&&<DirectCampaignReceipt id={state.id} outcome={state.outcome||'submitted'}/>}

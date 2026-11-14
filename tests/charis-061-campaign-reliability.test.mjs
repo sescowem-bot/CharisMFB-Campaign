@@ -24,13 +24,11 @@ test('plain emails and SMS retain validation and rich designs never enter SMS ch
  assert.match(actions,/channel:z\.enum\(\['email','sms'\]\)/);
 });
 
-test('recent campaigns include earlier records with organisation filter and permission gate',()=>{
- assert.match(history,/canViewEarlier=account\.owner\|\|account\.admin/);
- assert.match(history,/db\.from\('campaign_drafts'\)/);
- assert.match(history,/\.eq\('organization_id',org\)/);
- assert.match(history,/Earlier campaigns/);
+test('Campaign Centre shows only current direct campaigns and removes the legacy studio',()=>{
+ assert.doesNotMatch(history,/campaign_drafts|Earlier campaigns|Previous campaign records/);
  assert.match(history,/db\.from\('charis_direct_messages'\)/);
- assert.match(history,/await Promise\.all/);
+ assert.match(history,/Create Campaign/);
+ assert.doesNotMatch(history,/dashboard\/campaigns/);
 });
 
 test('duplicate campaign submission is blocked after a saved ID is returned',()=>{

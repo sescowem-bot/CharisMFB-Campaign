@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {sendQueuedEmail} from '../lib/delivery/transport.ts';
-import {bearerMatches,brevoEvent,resendEvent} from '../lib/delivery/events.ts';
+import {bearerMatches,brevoEvent,resendEvent,sendbyteEvent} from '../lib/delivery/events.ts';
+import {createHmac} from 'node:crypto';
 import {Webhook} from 'svix';
 const input={provider:'resend',key:'private-secret',id:'40000000-0000-4000-8000-000000000001',name:'Example',from:'hello@mail.example.com',replyTo:'reply@example.com',domain:'mail.example.com',to:'recipient@example.com',subject:'Update',html:'<p>Update</p>',unsubscribe:'https://app.example.com/api/email/unsubscribe?token=token'};
 test('queued send carries stable idempotency and one-click unsubscribe headers',async()=>{
@@ -32,4 +33,21 @@ test('Resend verifies original signed bytes and rejects tampering',()=>{
  const raw=JSON.stringify({type:'email.delivered',created_at:time.toISOString(),data:{email_id:'email-id'}});const signature=webhook.sign(id,time,raw);
  const headers=new Headers({'svix-id':id,'svix-timestamp':String(Math.floor(time.getTime()/1000)),'svix-signature':signature});
  assert.equal(resendEvent(raw,headers,secret).type,'delivered');assert.throws(()=>resendEvent(raw+' ',headers,secret));
+});
+
+test('SendByte campaign delivery uses a stable idempotency key and unsubscribe URL',async()=>{
+ const sendbyteInput={...input,provider:'sendbyte',key:'sendbyte-secret'};
+ let req;const result=await sendQueuedEmail(sendbyteInput,async(url,options)=>{req={url,options};return Response.json({id:'sendbyte-message'});});
+ assert.equal(result.status,'accepted');assert.equal(req.url,'https://api.sendbyte.africa/v1/emails');
+ assert.equal(req.options.headers.Authorization,'Bearer sendbyte-secret');
+ assert.equal(req.options.headers['X-SendByte-Idempotency-Key'],'charis-campaign-'+sendbyteInput.id);
+ const body=JSON.parse(req.options.body);assert.deepEqual(body.to,[sendbyteInput.to]);assert.equal(body.list_unsubscribe.url,sendbyteInput.unsubscribe);
+});
+test('SendByte webhook signatures authenticate the original body and reject tampering',()=>{
+ const secret='sendbyte-webhook-secret-which-is-long-enough',timestamp=Math.floor(Date.now()/1000);
+ const raw=JSON.stringify({id:'evt_1',type:'email.delivered',created_at:new Date().toISOString(),data:{email_id:'sendbyte-message'}});
+ const signature=createHmac('sha256',secret).update(timestamp+'.'+raw).digest('hex');
+ const headers=new Headers({'sendbyte-signature':`t=${timestamp},v1=${signature}`});
+ assert.equal(sendbyteEvent(raw,headers,secret).type,'delivered');
+ assert.throws(()=>sendbyteEvent(raw+' ',headers,secret));
 });

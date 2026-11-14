@@ -17,7 +17,6 @@ export default async function UnsubscribePage({searchParams}:{searchParams:Promi
  {valid?<><p style={{color:'#46536a',lineHeight:1.6}}>You can stop optional bank updates and promotional emails. Important account, security and required service notices may still be sent. Unsubscribing does not close your Charis account.</p>
  <form action="/api/preferences/unsubscribe" method="post"><input type="hidden" name="token" value={token}/><button type="submit" style={{border:0,borderRadius:10,background:'#40239a',color:'white',padding:'14px 22px',fontWeight:700,cursor:'pointer'}}>Unsubscribe from optional emails</button></form>
  </>:<p role="status" style={{color:'#46536a'}}>This preference link is invalid or has expired. Please use the link in a more recent email or contact the bank.</p>}
- <p style={{marginTop:22}}>Unsubscribed by mistake? <Link href="/subscribe" style={{color:'#40239a'}}>Subscribe again</Link></p>
  {website&&<p style={{marginTop:26}}><Link href={website} style={{color:'#40239a'}}>Return to Charis website →</Link></p>}
  </section></main>;
 }

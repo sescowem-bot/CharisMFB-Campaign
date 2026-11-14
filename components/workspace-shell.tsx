@@ -37,10 +37,9 @@ export async function WorkspaceShell({title,subtitle,actions,children}:{
       <nav aria-label="Charis workspace navigation">
         <NavLink href="/dashboard"><LayoutDashboard size={18}/> Dashboard</NavLink>
         {directAllowed&&<NavLink href="/dashboard/communications/new"><Send size={18}/> Create Campaign</NavLink>}
-        {canCommunicate&&<SidebarSection title="Campaigns" routes={['/dashboard/communications','/dashboard/templates','/dashboard/campaigns']}>
+        {canCommunicate&&<SidebarSection title="Campaigns" routes={['/dashboard/communications','/dashboard/templates']}>
           <NavLink href="/dashboard/communications" exact><Mail size={18}/> All Campaigns</NavLink>
           {permitted('templates.manage')&&<NavLink href={forBank('/dashboard/templates')}><FileText size={18}/> Design Templates</NavLink>}
-          {canAdmin&&permitted('campaigns.view')&&<NavLink href={forBank('/dashboard/campaigns')}><Layers size={18}/> Previous Campaigns</NavLink>}
         </SidebarSection>}
         {canAny('customers.view','customers.manage')&&<SidebarSection title="Contacts" routes={['/dashboard/contacts','/dashboard/customers','/dashboard/imports','/dashboard/lists','/dashboard/segments','/dashboard/preferences']}>
           <NavLink href={permitted('customers.manage')?forBank('/dashboard/contacts'):'/dashboard/customers'}><Users size={18}/> All Contacts</NavLink>

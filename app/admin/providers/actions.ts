@@ -12,7 +12,7 @@ export async function providerAction(_:ProviderResult,form:FormData):Promise<Pro
   const org=charisOrgId();if(!org)throw new Error('Charis workspace is not configured.');
   const {data:charisAdmin,error:accessError}=await db.rpc('can_manage_senders',{p_org:org});
   if(accessError||charisAdmin!==true)throw new Error('Charis provider administration permission required.');
-  const provider=z.enum(['resend','brevo','mailjet']).parse(form.get('provider'));
+  const provider=z.enum(['sendbyte','resend','brevo']).parse(form.get('provider'));
   if(form.get('action')==='save') {
    if(provider==='mailjet' && form.get('enabled')==='on' && (!process.env.MAILJET_API_KEY||!process.env.MAILJET_SECRET_KEY||!(process.env.MAILJET_WEBHOOK_SECRET||'').length || (process.env.MAILJET_WEBHOOK_SECRET||'').length<32))throw new Error('Mailjet requires API credentials and a secure delivery webhook secret before enabling.');
    const {error}=await db.rpc('charis_provider_configure',{p_org:org,p_provider:provider,p_enabled:form.get('enabled')==='on'});if(error)throw new Error(error.message);
@@ -21,7 +21,7 @@ export async function providerAction(_:ProviderResult,form:FormData):Promise<Pro
    const interval=z.coerce.number().int().min(1).max(3600).parse(form.get('minimum_interval_seconds'));
    const {error}=await db.rpc('charis_provider_configure',{p_org:org,p_provider:provider,p_daily:daily,p_interval:interval});if(error)throw new Error(error.message);
   } else if(form.get('action')==='health') {
-   const key=process.env[provider==='resend'?'RESEND_API_KEY':provider==='brevo'?'BREVO_API_KEY':'MAILJET_API_KEY']||'';
+   const key=process.env[provider==='sendbyte'?'SENDBYTE_API_KEY':provider==='resend'?'RESEND_API_KEY':'BREVO_API_KEY']||'';
    const service=emailServiceDb();
    const {data:settings}=await service.from('email_provider_settings').select('checked_at').eq('provider',provider).single();
    if(settings?.checked_at&&Date.now()-Date.parse(settings.checked_at)<30000)throw new Error('Wait 30 seconds before checking again.');
