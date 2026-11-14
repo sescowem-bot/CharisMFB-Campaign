@@ -1,9 +1,10 @@
-/** A permitted outgoing FROM address for Charis. This never restricts staff login emails. */
-export function isCharisSenderDomain(value:string):boolean{
+/** Syntax-only sender validation. Organisation ownership and provider verification are enforced separately. */
+export function isValidSenderDomain(value:string):boolean{
  const domain=value.trim().toLowerCase().replace(/\.$/,'');
- return domain==='charismfb.com'||domain.endsWith('.charismfb.com');
+ if(domain.length>253)return false;
+ return /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(domain);
 }
-export function isCharisSenderEmail(value:string):boolean{
+export function isValidSenderEmail(value:string):boolean{
  const email=value.trim().toLowerCase(),at=email.lastIndexOf('@');
- return at>0&&at===email.indexOf('@')&&isCharisSenderDomain(email.slice(at+1));
+ return at>0&&at===email.indexOf('@')&&isValidSenderDomain(email.slice(at+1));
 }

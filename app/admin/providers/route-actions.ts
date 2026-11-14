@@ -5,7 +5,7 @@ import {supabaseServer} from '@/lib/supabase/server';
 import {emailServiceDb} from '@/lib/email/server';
 import {providerAdapter} from '@/lib/email/providers';
 import {mailbox,senderName,domainName} from '@/lib/email/validation';
-import {isCharisSenderDomain,isCharisSenderEmail} from '@/lib/email/charis-sender';
+import {isValidSenderDomain,isValidSenderEmail} from '@/lib/email/charis-sender';
 
 type State={error?:string;success?:string};
 const providerSchema=z.enum(['sendbyte','resend','brevo']);
@@ -27,7 +27,7 @@ export async function saveDeliveryRoute(_:State,form:FormData):Promise<State>{
   const enabled=form.get('enabled')==='on';
   const confirmed=form.get('confirmed')==='on';
   const {data:identity,error:identityError}=await db.from('sender_identities').select('from_email,is_active').eq('organization_id',org).eq('id',sender).maybeSingle();
-  if(identityError||!identity?.is_active||!isCharisSenderEmail(identity.from_email))throw Error('Choose an approved Charis bank sending address.');
+  if(identityError||!identity?.is_active||!isValidSenderEmail(identity.from_email))throw Error('Choose an approved Charis bank sending address.');
   if(enabled&&kind==='marketing'&&provider==='brevo')throw new Error('Brevo is currently configured for service updates only.');
   const {error}=await db.rpc('charis_email_route_save',{p_org:org,p_provider:provider,p_sender:sender,p_enabled:enabled,p_confirmed:confirmed,p_kind:kind});
   if(error)throw new Error(error.message);
@@ -42,7 +42,7 @@ export async function connectVerifiedBrevoSender(_:State,form:FormData):Promise<
   const name=senderName(String(form.get('name')||''));
   const replyTo=mailbox(String(form.get('reply_to')||'')||email);
   const domain=domainName(email.split('@')[1]);
-  if(!isCharisSenderDomain(domain))throw Error('Only verified Charis bank senders are available.');
+  if(!isValidSenderDomain(domain))throw Error('Only verified Charis bank senders are available.');
   const api=providerAdapter('brevo',process.env.BREVO_API_KEY||'');
   const verified=await api.findVerifiedBrevoSender(email);
   if(verified.domain!==domain)throw new Error('Domain mismatch.');
@@ -69,7 +69,7 @@ export async function connectVerifiedSendByteSender(_:State,form:FormData):Promi
   const {org,user}=await access();
   const email=mailbox(String(form.get('email')||'')),name=senderName(String(form.get('name')||''));
   const replyTo=mailbox(String(form.get('reply_to')||'')||email),domain=domainName(email.split('@')[1]);
-  if(!isCharisSenderDomain(domain))throw Error('Only approved Charis bank domains can be connected.');
+  if(!isValidSenderDomain(domain))throw Error('Only approved Charis bank domains can be connected.');
   const api=providerAdapter('sendbyte',process.env.SENDBYTE_API_KEY||'');
   const verified=await api.findVerifiedSendByteDomain(domain);
   const service=emailServiceDb();

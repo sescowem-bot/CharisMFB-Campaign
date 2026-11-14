@@ -5,7 +5,7 @@ import {senderAccess,emailServiceDb} from '@/lib/email/server';
 import {providerAdapter} from '@/lib/email/providers';
 import {listVerifiedResendDomains} from '@/lib/email/charis-resend';
 import {domainName,mailbox,senderName} from '@/lib/email/validation';
-import {isCharisSenderDomain,isCharisSenderEmail} from '@/lib/email/charis-sender';
+import {isValidSenderDomain,isValidSenderEmail} from '@/lib/email/charis-sender';
 
 export type CharisConnectResult={success?:string;error?:string};
 const uuid=z.string().uuid();
@@ -22,7 +22,7 @@ export async function connectCharisResend(_:CharisConnectResult,form:FormData):P
   const domain=domainName(String(form.get('from_domain')||''));
   const local=String(form.get('from_local')||'').trim().toLowerCase();
   const from=mailbox(`${local}@${domain}`);
-  if(from.split('@')[1]!==domain||!isCharisSenderEmail(from))throw new Error('Sender must use a verified Charis bank address.');
+  if(from.split('@')[1]!==domain||!isValidSenderEmail(from))throw new Error('Sender must use a verified Charis bank address.');
   const reply=mailbox(String(form.get('reply_to')||'').trim()||from);
   const domains=await listVerifiedResendDomains();
   const match=domains.find(d=>d.domain===domain);
@@ -83,7 +83,7 @@ export async function setupCharisResendDomain(_:CharisConnectResult,form:FormDat
   const org=uuid.parse(form.get('organization_id'));checkCharis(org);
   const {user}=await senderAccess(org);
   const domain=domainName(String(form.get('domain')||''));
-  if(!isCharisSenderDomain(domain))throw new Error('Only approved Charis bank domains can be connected.');
+  if(!isValidSenderDomain(domain))throw new Error('Only approved Charis bank domains can be connected.');
   const service=emailServiceDb();
   const {data:existing,error:read}=await service.from('sending_domains').select('id,provider,verification_status').eq('organization_id',org).eq('domain',domain).eq('provider','resend').maybeSingle();
   if(read)throw new Error('Could not read sender domains.');
