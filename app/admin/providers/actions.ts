@@ -14,6 +14,8 @@ export async function providerAction(_:ProviderResult,form:FormData):Promise<Pro
   if(accessError||charisAdmin!==true)throw new Error('Charis provider administration permission required.');
   const provider=z.enum(['sendbyte','resend','brevo']).parse(form.get('provider'));
   if(form.get('action')==='save') {
+   const apiKey=process.env[provider==='sendbyte'?'SENDBYTE_API_KEY':provider==='resend'?'RESEND_API_KEY':'BREVO_API_KEY'];
+   if(form.get('enabled')==='on'&&!apiKey)throw new Error('Connect the selected email provider before enabling it.');
    const {error}=await db.rpc('charis_provider_configure',{p_org:org,p_provider:provider,p_enabled:form.get('enabled')==='on'});if(error)throw new Error(error.message);
   } else if(form.get('action')==='limits') {
    const daily=z.coerce.number().int().min(1).max(100000).parse(form.get('daily_limit'));

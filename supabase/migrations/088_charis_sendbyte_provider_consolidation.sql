@@ -22,7 +22,8 @@ ALTER TABLE public.campaign_runs DROP CONSTRAINT IF EXISTS campaign_runs_provide
 ALTER TABLE public.campaign_runs ADD CONSTRAINT campaign_runs_provider_check CHECK(provider IN ('sendbyte','resend','brevo','mailjet'));
 ALTER TABLE public.charis_direct_messages DROP CONSTRAINT IF EXISTS charis_direct_preferred_provider_075;
 ALTER TABLE public.charis_direct_messages ADD CONSTRAINT charis_direct_preferred_provider_075 CHECK(preferred_provider IS NULL OR (channel='email' AND preferred_provider IN ('sendbyte','resend','brevo')));
-INSERT INTO public.email_provider_settings(provider,enabled,health_status) VALUES('sendbyte',false,'unchecked') ON CONFLICT(provider) DO NOTHING;
+INSERT INTO public.email_provider_settings(provider,enabled,health_status,daily_limit,minimum_interval_seconds)
+ VALUES('sendbyte',false,'unchecked',50,5) ON CONFLICT(provider) DO NOTHING;
 ALTER TABLE public.charis_direct_messages DROP COLUMN IF EXISTS zepto_event_reference;
 ALTER TABLE public.charis_direct_messages DROP COLUMN IF EXISTS zepto_transactional_acknowledged;
 DROP FUNCTION IF EXISTS public.charis_direct_create_zepto_081(uuid,uuid,text,text,text,text,text,text,text,uuid[],uuid,jsonb,timestamptz,text);
