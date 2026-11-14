@@ -21,7 +21,6 @@ export function DirectProviderForm({provider,senders,current}:{provider:'sendbyt
  <label>Send emails from<select name="sender" required defaultValue={current?.sender_id||''}><option value="">Choose a verified sender</option>{senders.map(s=><option key={s.id} value={s.id}>{s.name} — {s.email}</option>)}</select></label>
  <label><input name="enabled" type="checkbox" defaultChecked={current?.enabled===true}/> Make this provider available for campaigns</label>
  <input type="hidden" name="priority" value="10"/>
->
  <button className="btn secondary" disabled={pending||!senders.length}>Save provider settings</button>
  {state.error&&<p role="alert" className="feedback-error">{state.error}</p>}{state.success&&<p role="status" className="feedback-success">{state.success}</p>}
  </form>;
