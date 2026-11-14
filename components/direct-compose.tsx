@@ -414,7 +414,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
      </select>
     </label>
     <p>{!providerChoiceAvailable?'Email sending is not available yet.':!readyEmailProviders.length?'No email provider is connected yet. Please contact your administrator.':'This campaign will use only the provider selected here. If it is unavailable, the campaign will stop for review.'}</p>
-   </div>
+   </div>}
    <label>When to send<select value={mode} onChange={e=>{setConfirmed(false);setMode(e.target.value as 'now'|'later');}}><option value="now">Send now</option>{schedulingEnabled&&<option value="later">Schedule for later</option>}</select></label>
    {mode==='later'&&<label>Send on (Nigeria time · WAT)<input type="datetime-local" value={sendAt} onChange={e=>{setConfirmed(false);setSendAt(e.target.value);}}/></label>}
    <div className="charis-flow-guidance"><Info size={16}/><span>Review the message and recipient list before sending.</span></div>
