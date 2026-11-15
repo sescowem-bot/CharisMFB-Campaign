@@ -19,7 +19,7 @@ export async function directEmailReadiness(org:string):Promise<DirectReadiness>{
  if(eventStore.error)return {ready:false,reason:'schema_missing',providers:[]};
  if(prefs.error||settings.error)return {ready:false,reason:'configuration_unavailable',providers:[]};
  if(!prefs.data?.length)return {ready:false,reason:'sender_missing',providers:[]};
- const enabled=new Set((settings.data||[]).filter(p=>p.enabled&&p.daily_limit>0).map(p=>p.provider));
+ const enabled=new Set((settings.data||[]).filter(p=>p.enabled&&(p.daily_limit==null||p.daily_limit>0)).map(p=>p.provider));
  const choices:SenderPreference[]=[];
  for(const pref of prefs.data){
   if(!supported.includes(pref.provider as typeof supported[number])||!enabled.has(pref.provider))continue;
