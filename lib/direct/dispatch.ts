@@ -114,11 +114,15 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
       const key=process.env[provider==='sendbyte'?'SENDBYTE_API_KEY':provider==='resend'?'RESEND_API_KEY':'BREVO_API_KEY']||'';
       if(!key)continue;
       await providerFor(provider as Provider);
-      const {data:providerLimit}=await db.from('email_provider_settings').select('daily_limit').eq('provider',provider).maybeSingle();
-      if(!providerLimit?.daily_limit)continue;
-      const day=new Date().toISOString().slice(0,10)+'T00:00:00.000Z';
-      const [{count:used},{count:legacyUsed}]=await Promise.all([db.from('charis_direct_recipients').select('id',{head:true,count:'exact'}).eq('provider',provider).in('status',['accepted','failed','unknown']).gte('updated_at',day),db.from('delivery_quota_reservations').select('id',{head:true,count:'exact'}).eq('provider',provider).gte('reserved_at',day)]);
-      if((used||0)+(legacyUsed||0)>=providerLimit.daily_limit)continue;
+      const {data:providerLimit,error:limitError}=await db.from('email_provider_settings').select('daily_limit').eq('provider',provider).maybeSingle();
+      if(limitError)throw Error('provider_limit_configuration_unavailable');
+      // A NULL daily_limit means no platform-imposed daily cap. A positive value
+      // is an administrator-configured cap and remains enforced.
+      if(providerLimit?.daily_limit!=null){
+       const day=new Date().toISOString().slice(0,10)+'T00:00:00.000Z';
+       const [{count:used},{count:legacyUsed}]=await Promise.all([db.from('charis_direct_recipients').select('id',{head:true,count:'exact'}).eq('provider',provider).in('status',['accepted','failed','unknown']).gte('updated_at',day),db.from('delivery_quota_reservations').select('id',{head:true,count:'exact'}).eq('provider',provider).gte('reserved_at',day)]);
+       if((used||0)+(legacyUsed||0)>=providerLimit.daily_limit)continue;
+      }
       transportStarted=true;
       const result=await sendQueuedEmail({provider:provider as Provider,key,id:row.id,name:sender.from_name,from:sender.from_email,replyTo:sender.reply_to||sender.from_email,domain:mailbox(sender.from_email).split('@')[1],to:row.recipient_email,subject:renderedSubject,html,unsubscribe:preference.replace('/unsubscribe?','/api/preferences/unsubscribe?')});
       status=result.status==='retry'?'failed':result.status;reason=result.reason;providerId=result.message||null;
