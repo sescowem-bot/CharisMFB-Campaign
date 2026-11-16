@@ -73,6 +73,24 @@ GRANT EXECUTE ON FUNCTION public.charis_direct_create_provider_089(
  uuid,uuid,text,text,text,text,text,text,text,uuid[],uuid,jsonb,timestamptz,text,text[],text[]
 ) TO authenticated;
 
+-- Retire any legacy Zoho Campaigns tables and RPCs without deleting historical
+-- permission evidence or contact-sync records. They remain inaccessible to clients.
+DO $
+DECLARE r record;
+BEGIN
+ FOR r IN SELECT tablename FROM pg_tables
+  WHERE schemaname='public' AND tablename LIKE 'charis_zoho_%'
+ LOOP
+  EXECUTE format('REVOKE ALL ON TABLE public.%I FROM PUBLIC, anon, authenticated',r.tablename);
+ END LOOP;
+ FOR r IN SELECT p.oid::regprocedure AS signature
+  FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+  WHERE n.nspname='public' AND p.proname LIKE 'charis_zoho_%'
+ LOOP
+  EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated',r.signature);
+ END LOOP;
+END $;
+
 COMMIT;
 NOTIFY pgrst, 'reload schema';
 )
