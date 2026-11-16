@@ -36,6 +36,8 @@ BEGIN
  IF cardinality(p_cc)>10 OR cardinality(p_bcc)>10
    OR (p_channel<>'email' AND (cardinality(p_cc)>0 OR cardinality(p_bcc)>0))
    OR p_cc && p_bcc
+   OR cardinality(p_cc)<>(SELECT count(DISTINCT e) FROM unnest(p_cc) AS e)
+   OR cardinality(p_bcc)<>(SELECT count(DISTINCT e) FROM unnest(p_bcc) AS e)
    OR EXISTS(SELECT 1 FROM unnest(p_cc||p_bcc) AS e
       WHERE e IS NULL OR e<>lower(btrim(e))
       OR e !~* '^[a-z0-9.!#$%&''*+/=?^_`{|}~-]+@[a-z0-9.-]+[.][a-z]{2,})
