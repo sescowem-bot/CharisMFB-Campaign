@@ -163,14 +163,17 @@ begin
   -- Contact deletion is deliberately blocked unless every selected record group
   -- that can retain a contact reference is also selected in the same operation.
   if 'contacts'=any(v_selected) then
-    if public.charis_reset_selective_count('campaign_drafts',p_org)>0 and not ('campaigns'=any(v_selected)) then
-      raise exception 'Contacts are still referenced by campaigns. Select Campaigns and delivery history first, or leave Contacts selected off.';
+    if (public.charis_reset_selective_count('campaign_drafts',p_org)>0 or public.charis_reset_selective_count('email_deliveries',p_org)>0) and not ('campaigns'=any(v_selected)) then
+      raise exception 'Contacts are still referenced by campaigns or delivery records. Select Campaigns and delivery history too, or leave Contacts selected off.';
     end if;
     if public.charis_reset_selective_count('charis_direct_recipients',p_org)>0 and not ('direct'=any(v_selected)) then
       raise exception 'Contacts are still referenced by direct messages. Select Direct messages and SMS tests too, or leave Contacts selected off.';
     end if;
     if public.charis_reset_selective_count('charis_zoho_contact_memberships',p_org)>0 and not ('integrations'=any(v_selected)) then
       raise exception 'Contacts are still referenced by Zoho records. Select Zoho and ZeptoMail history too, or leave Contacts selected off.';
+    end if;
+    if public.charis_reset_selective_count('charis_import_consent_records',p_org)>0 and not ('imports'=any(v_selected)) then
+      raise exception 'Contacts are still referenced by import consent evidence. Select Contact imports and evidence too, or leave Contacts selected off.';
     end if;
   end if;
 
