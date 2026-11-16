@@ -389,6 +389,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
     <div><dt>Channel</dt><dd>{channel==='email'?'Email':'SMS'}</dd></div>
     <div><dt>Message type</dt><dd>{typeLabel}</dd></div>
     <div><dt>Subject</dt><dd>{subject}</dd></div>
+    {channel==='email'&&ccEmails.trim()&&<div><dt>CC</dt><dd>{ccEmails}</dd></div>}{channel==='email'&&bccEmails.trim()&&<div><dt>BCC</dt><dd>{bccEmails}</dd></div>}
     <div><dt>Audience</dt><dd>{audienceLabel}</dd></div>
    </dl>
    {audience==='selected'&&<details className="charis-flow-guidance"><summary>View selected recipients ({chosen.length})</summary><ul aria-label="Selected recipients">{chosen.slice(0,12).map(id=><li key={id}>{[selectedDetails[id]?.first_name,selectedDetails[id]?.last_name].filter(Boolean).join(' ')||selectedDetails[id]?.email||'Selected customer'}</li>)}{chosen.length>12&&<li>And {chosen.length-12} more</li>}</ul></details>}
