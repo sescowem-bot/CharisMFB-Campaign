@@ -8,6 +8,7 @@ import {directEmailReadiness,directWorkerIsHealthy} from '@/lib/direct/readiness
 import {readDirectDesign,checkDirectDesign,campaignParagraphs} from '@/lib/direct/campaign-design';
 import {renderCampaign} from '@/lib/campaigns/render';
 import type {EmailDesign} from '@/lib/campaign/design';
+import {mailbox} from '@/lib/email/validation';
 export type DirectState={error?:string;success?:string;id?:string;outcome?:'submitted'|'scheduled'|'approval'|'attention'|'unavailable'};
 
 /** The schedule is entered explicitly in Nigeria's WAT (+01:00), not the server's timezone. */
@@ -37,6 +38,10 @@ export async function createDirectMessage(_:DirectState,form:FormData):Promise<D
    token:form.get('token'),subject:form.get('subject'),body:form.get('body'),channel:form.get('channel'),purpose:form.get('purpose'),product:form.get('product'),audience:form.get('audience'),mode:form.get('mode')
   });
   const selectedProvider=parsed.channel==='email'?z.enum(['sendbyte','resend','brevo']).parse(String(form.get('send_provider')||'sendbyte')):'sendbyte';
+  const parseCopies=(raw:FormDataEntryValue|null)=>String(raw||'').split(/[;,\r\n]/).map(v=>v.trim()).filter(Boolean).map(mailbox);
+  const cc=parseCopies(form.get('cc_emails')),bcc=parseCopies(form.get('bcc_emails'));
+  if(parsed.channel==='sms'&&(cc.length||bcc.length))throw Error('CC and BCC are available for email campaigns only.');
+  if(cc.length>10||bcc.length>10||new Set([...cc,...bcc]).size!==cc.length+bcc.length)throw Error('Use up to 10 unique CC addresses and 10 unique BCC addresses. Do not repeat an address.');
   const scheduledAt=requestedSchedule(parsed.mode,String(form.get('send_at')||''));
   if(scheduledAt&&!(await directWorkerIsHealthy()))throw Error('Scheduled sending is unavailable. Ask your administrator to check the delivery worker.');
   if(process.env.CHARIS_SIMPLE_SENDING_ENABLED!=='true'||process.env.EMAIL_DELIVERY_ENABLED!=='true')
@@ -82,7 +87,7 @@ export async function createDirectMessage(_:DirectState,form:FormData):Promise<D
   };
   // Persist the staff-selected provider before any recipient can be claimed.
   const {data:id,error}=parsed.channel==='email'
-   ?await db.rpc('charis_direct_create_provider_075',{...params,p_provider:selectedProvider})
+   ?await db.rpc('charis_direct_create_provider_089',{...params,p_provider:selectedProvider,p_cc:cc,p_bcc:bcc})
    :await db.rpc('charis_direct_create_v2',params);
   if(error||!id)throw Error(error?.message||'Campaign could not be saved. No messages were sent.');
   const {data:message,error:messageError}=await db.from('charis_direct_messages').select('status,scheduled_at').eq('organization_id',org).eq('id',id).maybeSingle();

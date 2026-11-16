@@ -45,6 +45,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
  const [groupId,setGroupId]=useState('');
  const [chosen,setChosen]=useState<string[]>([]);
  const [query,setQuery]=useState('');const [body,setBody]=useState('');const [subject,setSubject]=useState('');
+ const [ccEmails,setCcEmails]=useState('');const [bccEmails,setBccEmails]=useState('');
  const [design,setDesign]=useState<EmailDesign|null>(null);
  const [templateId,setTemplateId]=useState('');
  const [simpleStyle,setSimpleStyle]=useState<SimpleEmailStyle>('classic');
@@ -157,7 +158,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
  function discardDraft(){
   if(!window.confirm('Discard this draft and your recipient selections?'))return;
   discardCampaignDraft(draftKey);
-  setStep(0);setSubject('');setBody('');setDesign(null);setTemplateId('');
+  setStep(0);setSubject('');setBody('');setCcEmails('');setBccEmails('');setDesign(null);setTemplateId('');
   setSimpleStyle('classic');setSimpleGreeting('Hello {{first_name}},');
   setPurpose('general_notice');setProduct('general');setShowProduct(false);
   setChannel(emailEnabled?'email':'sms');setAudience('selected');setChosen([]);setSelectedDetails({});
@@ -265,6 +266,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
   }}>
   <input type="hidden" name="token" value={draftToken}/>
   <input type="hidden" name="subject" value={subject}/>
+  <input type="hidden" name="cc_emails" value={ccEmails}/><input type="hidden" name="bcc_emails" value={bccEmails}/>
   <input type="hidden" name="body" value={composedBody}/>
   <input type="hidden" name="purpose" value={purpose}/>
   <input type="hidden" name="product" value={showProduct?product:'general'}/>
@@ -294,7 +296,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
    <div className="charis-message-setup">
     <fieldset className="charis-channel-choice"><legend>Send by</legend>
      {emailEnabled&&<button type="button" aria-pressed={channel==='email'} onClick={()=>{setChannel('email');setChosen([]);setSelectedDetails({});setAudience('selected');}}><Mail size={17}/> Email</button>}
-     {smsEnabled&&<button type="button" aria-pressed={channel==='sms'} onClick={()=>{if(design){setBody(richBody.replace(/\{\{[^}]*\}\}/g,'').trim());setDesign(null);setTemplateId('');}setChannel('sms');setChosen([]);setSelectedDetails({});setAudience('selected');}}><Smartphone size={17}/> SMS</button>}
+     {smsEnabled&&<button type="button" aria-pressed={channel==='sms'} onClick={()=>{if(design){setBody(richBody.replace(/\{\{[^}]*\}\}/g,'').trim());setDesign(null);setTemplateId('');}setChannel('sms');setCcEmails('');setBccEmails('');setChosen([]);setSelectedDetails({});setAudience('selected');}}><Smartphone size={17}/> SMS</button>}
     </fieldset>
     <div className="charis-purpose-choice">
      <label>What is this message about?<select aria-label="Message purpose" value={purpose} onChange={e=>{setPurpose(e.target.value);setConfirmed(false);}}>
@@ -328,6 +330,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
     <span>Correct a mistake without starting over.</span>
    </div>
    <label>Subject<input value={subject} onChange={e=>setSubject(e.target.value)} maxLength={180} placeholder="Account service update"/></label>
+   {channel==='email'&&<details className="charis-template-choice"><summary>Copy other email addresses (optional)</summary><p className="muted">Separate multiple addresses with commas. CC recipients are visible to other recipients; BCC recipients are hidden.</p><label>CC<input type="text" inputMode="email" autoComplete="off" value={ccEmails} onChange={e=>setCcEmails(e.target.value)} placeholder="colleague@charis.example"/></label><label>BCC<input type="text" inputMode="email" autoComplete="off" value={bccEmails} onChange={e=>setBccEmails(e.target.value)} placeholder="archive@charis.example"/></label></details>}
    {channel==='email'&&<div className="direct-editor charis-personalise-tools" aria-label="Customer detail tools">
     <strong>Insert customer details</strong>
     <p className="muted">Choose First name, Last name, Account (last four digits), or another available contact field. Each email uses the correct customer details automatically.</p>
@@ -386,6 +389,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
     <div><dt>Channel</dt><dd>{channel==='email'?'Email':'SMS'}</dd></div>
     <div><dt>Message type</dt><dd>{typeLabel}</dd></div>
     <div><dt>Subject</dt><dd>{subject}</dd></div>
+    {channel==='email'&&ccEmails.trim()&&<div><dt>CC</dt><dd>{ccEmails}</dd></div>}{channel==='email'&&bccEmails.trim()&&<div><dt>BCC</dt><dd>{bccEmails}</dd></div>}
     <div><dt>Audience</dt><dd>{audienceLabel}</dd></div>
    </dl>
    {audience==='selected'&&<details className="charis-flow-guidance"><summary>View selected recipients ({chosen.length})</summary><ul aria-label="Selected recipients">{chosen.slice(0,12).map(id=><li key={id}>{[selectedDetails[id]?.first_name,selectedDetails[id]?.last_name].filter(Boolean).join(' ')||selectedDetails[id]?.email||'Selected customer'}</li>)}{chosen.length>12&&<li>And {chosen.length-12} more</li>}</ul></details>}

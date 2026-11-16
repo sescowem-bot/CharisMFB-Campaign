@@ -1,16 +1,17 @@
 import type {Provider} from '../email/validation.ts';
 import {mailbox,senderName,matchesDomain} from '../email/validation.ts';
 export type SendResult={status:'accepted'|'failed'|'unknown'|'retry';message?:string;reason:string};
-export async function sendQueuedEmail(input:{provider:Provider;key:string;campaignId?:string;id:string;name:string;from:string;replyTo:string;domain:string;to:string;subject:string;html:string;unsubscribe?:string},transport:typeof fetch=fetch):Promise<SendResult>{
+export async function sendQueuedEmail(input:{provider:Provider;key:string;campaignId?:string;id:string;name:string;from:string;replyTo:string;domain:string;to:string;cc?:string[];bcc?:string[];subject:string;html:string;unsubscribe?:string},transport:typeof fetch=fetch):Promise<SendResult>{
  if(!input.key)throw new Error('Provider key missing');
  if(!matchesDomain(input.from,input.domain))throw new Error('Sender domain mismatch');
  const name=senderName(input.name),from=mailbox(input.from),to=mailbox(input.to),replyTo=mailbox(input.replyTo);
  if(!input.subject.trim()||input.subject.length>200||/[\r\n]/.test(input.subject))throw new Error('Invalid subject');
+ const cc=(input.cc||[]).map(mailbox),bcc=(input.bcc||[]).map(mailbox);
  const unsubscribe=input.unsubscribe?new URL(input.unsubscribe):null;
  if(unsubscribe&&unsubscribe.protocol!=='https:')throw new Error('HTTPS unsubscribe URL required');
- const body=input.provider==='sendbyte'?{from:`${name} <${from}>`,to:[to],reply_to:[replyTo],subject:input.subject,html:input.html,idempotency_key:`charis-campaign-${input.id}`,tags:['charis-campaign',input.campaignId||input.id],...(unsubscribe?{list_unsubscribe:{url:unsubscribe.href}}:{})}
- :input.provider==='resend'?{from:`${name} <${from}>`,to:[to],reply_to:replyTo,subject:input.subject,html:input.html,headers:unsubscribe?{'List-Unsubscribe':`<${unsubscribe.href}>`,'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'}:{},tags:[{name:'delivery_id',value:input.id}]}
- :{sender:{name,email:from},to:[{email:to}],replyTo:{email:replyTo},subject:input.subject,htmlContent:input.html,headers:{...(unsubscribe?{'List-Unsubscribe':`<${unsubscribe.href}>`,'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'}:{}),'X-Mailin-custom':`charis_delivery=${input.id}`}};
+ const body=input.provider==='sendbyte'?{from:`${name} <${from}>`,to:[to],...(cc.length?{cc}:{}),...(bcc.length?{bcc}:{}),reply_to:[replyTo],subject:input.subject,html:input.html,idempotency_key:`charis-campaign-${input.id}`,tags:['charis-campaign',input.campaignId||input.id],...(unsubscribe?{list_unsubscribe:{url:unsubscribe.href}}:{})}
+ :input.provider==='resend'?{from:`${name} <${from}>`,to:[to],...(cc.length?{cc}:{}),...(bcc.length?{bcc}:{}),reply_to:replyTo,subject:input.subject,html:input.html,headers:unsubscribe?{'List-Unsubscribe':`<${unsubscribe.href}>`,'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'}:{},tags:[{name:'delivery_id',value:input.id}]}
+ :{sender:{name,email:from},to:[{email:to}],...(cc.length?{cc:cc.map(email=>({email}))}:{}),...(bcc.length?{bcc:bcc.map(email=>({email}))}:{}),replyTo:{email:replyTo},subject:input.subject,htmlContent:input.html,headers:{...(unsubscribe?{'List-Unsubscribe':`<${unsubscribe.href}>`,'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'}:{}),'X-Mailin-custom':`charis_delivery=${input.id}`}};
  const endpoint=input.provider==='sendbyte'?'https://api.sendbyte.africa/v1/emails':input.provider==='resend'?'https://api.resend.com/emails':'https://api.brevo.com/v3/smtp/email';
  const headers:Record<string,string>={'Content-Type':'application/json'};
  if(input.provider==='brevo')headers['api-key']=input.key;else headers.Authorization=`Bearer ${input.key}`;
