@@ -38,7 +38,42 @@ BEGIN
    OR p_cc && p_bcc
    OR EXISTS(SELECT 1 FROM unnest(p_cc||p_bcc) AS e
       WHERE e IS NULL OR e<>lower(btrim(e))
-      OR e !~* '^[a-z0-9.!#$%&''*+/=?^_`{|}~-]+@[a-z0-9.-]+\\.[a-z]{2,}$')
+      OR e !~* '^[a-z0-9.!#$%&''*+/=?^_`{|}~-]+@[a-z0-9.-]+[.][a-z]{2,})
+ THEN RAISE EXCEPTION 'Review CC and BCC addresses. Use up to 10 unique, valid addresses in each field.'; END IF;
+
+ SELECT id,cc_emails,bcc_emails INTO v_existing,v_old_cc,v_old_bcc
+ FROM public.charis_direct_messages
+ WHERE organization_id=p_org AND idempotency_key=p_key;
+ IF FOUND AND (coalesce(v_old_cc,'{}'::text[]) IS DISTINCT FROM p_cc
+   OR coalesce(v_old_bcc,'{}'::text[]) IS DISTINCT FROM p_bcc) THEN
+  RAISE EXCEPTION 'This campaign was already saved with different CC/BCC recipients. Start a new campaign to change them.';
+ END IF;
+
+ v_id:=public.charis_direct_create_provider_075(
+  p_org,p_key,p_title,p_subject,p_body,p_purpose,p_product,p_channel,p_audience,
+  p_contact_ids,p_list,p_design,p_scheduled_at,p_provider
+ );
+ IF v_existing IS NULL THEN
+  UPDATE public.charis_direct_messages
+  SET cc_emails=p_cc,bcc_emails=p_bcc
+  WHERE id=v_id AND organization_id=p_org AND created_by=auth.uid()
+    AND status IN ('queued','pending_approval');
+  IF NOT FOUND THEN RAISE EXCEPTION 'Unable to save campaign copy recipients before delivery.'; END IF;
+ END IF;
+ RETURN v_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.charis_direct_create_provider_089(
+ uuid,uuid,text,text,text,text,text,text,text,uuid[],uuid,jsonb,timestamptz,text,text[],text[]
+) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.charis_direct_create_provider_089(
+ uuid,uuid,text,text,text,text,text,text,text,uuid[],uuid,jsonb,timestamptz,text,text[],text[]
+) TO authenticated;
+
+COMMIT;
+NOTIFY pgrst, 'reload schema';
+)
  THEN RAISE EXCEPTION 'Review CC and BCC addresses. Use up to 10 unique, valid addresses in each field.'; END IF;
 
  SELECT id,cc_emails,bcc_emails INTO v_existing,v_old_cc,v_old_bcc
