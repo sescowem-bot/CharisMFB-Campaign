@@ -1,11 +1,16 @@
 import Link from 'next/link';
 import {redirect} from 'next/navigation';
-import {Building2,Mail,Palette,ScrollText,ArrowUpRight,Users,FileText,BarChart3,ShieldCheck} from 'lucide-react';
+import {Building2,Mail,Palette,ScrollText,ArrowUpRight,Users,FileText,BarChart3,ShieldCheck,RotateCcw} from 'lucide-react';
 import {currentAccount} from '@/lib/auth/account';
+import {supabaseServer} from '@/lib/supabase/server';
 import {WorkspaceShell} from '@/components/workspace-shell';
 export const dynamic='force-dynamic';
 export default async function Administration(){
  const account=await currentAccount();if(!account)redirect('/login');
+ const db=await supabaseServer();
+ const {data:{user}}=await db.auth.getUser();
+ const {data:platformStaff}=user?await db.from('platform_staff').select('role').eq('user_id',user.id).maybeSingle():{data:null};
+ const isPlatformSuperAdmin=platformStaff?.role==='super_admin';
  const has=(key:string)=>account.permissions.includes(key);
  const isOwner=account.owner;
  const access=has('access.manage');
@@ -16,7 +21,7 @@ export default async function Administration(){
  const reports=has('reports.view')||isOwner;
  const operations=has('operations.view')||isOwner;
  const audit=has('audit.view');
- if(!isOwner&&!account.providerAdmin&&!access&&!staff&&!departments&&!providers&&!branding&&!audit&&!reports&&!operations)redirect('/dashboard');
+ if(!isOwner&&!account.providerAdmin&&!access&&!staff&&!departments&&!providers&&!branding&&!audit&&!reports&&!operations&&!isPlatformSuperAdmin)redirect('/dashboard');
  const org=account.workspace.id;
  const sections=[
   {title:'People & access',description:'Invite colleagues, assign responsibilities and control which actions they can perform.',href:access?'/admin/access':`/dashboard/team?org=${org}`,icon:Users,show:access||staff},
@@ -24,6 +29,7 @@ export default async function Administration(){
   {title:'Communication settings',description:'Configure bank sending rules, service messages and staff permissions.',href:'/admin/communications',icon:Mail,show:isOwner||has('settings.manage')},
   {title:'Email delivery settings',description:'Configure verified email addresses, delivery providers and connection tests.',href:'/admin/providers',icon:Mail,show:providers},
   {title:'Platform administrators',description:'Add or remove trusted super administrators by their verified account email.',href:'/admin/super-admins',icon:ShieldCheck,show:isOwner},
+  {title:'Reset workspace data',description:'Remove test campaigns, sender domains, contacts and test communication history. Super Admin only.',href:'/admin/reset',icon:RotateCcw,show:isPlatformSuperAdmin},
   {title:'Campaign reports',description:'Review campaign activity, delivery results and export reports.',href:'/dashboard/reports',icon:FileText,show:reports},
   {title:'Operations reports',description:'Review customer operations and credit activity.',href:'/dashboard/insights',icon:BarChart3,show:operations},
   {title:'Brand & media',description:'Approved logo, styles and images for bank communications.',href:`/dashboard/branding?org=${org}`,icon:Palette,show:branding},
