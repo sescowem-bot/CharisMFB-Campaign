@@ -23,7 +23,6 @@ export default async function Administration(){
   {title:'Departments & branches',description:'Maintain the organisational structure and authorised staff assignments.',href:'/dashboard/departments',icon:Building2,show:departments},
   {title:'Communication settings',description:'Configure bank sending rules, service messages and staff permissions.',href:'/admin/communications',icon:Mail,show:isOwner||has('settings.manage')},
   {title:'Email delivery settings',description:'Configure verified email addresses, delivery providers and connection tests.',href:'/admin/providers',icon:Mail,show:providers},
-  {title:'Zoho Campaigns',description:'Manage Zoho contact imports, mailing lists and permission evidence.',href:'/admin/zoho-contacts',icon:Users,show:providers||account.providerAdmin||isOwner},
   {title:'Platform administrators',description:'Add or remove trusted super administrators by their verified account email.',href:'/admin/super-admins',icon:ShieldCheck,show:isOwner},
   {title:'Campaign reports',description:'Review campaign activity, delivery results and export reports.',href:'/dashboard/reports',icon:FileText,show:reports},
   {title:'Operations reports',description:'Review customer operations and credit activity.',href:'/dashboard/insights',icon:BarChart3,show:operations},
