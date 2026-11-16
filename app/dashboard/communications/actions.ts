@@ -38,7 +38,7 @@ export async function createDirectMessage(_:DirectState,form:FormData):Promise<D
    token:form.get('token'),subject:form.get('subject'),body:form.get('body'),channel:form.get('channel'),purpose:form.get('purpose'),product:form.get('product'),audience:form.get('audience'),mode:form.get('mode')
   });
   const selectedProvider=parsed.channel==='email'?z.enum(['sendbyte','resend','brevo']).parse(String(form.get('send_provider')||'sendbyte')):'sendbyte';
-  const parseCopies=(raw:FormDataEntryValue|null)=>String(raw||'').split(/[;,\\n]/).map(v=>v.trim()).filter(Boolean).map(mailbox);
+  const parseCopies=(raw:FormDataEntryValue|null)=>String(raw||'').split(/[;,\r\n]/).map(v=>v.trim()).filter(Boolean).map(mailbox);
   const cc=parseCopies(form.get('cc_emails')),bcc=parseCopies(form.get('bcc_emails'));
   if(parsed.channel==='sms'&&(cc.length||bcc.length))throw Error('CC and BCC are available for email campaigns only.');
   if(cc.length>10||bcc.length>10||new Set([...cc,...bcc]).size!==cc.length+bcc.length)throw Error('Use up to 10 unique CC addresses and 10 unique BCC addresses. Do not repeat an address.');
