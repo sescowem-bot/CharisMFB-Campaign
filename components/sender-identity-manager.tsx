@@ -5,7 +5,7 @@ type Sender={id:string;provider:'sendbyte'|'resend'|'brevo';from_email:string;fr
 function SenderForm({sender}:{sender?:Sender}){
  const [state,action,pending]=useActionState(saveSenderIdentity,{});
  return <form action={action} className="admin-form">
-  {sender&&<input type="hidden" name="sender_id" value={sender.id}/>}
+  {sender&&<><input type="hidden" name="sender_id" value={sender.id}/><input type="hidden" name="provider" value={sender.provider}/></>}
   <label>Provider<select name="provider" defaultValue={sender?.provider||'sendbyte'} disabled={pending||Boolean(sender)}><option value="sendbyte">SendByte</option><option value="resend">Resend</option><option value="brevo">Brevo</option></select></label>
   <label>Sender display name<input name="from_name" defaultValue={sender?.from_name||''} required maxLength={100} placeholder="Enter the sender name" disabled={pending}/></label>
   <label>Sender email address<input name="from_email" type="email" defaultValue={sender?.from_email||''} required maxLength={254} placeholder="name@your-verified-domain.com" disabled={pending}/></label>
