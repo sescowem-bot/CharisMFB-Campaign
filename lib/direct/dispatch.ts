@@ -9,7 +9,7 @@ import {directEmailReadiness} from '@/lib/direct/readiness';
 import {isCharisSenderDomain,isCharisSenderEmail} from '@/lib/email/charis-sender';
 
 type Item={id:string;organization_id:string;message_id:string;contact_id:string;recipient_email:string|null;recipient_phone:string|null};
-type Message={id:string;organization_id:string;subject:string;body:string;design:unknown|null;channel:'email'|'sms';purpose:string;status:string};
+type Message={id:string;organization_id:string;subject:string;body:string;design:unknown|null;channel:'email'|'sms';purpose:string;status:string;cc_emails?:string[];bcc_emails?:string[]};
 const charisOrg=()=>process.env.SINGLE_COMPANY_ORG_ID||'';
 const preparedOrigin=()=>{const origin=new URL(process.env.NEXT_PUBLIC_APP_URL||'');if(origin.protocol!=='https:'||origin.pathname!=='/'||origin.username||origin.password||origin.search||origin.hash)throw Error('Set NEXT_PUBLIC_APP_URL to an HTTPS origin without a path');return origin;};
 function smsRecipient(phone:string){const raw=phone.replace(/[^0-9]/g,'');const n=raw.startsWith('0')?'234'+raw.slice(1):raw;if(!/^234[789][0-9]{9}$/.test(n))throw Error('invalid_sms_destination');return n;}
@@ -46,7 +46,7 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
    const row=item as Item;
    if(row.organization_id!==charisOrg())throw Error('invalid_organization');
    const [{data:msg,error:msgError},{data:contact,error:contactError},{data:settings}]=await Promise.all([
-    db.from('charis_direct_messages').select('id,organization_id,subject,body,design,channel,purpose,status').eq('id',row.message_id).single(),
+    db.from('charis_direct_messages').select('id,organization_id,subject,body,design,channel,purpose,status,cc_emails,bcc_emails').eq('id',row.message_id).single(),
     db.from('contacts').select('id,email,phone,first_name,last_name,attributes,archived_at').eq('organization_id',row.organization_id).eq('id',row.contact_id).single(),
     db.from('charis_direct_settings').select('email_enabled,sms_enabled').eq('organization_id',row.organization_id).single()
    ]);
@@ -124,7 +124,7 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
        if((used||0)+(legacyUsed||0)>=providerLimit.daily_limit)continue;
       }
       transportStarted=true;
-      const result=await sendQueuedEmail({provider:provider as Provider,key,id:row.id,name:sender.from_name,from:sender.from_email,replyTo:sender.reply_to||sender.from_email,domain:mailbox(sender.from_email).split('@')[1],to:row.recipient_email,subject:renderedSubject,html,unsubscribe:preference.replace('/unsubscribe?','/api/preferences/unsubscribe?')});
+      const result=await sendQueuedEmail({provider:provider as Provider,key,id:row.id,name:sender.from_name,from:sender.from_email,replyTo:sender.reply_to||sender.from_email,domain:mailbox(sender.from_email).split('@')[1],to:row.recipient_email,cc:m.cc_emails||[],bcc:m.bcc_emails||[],subject:renderedSubject,html,unsubscribe:preference.replace('/unsubscribe?','/api/preferences/unsubscribe?')});
       status=result.status==='retry'?'failed':result.status;reason=result.reason;providerId=result.message||null;
       if(status==='accepted'||status==='unknown')break;
       // Definitive rejection only; never fail over after a potentially accepted submission.
