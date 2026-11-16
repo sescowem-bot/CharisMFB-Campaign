@@ -35,6 +35,24 @@ export function providerAdapter(provider:Provider,key:string,transport:typeof fe
  }
  const domainPath=(domain:string,id:string)=>provider==='sendbyte'?'/v1/domains/'+encodeURIComponent(id):provider==='resend'?'/domains/'+encodeURIComponent(id):'/senders/domains/'+encodeURIComponent(domainName(domain));
  return {
+  async findVerifiedDomain(domain:string){
+   const expected=domainName(domain);
+   if(provider==='sendbyte'){
+    return this.findVerifiedSendByteDomain(expected);
+   }
+   if(provider==='resend'){
+    const result=await request('/domains?limit=100'),rows=Array.isArray(result.data)?result.data:[];
+    const found=rows.map(obj).find(item=>String(item.name||'').toLowerCase()===expected);
+    if(!found||!found.id)throw new Error('This domain is not available in the connected Resend account.');
+    const state=normalizeDomain('resend',found,expected,String(found.id));
+    if(!state.verified)throw new Error('Complete domain verification in Resend before activating this sender.');
+    return state;
+   }
+   const found=await request('/senders/domains/'+encodeURIComponent(expected));
+   const state=normalizeDomain('brevo',found,expected,String(found.id||expected));
+   if(!state.verified)throw new Error('Complete domain authentication in Brevo before activating this sender.');
+   return state;
+  },
   async findVerifiedSendByteDomain(domain:string){
    if(provider!=='sendbyte')throw new Error('Only SendByte supports this domain lookup.');
    const expected=domainName(domain),result=await request('/v1/domains'),rows=Array.isArray(result.data)?result.data:[];
