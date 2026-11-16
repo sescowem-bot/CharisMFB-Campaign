@@ -16,9 +16,8 @@ BEGIN
         cardinality(cc_emails) <= 10 AND cardinality(bcc_emails) <= 10
         AND (channel='email' OR (cardinality(cc_emails)=0 AND cardinality(bcc_emails)=0))
         AND NOT (cc_emails && bcc_emails)
-        AND NOT EXISTS (SELECT 1 FROM unnest(cc_emails || bcc_emails) AS e
-          WHERE e IS NULL OR e<>lower(btrim(e))
-          OR e !~* '^[a-z0-9.!#$%&''*+/=?^_`{|}~-]+@[a-z0-9.-]+\\.[a-z]{2,}$')
+        AND array_position(cc_emails,NULL) IS NULL
+        AND array_position(bcc_emails,NULL) IS NULL
       );
   END IF;
 END $$;
