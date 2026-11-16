@@ -5,7 +5,6 @@ import {WorkspaceShell} from '@/components/workspace-shell';
 import {charisOrgId} from '@/lib/bank';
 import {ProviderForm} from '@/components/provider-form';
 import {DirectProviderForm} from '@/components/direct-admin-forms';
-import {SendByteSenderConnect,BrevoSenderConnect} from '@/components/provider-route-form';
 import {isCharisSenderEmail} from '@/lib/email/charis-sender';
 import {SenderIdentityManager} from '@/components/sender-identity-manager';
 export const dynamic='force-dynamic';
@@ -55,9 +54,7 @@ export default async function Providers(){
       <header><div><h2>{info[provider].title}{provider==='sendbyte'?' · Primary':''}</h2><p>{info[provider].description}</p></div><span className={'charis-provider-status'+(configured?' is-ready':'')}>{configured?'Ready':'Not connected'}</span></header>
       {selected&&<p className="charis-provider-active-sender">Sending address: <strong>{selected.email}</strong></p>}
       {sendersFor.length>0&&directAccess.data===true&&<DirectProviderForm key={provider+'-'+current?.sender_id} provider={provider} senders={sendersFor} current={current}/>}
-      {sendersFor.length===0&&<div className="charis-provider-guidance">
-       {provider==='sendbyte'?<><p>Connect a domain already verified in SendByte.</p><SendByteSenderConnect/></>:provider==='brevo'?<><p>Connect an active Brevo sender.</p><BrevoSenderConnect/></>:<p><Link className="btn secondary" href={"/dashboard/senders?org="+org}>Manage Resend sender</Link></p>}
-      </div>}
+      {sendersFor.length===0&&<div className="charis-provider-guidance"><p>Add a sender address in Sender addresses above, using a domain already verified in this provider account.</p></div>}
       {row&&<details className="charis-provider-advanced"><summary>Provider access</summary><ProviderForm provider={provider} enabled={row.enabled} org={org} charis/></details>}
       {!apiReady(provider)&&<p className="muted">This provider has not been connected yet.</p>}
      </article>;
