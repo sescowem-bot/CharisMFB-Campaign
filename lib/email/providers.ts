@@ -38,7 +38,12 @@ export function providerAdapter(provider:Provider,key:string,transport:typeof fe
   async findVerifiedDomain(domain:string){
    const expected=domainName(domain);
    if(provider==='sendbyte'){
-    return this.findVerifiedSendByteDomain(expected);
+    const result=await request('/v1/domains'),rows=Array.isArray(result.data)?result.data:[];
+    const found=rows.map(obj).find(item=>String(item.domain||'').toLowerCase()===expected);
+    if(!found||!found.id)throw new Error('This domain is not available in the connected SendByte account.');
+    const state=normalizeDomain('sendbyte',found,expected,String(found.id));
+    if(!state.verified)throw new Error('Complete domain authentication in SendByte before activating this sender.');
+    return state;
    }
    if(provider==='resend'){
     const result=await request('/domains?limit=100'),rows=Array.isArray(result.data)?result.data:[];
