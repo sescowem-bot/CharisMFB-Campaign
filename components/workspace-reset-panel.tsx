@@ -1,144 +1,133 @@
 'use client';
 
-import { useEffect, useState, useTransition, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { previewWorkspaceReset, runWorkspaceReset } from '@/app/admin/reset/actions';
 
-type Preview = {
-  counts?: Record<string, number>;
-  scoped_rows?: number;
-  preserved?: string[];
-};
+type Category = { key: string; label: string; description: string; count: number; blocked?: string[] };
+type Preview = { categories?: Category[]; preserved?: string[] };
 
-const labels: Record<string, string> = {
-  sending_domains: 'Sending domains',
-  sender_identities: 'Sender email identities',
-  email_test_attempts: 'Email test attempts',
-  campaign_drafts: 'Campaign drafts',
-  campaign_revisions: 'Campaign revisions',
-  campaign_runs: 'Campaign runs',
-  email_deliveries: 'Campaign delivery records',
-  email_delivery_events: 'Provider delivery events',
-  delivery_quota_reservations: 'Delivery quota reservations',
-  contacts: 'Contacts',
-  contact_lists: 'Contact lists',
-  contact_list_members: 'Contact list memberships',
-  contact_segments: 'Contact segments',
-  contact_import_batches: 'Contact import batches',
-  contact_import_issues: 'Import issues',
-  charis_import_consent_records: 'Imported consent records',
-  charis_direct_messages: 'Direct communications',
-  charis_direct_recipients: 'Direct communication recipients',
-  charis_direct_delivery_events_060: 'Direct delivery events',
-  charis_sms_campaigns: 'SMS campaigns',
-  charis_sms_tests: 'SMS test records',
-  charis_resend_broadcast_jobs: 'Broadcast jobs',
-  charis_email_routes: 'Email routes',
-  charis_direct_provider_prefs: 'Direct provider sender selections',
-  charis_email_preference_tokens: 'Email preference tokens',
-  charis_subscription_events: 'Subscription event history',
-  charis_resubscribe_requests: 'Resubscription requests',
-  charis_subscription_sync: 'Subscription sync records',
-  email_suppressions: 'Email suppression records',
-  charis_optional_email_optouts: 'Optional email opt-outs',
-  charis_zoho_email_events: 'Legacy Zoho email events',
-  charis_zoho_email_suppressions: 'Legacy Zoho suppressions',
-  charis_zoho_broadcasts: 'Legacy Zoho broadcasts',
-  charis_zoho_contact_memberships: 'Legacy Zoho contact memberships',
-  charis_zoho_consent_attestations: 'Legacy Zoho consent attestations',
-  charis_zoho_contact_sync_runs: 'Legacy Zoho sync runs',
-  charis_zoho_contact_lists: 'Legacy Zoho lists',
-  charis_zoho_manual_letters: 'Legacy Zoho test correspondence',
-  charis_zeptomail_notices: 'ZeptoMail test notices',
-};
+const confirmationPhrase = 'DELETE SELECTED CHARIS DATA';
 
 export function WorkspaceResetPanel() {
   const [preview, setPreview] = useState<Preview | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [step, setStep] = useState<'select' | 'confirm'>('select');
+  const [phrase, setPhrase] = useState('');
   const [error, setError] = useState('');
   const [result, setResult] = useState('');
-  const [phrase, setPhrase] = useState('');
   const [busy, startTransition] = useTransition();
 
   async function loadPreview() {
     setError('');
     const response = await previewWorkspaceReset();
     if (response.error) setError(response.error);
-    else setPreview(response.data as Preview);
+    else {
+      setPreview(response.data as Preview);
+      setSelected([]);
+      setStep('select');
+      setPhrase('');
+    }
   }
 
   useEffect(() => { void loadPreview(); }, []);
 
-  function submitReset(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+  const categories = preview?.categories || [];
+  const chosen = useMemo(() => categories.filter((item) => selected.includes(item.key)), [categories, selected]);
+  const total = chosen.reduce((sum, item) => sum + Number(item.count || 0), 0);
+  const blocked = chosen.filter((item) => item.blocked?.length);
+
+  function toggle(key: string, checked: boolean) {
+    setSelected((current) => checked ? [...current, key] : current.filter((item) => item !== key));
+  }
+
+  function continueToConfirmation() {
+    setError('');
+    if (!selected.length) { setError('Select at least one data group to continue.'); return; }
+    if (blocked.length) { setError('One or more selected groups have dependencies. Review the message beside each group and adjust your selection.'); return; }
+    setStep('confirm');
+  }
+
+  function deleteSelected() {
     startTransition(async () => {
       setError('');
       setResult('');
-      const response = await runWorkspaceReset({}, formData);
+      const response = await runWorkspaceReset({
+        categories: selected,
+        confirmation: phrase,
+      });
       if (response.error) setError(response.error);
       else {
-        setResult('Reset completed. The Charis workspace is ready for fresh setup.');
-        setPreview(null);
-        setPhrase('');
+        setResult('The selected records have been deleted. Protected workspace settings and staff access remain unchanged.');
         await loadPreview();
       }
     });
   }
 
-  const counts = preview?.counts || {};
-  const rows = Object.entries(counts).filter(([, value]) => Number(value) > 0);
-  const total = Number(preview?.scoped_rows || 0);
-
   return (
     <section className="charis-reset-card">
       <div className="charis-reset-warning">
-        <strong>Permanent action</strong>
-        <p>This removes the workspace’s test campaigns, sender domains, test emails, contacts, imports and communication history. It cannot be undone.</p>
+        <strong>Careful: selected records are permanently deleted</strong>
+        <p>This tool only removes the data groups you choose. It does not reset the entire workspace.</p>
       </div>
 
       {error && <p role="alert" className="feedback-error">{error}</p>}
       {result && <p role="status" className="feedback-success">{result}</p>}
 
-      <h2>Reset preview</h2>
-      <p>The preview is limited to the Charis organisation. The reset does not remove login accounts or provider credentials.</p>
+      <div className="charis-reset-stepper" aria-label="Reset steps">
+        <span className={step === 'select' ? 'active' : 'complete'}>1. Select data</span>
+        <span className={step === 'confirm' ? 'active' : ''}>2. Confirm deletion</span>
+      </div>
 
-      {!preview && !error && <p>Loading reset preview…</p>}
-      {preview && (
+      {!preview && !error && <p>Loading workspace records…</p>}
+
+      {preview && step === 'select' && (
         <>
-          <p><strong>{total.toLocaleString()} records</strong> are included in the reset preview.</p>
-          {rows.length ? (
-            <ul className="charis-reset-counts">
-              {rows.map(([key, value]) => (
-                <li key={key}><span>{labels[key] || key.replaceAll('_', ' ')}</span><strong>{Number(value).toLocaleString()}</strong></li>
-              ))}
-            </ul>
-          ) : <p>No test records were found in the listed tables.</p>}
-
-          <h3>Items that will remain</h3>
-          <ul>
-            {(preview.preserved || []).map((item) => <li key={item}>{item}</li>)}
-          </ul>
+          <div className="charis-reset-heading">
+            <div><h2>Choose what to delete</h2><p>Each group is independent. Nothing is deleted on this screen.</p></div>
+            <div className="charis-reset-selection"><strong>{selected.length}</strong><span>groups selected</span></div>
+          </div>
+          <div className="charis-reset-toolbar">
+            <button type="button" className="secondary" onClick={() => setSelected(categories.filter(c => c.count > 0 && !c.blocked?.length).map(c => c.key))}>Select all available</button>
+            <button type="button" className="secondary" onClick={() => setSelected([])}>Clear selection</button>
+            <button type="button" className="secondary" disabled={busy} onClick={() => void loadPreview()}>Refresh counts</button>
+          </div>
+          <div className="charis-reset-categories">
+            {categories.map((item) => (
+              <label className={`charis-reset-category ${selected.includes(item.key) ? 'selected' : ''}`} key={item.key}>
+                <input type="checkbox" checked={selected.includes(item.key)} disabled={busy || Boolean(item.blocked?.length) || item.count === 0} onChange={(event) => toggle(item.key, event.target.checked)} />
+                <span className="charis-reset-category-copy"><strong>{item.label}</strong><small>{item.description}</small>
+                  {item.blocked?.map((message) => <em key={message}>{message}</em>)}
+                </span>
+                <b>{Number(item.count).toLocaleString()}</b>
+              </label>
+            ))}
+          </div>
+          <div className="charis-reset-footer">
+            <span><strong>{total.toLocaleString()}</strong> records selected for deletion</span>
+            <button type="button" disabled={busy || !selected.length || blocked.length > 0} onClick={continueToConfirmation}>Continue to confirmation</button>
+          </div>
         </>
       )}
 
-      <form onSubmit={submitReset} className="charis-reset-form">
-        <label htmlFor="reset-confirmation">Type RESET CHARIS TEST DATA to confirm</label>
-        <input
-          id="reset-confirmation"
-          name="confirmation"
-          value={phrase}
-          onChange={(event) => setPhrase(event.target.value)}
-          autoComplete="off"
-          spellCheck={false}
-          placeholder="RESET CHARIS TEST DATA"
-          required
-        />
-        <button type="submit" disabled={busy || !preview || phrase !== 'RESET CHARIS TEST DATA'}>
-          {busy ? 'Resetting workspace…' : 'Permanently reset test data'}
-        </button>
-        <button type="button" className="secondary" disabled={busy} onClick={() => void loadPreview()}>
-          Refresh preview
-        </button>
-      </form>
+      {preview && step === 'confirm' && (
+        <div className="charis-reset-final">
+          <div className="charis-reset-final-icon">!</div>
+          <h2>Confirm permanent deletion</h2>
+          <p>You are about to permanently delete <strong>{total.toLocaleString()} records</strong> from the following groups:</p>
+          <ul>{chosen.map((item) => <li key={item}><span>{item.label}</span><strong>{item.count.toLocaleString()}</strong></li>)}</ul>
+          <div className="charis-reset-protected"><strong>These will remain untouched</strong>
+            <ul>{(preview.preserved || []).map((item) => <li key={item}>{item}</li>)}</ul>
+          </div>
+          <label className="charis-reset-confirm-label" htmlFor="reset-confirmation">Type <b>{confirmationPhrase}</b> to enable the delete button</label>
+          <input id="reset-confirmation" value={phrase} onChange={(event) => setPhrase(event.target.value)} autoComplete="off" spellCheck={false} placeholder={confirmationPhrase} />
+          <div className="charis-reset-final-actions">
+            <button type="button" className="secondary" disabled={busy} onClick={() => { setStep('select'); setPhrase(''); }}>Back to selection</button>
+            <button type="button" className="danger" disabled={busy || phrase !== confirmationPhrase} onClick={deleteSelected}>{busy ? 'Deleting selected records…' : 'Permanently delete selected data'}</button>
+          </div>
+          <p className="charis-reset-final-note">This action cannot be undone. The system will recheck dependencies before deleting anything.</p>
+        </div>
+      )}
+      <div className="charis-reset-preserve-note">Protected at all times: login accounts, organisation, staff memberships, platform roles, provider credentials, sender routing, branding, core settings, permissions and audit history.</div>
     </section>
   );
 }
