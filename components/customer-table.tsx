@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import {useActionState,useState} from 'react';
+import {useActionState,useEffect,useState} from 'react';
 import {ContactRowActions} from '@/components/contact-row-actions';
 import {bulkContactsAction} from '@/app/dashboard/contacts/actions';
 
@@ -10,14 +10,16 @@ export function CustomerTable({org,people}:{org:string;people:Customer[]}){
  const [result,action,pending]=useActionState(bulkContactsAction,{});
  const current=people.map(c=>c.id);
  const allSelected=current.length>0&&current.every(id=>selected.includes(id));
+ useEffect(()=>{if(result.success){setSelected([]);}},[result.success]);
+ useEffect(()=>{setSelected(old=>old.filter(id=>current.includes(id)));},[people]);
  return <>
   <div className="charis-bulk-bar"><strong>{selected.length} selected</strong>
    <button type="button" className="btn secondary" disabled={!people.length} onClick={()=>setSelected(allSelected?[]:current)}> {allSelected?'Clear page':'Select page'} </button>
    <form action={action} onSubmit={e=>{const button=(e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement|null;
     if(!selected.length||!window.confirm(button?.value==='delete'?`Permanently delete ${selected.length} customers? Only records with no protected campaign history can be deleted.`:`Archive ${selected.length} customers and remove them from future marketing?`))e.preventDefault();}}>
     <input type="hidden" name="organization_id" value={org}/><input type="hidden" name="contacts" value={JSON.stringify(selected)}/>
-    <button className="btn secondary" name="operation" value="archive" disabled={pending||!selected.length}>Archive selected</button>
-    <button className="btn secondary" name="operation" value="delete" disabled={pending||!selected.length}>Delete selected</button>
+    <button className="btn secondary" name="operation" value="archive" disabled={pending||!selected.length}>{pending?'Please wait…':'Archive selected'}</button>
+    <button className="btn secondary" name="operation" value="delete" disabled={pending||!selected.length}>{pending?'Please wait…':'Delete selected'}</button>
    </form>
   </div>
   {result.error&&<p role="alert" className="feedback-error">{result.error}</p>}{result.success&&<p role="status" className="feedback-success">{result.success}</p>}
