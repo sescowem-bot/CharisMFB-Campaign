@@ -78,7 +78,7 @@ BEGIN
       ELSIF SQLERRM ILIKE '%not found%' THEN
         v_message := 'This customer is no longer available. Refresh the list and try again.';
       ELSE
-        v_message := 'This customer could not be deleted. Please try archiving the customer or contact your administrator.';
+        v_message := CASE WHEN p_action='archive' THEN 'This customer could not be archived. Please refresh and try again or contact your administrator.' ELSE 'This customer could not be deleted. Please try archiving the customer or contact your administrator.' END;
       END IF;
 
       v_result := v_result || jsonb_build_array(
