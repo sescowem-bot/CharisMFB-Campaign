@@ -349,3 +349,27 @@ body{font-family:var(--platform-font,system-ui,sans-serif)}.btn:not(.secondary),
 .charis-reset-final-note{font-size:11px!important;color:#8b4540!important}
 .charis-reset-preserve-note{margin-top:22px;padding-top:17px;border-top:1px solid #e7ecf2;color:#66768b;font-size:11px;line-height:1.7}
 @media(max-width:620px){.charis-reset-card{padding:17px}.charis-reset-heading{align-items:flex-start}.charis-reset-category{padding:12px}.charis-reset-footer{align-items:stretch}.charis-reset-footer button{width:100%}.charis-reset-final{padding:17px}.charis-reset-final-actions button{width:100%}}
+
+
+/* Guided contact import */
+.import-flow{max-width:1100px;margin:0 auto}
+.import-stepper{margin:20px 0 24px;overflow-x:auto}
+.import-stepper ol{display:grid;grid-template-columns:repeat(5,minmax(90px,1fr));gap:8px;list-style:none;padding:0;margin:0}
+.import-stepper li{display:flex;align-items:center;gap:8px;min-width:0;color:#8290a3;border-bottom:2px solid #e5eaf1;padding:0 4px 12px}
+.import-stepper li>span{display:grid;place-items:center;width:27px;height:27px;flex:0 0 27px;border-radius:50%;background:#eef2f7;color:#66768b;font-size:12px;font-weight:800}
+.import-stepper li small{font-size:12px;font-weight:700;white-space:nowrap}
+.import-stepper li.is-current{color:#2457c5;border-color:#3268df}
+.import-stepper li.is-current>span{background:#e9f0ff;color:#2457c5}
+.import-stepper li.is-complete{color:#087443;border-color:#30a46c}
+.import-stepper li.is-complete>span{background:#e8f6ef;color:#087443}
+.import-flow .admin-form[hidden]{display:none!important}
+.import-actions{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:22px;padding-top:18px;border-top:1px solid #e8edf3}
+.import-actions .btn{min-width:150px}
+.import-flow .import-progress{width:100%;height:9px;border:0;border-radius:20px;overflow:hidden;accent-color:#285fda}
+.recent-imports{margin:28px 0 48px;border:1px solid #e0e7f0;border-radius:13px;background:#fff}
+.recent-imports>summary{cursor:pointer;list-style:none;padding:16px 18px;font-size:14px;font-weight:800;color:#253b59}
+.recent-imports>summary::-webkit-details-marker{display:none}
+.recent-imports>summary:after{content:"+";float:right;color:#3568d4;font-size:19px;line-height:1}
+.recent-imports[open]>summary:after{content:"−"}
+.recent-imports-content{padding:0 18px 18px}
+@media(max-width:620px){.import-stepper ol{grid-template-columns:repeat(5,minmax(78px,1fr));gap:5px}.import-stepper li{align-items:flex-start;flex-direction:column;gap:5px}.import-stepper li small{font-size:10px}.import-actions .btn{width:100%;min-width:0}}
