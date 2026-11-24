@@ -19,9 +19,10 @@ type Contact={id:string;first_name:string|null;last_name:string|null;email:strin
 type Group={id:string;name:string};
 type Template={id:string;name:string;subject:string;design:EmailDesign;source:'bank'|'starter'};
 type MediaAsset={id:string;file_name:string;public_url:string};
-export function DirectCompose({token,userId,organizationId,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,assets,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false,customFields=[],providerChoiceAvailable=false,readyEmailProviders=[]}:{
+type FooterOption={id:string;name:string;is_default:boolean;design:{company_name?:string;address?:string;contact_email?:string;website_url?:string;disclaimer?:string;social_platforms?:string[]}};
+export function DirectCompose({token,userId,organizationId,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,assets,footers,defaultFooterId,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false,customFields=[],providerChoiceAvailable=false,readyEmailProviders=[]}:{
  token:string;userId:string;organizationId:string;contacts:Contact[];groups:Group[];canBulk:boolean;emailEnabled:boolean;smsEnabled:boolean;maxRecipients:number;
- templates:Template[];assets:MediaAsset[];templateStudioUrl:string;brand:{name:string;color:string;address:string;website:string};schedulingEnabled:boolean;approvalRequired?:boolean;customFields?:string[];providerChoiceAvailable?:boolean;readyEmailProviders?:string[];
+ templates:Template[];assets:MediaAsset[];footers:FooterOption[];defaultFooterId:string;templateStudioUrl:string;brand:{name:string;color:string;address:string;website:string;socialLinks?:Record<string,string>;footer?:{company_name?:string;address?:string;contact_email?:string;website_url?:string;disclaimer?:string;social_platforms?:string[]}};schedulingEnabled:boolean;approvalRequired?:boolean;customFields?:string[];providerChoiceAvailable?:boolean;readyEmailProviders?:string[];
 }){
  const [state,submit,pending]=useActionState(createDirectMessage,{});
  const [step,setStep]=useState(0);
@@ -47,6 +48,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
  const [query,setQuery]=useState('');const [body,setBody]=useState('');const [subject,setSubject]=useState('');
  const [ccEmails,setCcEmails]=useState('');const [bccEmails,setBccEmails]=useState('');
  const [design,setDesign]=useState<EmailDesign|null>(null);
+ const [selectedFooterId,setSelectedFooterId]=useState(defaultFooterId);
  const [templateId,setTemplateId]=useState('');
  const [simpleStyle,setSimpleStyle]=useState<SimpleEmailStyle>('classic');
  const [simpleGreeting,setSimpleGreeting]=useState('Hello {{first_name}},');
@@ -201,8 +203,9 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
  const preview=useMemo(()=>{
   if(step<2||channel!=='email')return {html:'',subject,error:'',sampleName:'Sample customer'};
   if(designError)return {html:'',subject,error:designError,sampleName:'Sample customer'};
-  return renderDirectEmailPreview({design:effectiveDesign,subject,body,brand,contact:sampleContact,customFields});
- },[step,channel,effectiveDesign,subject,body,brand,designError,sampleContact,customFields]);
+  const selectedFooter=footers.find(f=>f.id===selectedFooterId)?.design||brand.footer;
+  return renderDirectEmailPreview({design:effectiveDesign,subject,body,brand:{...brand,footer:selectedFooter},contact:sampleContact,customFields});
+ },[step,channel,effectiveDesign,subject,body,brand,designError,sampleContact,customFields,footers,selectedFooterId]);
  const messageReady=subject.trim().length>=3&&subject.trim().length<=180&&composedBody.trim().length>=10&&composedBody.trim().length<=2000&&!designError;
  const recipientsReady=audience==='selected'?chosen.length>0:audience==='list'?Boolean(groupId):canBulk;
  const scheduleReady=mode==='now'||(schedulingEnabled&&sendAt.trim().length>0);
@@ -224,7 +227,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
   const safe=designSchema.safeParse(t.design);
   if(!safe.success)return;
   const copy=resolveBrandLinks(safe.data,brand.website);
-  setSubject(t.subject);setDesign(copy);setBody(campaignParagraphs(copy));
+  setSubject(t.subject);setDesign(copy);setBody(campaignParagraphs(copy));setSelectedFooterId(copy.footerId||defaultFooterId);
  }
  function insertDetail(target:'subject'|'message'){
   if(channel!=='email')return;
@@ -275,7 +278,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
   <input type="hidden" name="audience" value={audience}/>
   <input type="hidden" name="contact_ids" value={chosen.join(',')}/>
   <input type="hidden" name="list_id" value={audience==='list'?groupId:''}/>
-  <input type="hidden" name="design" value={channel==='email'&&effectiveDesign?JSON.stringify(effectiveDesign):''}/>
+  <input type="hidden" name="design" value={channel==='email'&&effectiveDesign?JSON.stringify({...effectiveDesign,footerId:selectedFooterId||null}):''}/>
   <input type="hidden" name="mode" value={mode}/>
   <input type="hidden" name="send_at" value={mode==='later'?sendAt:''}/>
   <div className="charis-flow-intro"><div><div className="charis-flow-eyebrow"><MessageSquareText size={15}/> CHARIS CAMPAIGN CENTRE</div>
@@ -324,6 +327,9 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
     <Link href={templateStudioUrl} className="inline-link">Open Design Templates</Link></div>
     <p className="muted">A template controls how the email looks. It does not change who receives it or when it is sent.</p>
    </details>}
+   {channel==='email'&&<label>Footer for this campaign<select aria-label="Email footer for this campaign" value={selectedFooterId} onChange={e=>setSelectedFooterId(e.target.value)}>
+    <option value="">Use the default bank footer</option>{footers.map(f=><option key={f.id} value={f.id}>{f.name}{f.is_default?' · Default':''}</option>)}
+   </select><small className="muted">Choose which contact details and social channels appear at the bottom of this email.</small></label>}
    <div className="charis-compose-history" role="group" aria-label="Undo and redo message changes">
     <button type="button" className="btn secondary" onClick={undoDraft} disabled={!historyCounts.undo} title="Undo the last message edit"><Undo2 size={16}/> Undo</button>
     <button type="button" className="btn secondary" onClick={redoDraft} disabled={!historyCounts.redo} title="Restore the last undone edit"><Redo2 size={16}/> Redo</button>

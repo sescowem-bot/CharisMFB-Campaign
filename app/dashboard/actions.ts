@@ -10,7 +10,7 @@ const orgSchema=z.string().uuid();
 export async function saveBrand(_:Result,form:FormData):Promise<Result>{
  try{
   const org=orgSchema.parse(form.get('organization_id'));const {db,canEdit}=await companyAccess(org);if(!canEdit)return {error:'Not authorized'};
-  const links=Object.fromEntries(['facebook','instagram','linkedin','x'].map(k=>[k,String(form.get(k)||'').trim()]).filter(([,v])=>v));
+  const links=Object.fromEntries(['facebook','whatsapp','instagram','linkedin','x','youtube','tiktok'].map(k=>[k,String(form.get(k)||'').trim()]).filter(([,v])=>v));
   for(const value of Object.values(links))if(!z.string().url().startsWith('https://').safeParse(value).success)return {error:'Social links must be HTTPS URLs'};
   const website=String(form.get('website_url')||'').trim();
   if(website&&!verifiedBrandWebsite(website))return {error:'Enter the bank-approved public HTTPS website address, not an example or staff dashboard URL.'};
@@ -33,7 +33,8 @@ export async function saveTemplate(_:Result,form:FormData):Promise<Result>{
 export async function saveFooter(_:Result,form:FormData):Promise<Result>{
  try{
   const org=orgSchema.parse(form.get('organization_id'));const {db,canEdit}=await companyAccess(org);if(!canEdit)return {error:'Not authorized'};
-  const design={company_name:String(form.get('company_name')||''),address:String(form.get('address')||''),contact_email:String(form.get('contact_email')||''),website_url:String(form.get('website_url')||''),disclaimer:String(form.get('disclaimer')||'')};
+  const platforms=['facebook','whatsapp','instagram','linkedin','x','youtube','tiktok'];
+  const design={company_name:String(form.get('company_name')||''),address:String(form.get('address')||''),contact_email:String(form.get('contact_email')||''),website_url:String(form.get('website_url')||''),disclaimer:String(form.get('disclaimer')||''),social_platforms:platforms.filter(key=>form.getAll('social_platforms').includes(key))};
   if(Object.values(design).some(v=>v.length>1200))return {error:'Footer content too long'};
   const {error}=await db.rpc('save_email_footer',{p_id:String(form.get('footer_id')||'')||null,p_org:org,p_name:String(form.get('name')||''),p_design:design,p_default:form.get('is_default')==='on'});
   if(error)return {error:error.message};revalidatePath('/dashboard/footers');return {success:'Footer saved.'};

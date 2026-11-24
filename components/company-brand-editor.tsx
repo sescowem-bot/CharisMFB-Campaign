@@ -16,6 +16,6 @@ export function CompanyBrandEditor({org,brand}:{org:string;brand:Brand|null}){
  <label>Website URL<input type="url" name="website_url" placeholder="Enter the official HTTPS website address" defaultValue={brand?.website_url||''}/></label>
  <label>Contact email<input type="email" name="contact_email" defaultValue={brand?.contact_email||''}/></label>
  <label>Official business postal address (required for campaign email)<textarea name="postal_address" rows={3} defaultValue={brand?.postal_address||''}/></label>
- <h3>Social links</h3>{(['facebook','instagram','linkedin','x'] as const).map(key=><label key={key}>{key}<input type="url" name={key} placeholder="https://" defaultValue={brand?.social_links?.[key]||''}/></label>)}
+ <h3>Social links</h3><p className="muted">Add the official public links. You can choose which of these appear in each reusable email footer.</p>{(['facebook','whatsapp','instagram','linkedin','x','youtube','tiktok'] as const).map(key=><label key={key}>{key==='x'?'X (Twitter)':key[0].toUpperCase()+key.slice(1)}<input type="url" name={key} placeholder={key==='whatsapp'?'https://wa.me/234...':'https://'} defaultValue={brand?.social_links?.[key]||''}/></label>)}
  <button className="btn" disabled={pending}>{pending?'Saving…':'Save company branding'}</button><p role="status">{state.error||state.success}</p><p className="muted">Your bank-approved logo, favicon and media library are managed below. Changes are saved securely to Supabase.</p></form>;
 }

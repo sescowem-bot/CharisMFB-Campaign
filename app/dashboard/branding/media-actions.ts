@@ -9,7 +9,7 @@ import {emailServiceDb} from '@/lib/email/server';
 export type MediaResult={error?:string;success?:string};
 const bucket='charis-brand-assets';
 const orgSchema=z.string().uuid();
-const maxSize=2*1024*1024;
+const maxSize=8*1024*1024;
 type Kind='logo'|'favicon'|'media';
 function mediaType(bytes:Uint8Array):{mime:string;ext:string}|null{
  if(bytes.length>=8&&[137,80,78,71,13,10,26,10].every((n,i)=>bytes[i]===n))return {mime:'image/png',ext:'png'};
@@ -34,7 +34,7 @@ export async function uploadCharisMedia(_:MediaResult,form:FormData):Promise<Med
   const kind=z.enum(['logo','favicon','media']).parse(form.get('kind')) as Kind;
   const user=await allowedEditor(org);
   const file=form.get('asset');
-  if(!(file instanceof File)||file.size<1||file.size>maxSize)throw new Error('Select a PNG, JPG or WebP image smaller than 2 MB.');
+  if(!(file instanceof File)||file.size<1||file.size>maxSize)throw new Error('Select a PNG, JPG or WebP image smaller than 8 MB.');
   const bytes=new Uint8Array(await file.arrayBuffer());
   const type=mediaType(bytes);
   if(!type||type.mime!==file.type)throw new Error('Invalid image format. Use a genuine PNG, JPG or WebP image.');

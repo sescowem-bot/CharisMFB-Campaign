@@ -9,7 +9,7 @@ function UploadForm({org,kind}:{org:string;kind:'logo'|'favicon'|'media'}){
  const label=kind==='logo'?'Upload bank logo':kind==='favicon'?'Upload browser favicon':'Upload media image';
  return <form action={action} className="admin-form charis-upload-form">
   <input type="hidden" name="organization_id" value={org}/><input type="hidden" name="kind" value={kind}/>
-  <label>{label}<input type="file" name="asset" accept="image/png,image/jpeg,image/webp" required/></label>
+  <label>{label}<input type="file" name="asset" accept="image/png,image/jpeg,image/webp" required/></label>{kind==='media'&&<p className="muted">Up to 8 MB. Original JPEG and PNG artwork is preserved when no crop is selected to avoid unnecessary quality loss.</p>}
   <button className="btn secondary" type="submit" disabled={pending}>{pending?'Uploading…':label}</button>
   <div aria-live="polite">{state.error&&<p role="alert" className="feedback-error">{state.error}</p>}{state.success&&<p role="status" className="feedback-success">{state.success}</p>}</div>
  </form>;

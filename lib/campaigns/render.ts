@@ -16,7 +16,7 @@ export function personalize(text:string,contact:PreviewContact,company:string):s
  if(text.replace(expression,'').includes('{{')||text.replace(expression,'').includes('}}'))throw new Error('Invalid personalization syntax.');
  return rendered;
 }
-export function renderCampaign(input:{design:unknown;subject:string;preheader?:string;company:string;address:string;contact?:PreviewContact;color?:string;unsubscribeUrl?:string;testPreview?:boolean;preferenceLabel?:string}) {
+export function renderCampaign(input:{design:unknown;subject:string;preheader?:string;company:string;address:string;contact?:PreviewContact;color?:string;unsubscribeUrl?:string;testPreview?:boolean;preferenceLabel?:string;socialLinks?:Record<string,string>;footer?:{company_name?:string;address?:string;contact_email?:string;website_url?:string;disclaimer?:string;social_platforms?:string[]}}) {
  const design=campaignDesign.parse(input.design),contact=input.contact||{};
  assertNoDemoLinks(design);
  const replace=(text:string)=>escapeHtml(personalize(text,contact,input.company));
@@ -29,6 +29,22 @@ export function renderCampaign(input:{design:unknown;subject:string;preheader?:s
 
  const unsubscribe=input.unsubscribeUrl||'https://example.invalid/unsubscribe-preview';
  if(!/^https:\/\//.test(unsubscribe))throw new Error('Unsubscribe link must use HTTPS.');
+ const footer=input.footer||{};
+ const footerCompany=footer.company_name?.trim()||input.company;
+ const footerAddress=footer.address?.trim()||input.address;
+ const footerEmail=footer.contact_email?.trim()||'';
+ const footerWebsite=footer.website_url?.trim()||'';
+ const footerDisclaimer=footer.disclaimer?.trim()||'';
+ const platformLabels:Record<string,string>={facebook:'Facebook',whatsapp:'WhatsApp',instagram:'Instagram',linkedin:'LinkedIn',x:'X',youtube:'YouTube',tiktok:'TikTok'};
+ const chosenPlatforms=Array.isArray(footer.social_platforms)?footer.social_platforms:Object.keys(platformLabels);
+ const socialAnchors=chosenPlatforms.filter(key=>key in platformLabels).flatMap(key=>{
+  const url=input.socialLinks?.[key]||'';
+  try{const parsed=new URL(url);if(parsed.protocol!=='https:'||parsed.username||parsed.password)return [];return [`<a href="${escapeHtml(parsed.href)}" style="display:inline-block;margin:4px 8px 4px 0;color:#40239a;text-decoration:underline">${platformLabels[key]}</a>`];}catch{return [];}
+ }).join('');
+ const footerExtras=[footerEmail?escapeHtml(footerEmail):'',footerWebsite?(()=>{try{const u=new URL(footerWebsite);return u.protocol==='https:'?'<a href="'+escapeHtml(u.href)+'" style="color:#40239a">'+escapeHtml(u.hostname)+'</a>':'';}catch{return '';}})():''].filter(Boolean).join(' · ');
+ const socialFooter=socialAnchors?`<div style="margin-top:12px">${socialAnchors}</div>`:'';
+ const extraFooter=footerDisclaimer?`<p style="margin:12px 0 0">${escapeHtml(footerDisclaimer)}</p>`:'';
+
  const content=design.blocks.map(b=>{
   if(b.type==='heading')return `<h1 style="font-size:${style==='announcement'?30:26}px;line-height:1.3;color:${headingColor};margin:0 0 20px">${replace(b.text)}</h1>`;
   if(b.type==='paragraph')return `<p style="line-height:1.7;white-space:pre-wrap">${replace(b.text)}</p>`;
@@ -51,5 +67,5 @@ export function renderCampaign(input:{design:unknown;subject:string;preheader?:s
  }).join('');
  const subject=personalize(input.subject,contact,input.company);
  if(!subject.trim()||subject.length>200||/[\r\n]/.test(subject))throw new Error('Rendered subject must be 1 to 200 characters without line breaks.');
- return {subject,html:`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:${background};font-family:Arial,sans-serif;color:#13233b"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px"><table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;${cardStyle}"><tr><td style="${hero}font-weight:bold">${escapeHtml(input.company)}</td></tr><tr><td style="padding:${style==='modern'?36:28}px"><div style="display:none;max-height:0;overflow:hidden">${replace(input.preheader||'')}</div>${input.testPreview?'<p style="padding:12px;background:#fff7ed;color:#7c2d12">TEST PREVIEW · Sample recipient data. This is not a campaign delivery.</p>':''}${content}</td></tr><tr><td style="padding:24px;background:#f8fafc;font-size:12px;line-height:1.6">${escapeHtml(input.company)}<br>${escapeHtml(input.address)}<br>${input.testPreview?'Unsubscribe is inactive in this test preview.':`<a href="${escapeHtml(unsubscribe)}">${escapeHtml(input.preferenceLabel||'Unsubscribe')}</a>`}</td></tr></table></td></tr></table></body></html>`};
+ return {subject,html:`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:${background};font-family:Arial,sans-serif;color:#13233b"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px"><table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;${cardStyle}"><tr><td style="${hero}font-weight:bold">${escapeHtml(input.company)}</td></tr><tr><td style="padding:${style==='modern'?36:28}px"><div style="display:none;max-height:0;overflow:hidden">${replace(input.preheader||'')}</div>${input.testPreview?'<p style="padding:12px;background:#fff7ed;color:#7c2d12">TEST PREVIEW · Sample recipient data. This is not a campaign delivery.</p>':''}${content}</td></tr><tr><td style="padding:24px;background:#f8fafc;font-size:12px;line-height:1.6">${escapeHtml(footerCompany)}<br>${escapeHtml(footerAddress)}<br>${footerExtras}${socialFooter}${extraFooter}<div style="margin-top:12px">${input.testPreview?'Unsubscribe is inactive in this test preview.':`<a href="${escapeHtml(unsubscribe)}">${escapeHtml(input.preferenceLabel||'Unsubscribe')}</a>`}</div></td></tr></table></td></tr></table></body></html>`};
 }

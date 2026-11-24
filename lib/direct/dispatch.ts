@@ -84,18 +84,30 @@ export async function sendDirectBatch(limit=3,scope?:{org:string;message:string}
     const textBody=escapeHtml(m.body).replace(/\r?\n/g,'<br/>');
     let html=`<!doctype html><html><body style="margin:0;background:#f5f6fa;padding:28px;font-family:Arial,sans-serif"><main style="max-width:640px;margin:auto;background:white;border:1px solid #e4e8f2;padding:28px"><h2 style="color:#41259a;margin-top:0">Charis Microfinance Bank</h2><div style="font-size:15px;line-height:1.7;color:#243047">${textBody}</div><hr style="border:0;border-top:1px solid #e5e7eb;margin-top:30px"><p style="font-size:12px;color:#64748b">This is an official bank service communication. Do not share your PIN, password or OTP by email.</p>${preferenceFooter}</main></body></html>`;
     let renderedSubject=m.subject;
-    if(m.design){
-     const {data:brand,error:brandError}=await db.from('organization_branding').select('display_name,postal_address,primary_color').eq('organization_id',row.organization_id).maybeSingle();
-     if(brandError||!brand)throw Error('bank_branding_unavailable');
-     const rendered=renderCampaign({
-      design:m.design,subject:m.subject,company:brand.display_name||'Charis Microfinance Bank',
-      address:brand.postal_address||'',color:brand.primary_color||'#40239a',
-      contact:{first_name:contact.first_name||'Customer',last_name:contact.last_name||'',email:contact.email||'',attributes:(contact.attributes&&typeof contact.attributes==='object'&&!Array.isArray(contact.attributes)?contact.attributes:{} as Record<string,string>) as Record<string,string>},
-      unsubscribeUrl:preference,
-      preferenceLabel:'Unsubscribe from customer updates'
-     });
-     html=rendered.html;renderedSubject=rendered.subject;
-    }
+    const {data:brand,error:brandError}=await db.from('organization_branding').select('display_name,postal_address,primary_color,social_links').eq('organization_id',row.organization_id).maybeSingle();
+    if(brandError||!brand)throw Error('bank_branding_unavailable');
+    const requestedFooterId=m.design&&typeof m.design==='object'&&!Array.isArray(m.design)?(m.design as {footerId?:unknown}).footerId:null;
+    let footerQuery=db.from('email_footers').select('design').eq('organization_id',row.organization_id);
+    if(typeof requestedFooterId==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestedFooterId))footerQuery=footerQuery.eq('id',requestedFooterId);
+    else footerQuery=footerQuery.eq('is_default',true);
+    const {data:footerRecord,error:footerError}=await footerQuery.maybeSingle();
+    if(footerError||(typeof requestedFooterId==='string'&&!footerRecord))throw Error('campaign_footer_unavailable');
+    const footerDesign=(footerRecord?.design&&typeof footerRecord.design==='object'&&!Array.isArray(footerRecord.design)?footerRecord.design:{}) as Record<string,unknown>;
+    const renderDesign=m.design||{version:'1',blocks:[{type:'paragraph',text:m.body}]};
+    const rendered=renderCampaign({
+     design:renderDesign,subject:m.subject,company:brand.display_name||'Charis Microfinance Bank',
+     address:brand.postal_address||'',color:brand.primary_color||'#40239a',
+     socialLinks:(brand.social_links&&typeof brand.social_links==='object'&&!Array.isArray(brand.social_links)?brand.social_links:{}),
+     footer:{company_name:typeof footerDesign.company_name==='string'?footerDesign.company_name:undefined,
+      address:typeof footerDesign.address==='string'?footerDesign.address:undefined,
+      contact_email:typeof footerDesign.contact_email==='string'?footerDesign.contact_email:undefined,
+      website_url:typeof footerDesign.website_url==='string'?footerDesign.website_url:undefined,
+      disclaimer:typeof footerDesign.disclaimer==='string'&&footerDesign.disclaimer?footerDesign.disclaimer:'This is an official bank service communication. Do not share your PIN, password or OTP by email.',
+      social_platforms:Array.isArray(footerDesign.social_platforms)?footerDesign.social_platforms.filter((x):x is string=>typeof x==='string'):undefined},
+     contact:{first_name:contact.first_name||'Customer',last_name:contact.last_name||'',email:contact.email||'',attributes:(contact.attributes&&typeof contact.attributes==='object'&&!Array.isArray(contact.attributes)?contact.attributes:{} as Record<string,string>) as Record<string,string>},
+     unsubscribeUrl:preference,preferenceLabel:'Unsubscribe from customer updates'
+    });
+    html=rendered.html;renderedSubject=rendered.subject;
     for(const pref of prefs){
      provider=pref.provider;
      const {data:sender,error:senderError}=await db.from('sender_identities').select('id,domain_id,from_name,from_email,reply_to,is_active').eq('organization_id',row.organization_id).eq('id',pref.sender_id).single();
