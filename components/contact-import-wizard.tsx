@@ -112,11 +112,11 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
   invalidate();setPreview(null);setExtraColumns({});setStep(1);listRef.current=null;
   if(!file)return;
   if(file.size>MAX_FILE_BYTES){setError('This file is too large. Maximum size is 5 MB.');return;}
-  if(!/\\.(csv|tsv|txt|xlsx)$/i.test(file.name)){setError('Choose a CSV, TSV, TXT or Excel (.xlsx) file.');return;}
+  if(!/\.(csv|tsv|txt|xlsx)$/i.test(file.name)){setError('Choose a CSV, TSV, TXT or Excel (.xlsx) file.');return;}
   setFileLoading(true);
   try{
    let matrix:string[][];
-   if(/\\.(csv|tsv|txt)$/i.test(file.name))matrix=parseCsv(await file.text(),{maxRows:MAX_RECORDS+20,maxColumns:MAX_COLUMNS});
+   if(/\.(csv|tsv|txt)$/i.test(file.name))matrix=parseCsv(await file.text(),{maxRows:MAX_RECORDS+20,maxColumns:MAX_COLUMNS});
    else {
     const {readSheet}=await import('read-excel-file/browser');
     const values=await readSheet(file);
