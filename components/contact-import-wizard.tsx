@@ -206,6 +206,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
  }
  return <div className="import-flow">
   <div className="import-stepper" aria-label="Import progress"><ol>{["Upload","Match columns","Contact group","Consent","Review"].map((label,index)=><li key={label} aria-current={step===index+1?"step":undefined} className={step>index+1?"is-complete":step===index+1?"is-current":""}><span>{step>index+1?"✓":index+1}</span><small>{label}</small></li>)}</ol></div>
+  {error&&<p role="alert" className="feedback-error">{error}</p>}
   <div className="admin-form" hidden={step!==1}>
    <h2>Step 1 · Upload your customer file</h2>
    <p className="muted">Use your existing spreadsheet. You do not need to rearrange it into a Charis template: the importer reads your column headings and lets you match them to contact fields.</p>
@@ -258,10 +259,8 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
     <div className="import-actions"><button className="btn secondary" type="button" onClick={()=>setStep(4)} disabled={busy}>Back</button><button className="btn" type="button" onClick={importRows} disabled={busy||complete}>{busy?'Importing customers…':complete?'Import complete':'Import customers with recorded consent'}</button></div>
     {(busy||processed>0)&&<><progress max={prepared.length} value={processed} className="import-progress"/><p className="muted">Processed {processed} of {prepared.length} · Added {counts.inserted} · Duplicates {counts.skipped} · Invalid {counts.rejected}</p></>}
     {complete&&<div role="status" className="feedback-success"><p>Import complete. Existing contacts and opt-outs were preserved; suppressed emails were skipped. Product-limited permissions do not grant general broadcast eligibility.</p>{issueBatchCount>0&&<p><strong>{issueBatchCount} batch(es) contain duplicates or invalid rows.</strong> <Link href={`/dashboard/imports?org=${org}&review=${reviewBatch}#import-review`}>Review those rows →</Link> Select other batches from the review dropdown if needed.</p>}<Link href="/dashboard/communications/new">Create a campaign →</Link></div>}
-    {error&&<p role="alert" className="feedback-error">{error}</p>}
    </div>
    </div>}
   </>}
-  {!preview&&error&&<p role="alert" className="feedback-error">{error}</p>}
- </div>;
+  </div>;
 }
