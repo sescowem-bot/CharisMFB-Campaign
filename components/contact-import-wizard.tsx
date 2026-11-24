@@ -181,7 +181,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
   // Preserve batch keys when retrying a partial network failure.
   setError('');setComplete(false);setCounts(emptyCounts());setProcessed(0);setReviewBatch('');setIssueBatchCount(0);setBusy(true);
   // Extra values can make requests large. Keep below the server's 95 KB body limit.
-  const batchSize=selectedExtras.length>20?10:selectedExtras.length?25:100;
+  const batchSize=selectedExtras.length>20?4:selectedExtras.length?25:100;
   const totalBatches=Math.ceil(prepared.length/batchSize);
   if(batches.current.length!==totalBatches)batches.current=Array.from({length:totalBatches},()=>crypto.randomUUID());
   let inserted=0,skipped=0,rejected=0;
