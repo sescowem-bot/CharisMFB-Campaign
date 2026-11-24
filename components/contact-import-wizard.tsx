@@ -105,12 +105,12 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
  async function fileSelected(file?:File){
   invalidate();setPreview(null);setExtraColumns({});setStep(1);listRef.current=null;
   if(!file)return;
+  if(file.size>MAX_FILE_BYTES){setError('This file is too large. Maximum size is 5 MB.');return;}
+  if(!/\\.(csv|xlsx)$/i.test(file.name)){setError('Choose a CSV or Excel (.xlsx) file.');return;}
   setFileLoading(true);
-  if(file.size>MAX_FILE_BYTES){setFileLoading(false);{setError('This file is too large. Maximum size is 5 MB.');return;}
-  if(!/\.(csv|xlsx)$/i.test(file.name)){setError('Choose a CSV or Excel (.xlsx) file.');return;}
   try{
    let matrix:string[][];
-   if(/\.csv$/i.test(file.name))matrix=parseCsv(await file.text(),{maxRows:MAX_RECORDS+1,maxColumns:MAX_COLUMNS});
+   if(/\\.csv$/i.test(file.name))matrix=parseCsv(await file.text(),{maxRows:MAX_RECORDS+20,maxColumns:MAX_COLUMNS});
    else {
     const {readSheet}=await import('read-excel-file/browser');
     const values=await readSheet(file);
@@ -126,7 +126,8 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
    const defaults=Object.fromEntries(mainFields.map(({key})=>[key,headers.findIndex(h=>autoMap(key,h))])) as Record<MainField,number>;
    setMapping(defaults);
    setExtraColumns(Object.fromEntries(headers.map((header,index)=>[index,{include:false,name:normalizeColumnKey(header)}])));
-   setPreview({headers,rows:dataRows.map(row=>headers.map((_,index)=>String(row[index]??''))),filename:file.name});setStep(2);
+   setPreview({headers,rows:dataRows.map(row=>headers.map((_,index)=>String(row[index]??''))),filename:file.name});
+   setStep(2);
   }catch(e){setError(e instanceof Error?e.message:'The spreadsheet could not be read.');}
   finally{setFileLoading(false);}
  }
