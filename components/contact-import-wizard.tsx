@@ -22,7 +22,7 @@ const MAX_EXTRA=56;
 const headings:Record<MainField,string[]>={
  first_name:['firstname','first','givenname','customerfirstname','forename','fname','first_name','firstnames','given_name','customer_first_name','clientfirstname','fullname','customername','clientname','name','fullcustomername','customerfullname','clientfullname','fullnamecustomer','nameofcustomer','customernameof','accountname','account_name','beneficiaryname'],
  last_name:['lastname','surname','familyname','customerlastname','lname','last_name','family_name','customer_last_name','clientlastname'],
- email:['email','emailaddress','mail','customeremail','e_mail','emailid','email_id','email_address','customer_email','mailid','emailaddr','clientemail'],
+ email:['email','emailaddress','mail','customeremail','e_mail','emailid','email_id','email_address','customer_email','mailid','emailaddr','clientemail','customermail','clientmail','email1','emailaddress1','primaryemail','primaryemailaddress'],
  phone:['phone','phonenumber','mobile','mobilenumber','telephone','whatsapp','contactnumber','phone_number','mobile_number','mobilephone','cellphone','contact_phone','customerphone','customer_phone','mobile_no','phone_no','telephone_no','clientphone','contact']
 };
 const emptyCounts=()=>({inserted:0,skipped:0,rejected:0});
@@ -58,7 +58,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
  const [extraColumns,setExtraColumns]=useState<Record<number,ExtraColumn>>({});
  const [consentConfirmed,setConsentConfirmed]=useState(false);
  const [consentSource,setConsentSource]=useState('signed_form');
- const [country,setCountry]=useState<'none'|'NG'>('none');
+ const [country,setCountry]=useState<'none'|'NG'>('NG');
  const [counts,setCounts]=useState<Counts>(emptyCounts);
  const [processed,setProcessed]=useState(0);
  const [busy,setBusy]=useState(false);
@@ -160,7 +160,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
   });
  }
  function checkMapping(){
-  if(mapping.email<0&&mapping.phone<0)return 'Choose at least an Email or Phone column.';
+  if(mapping.email<0)return 'Choose an Email column. Phone numbers are optional.';
   const mapped=Object.values(mapping).filter(value=>value>=0);
   if(new Set(mapped).size!==mapped.length)return 'One spreadsheet column cannot be used as two main contact fields.';
   if(selectedExtras.length>MAX_EXTRA)return `You can select at most ${MAX_EXTRA} additional details.`;
@@ -215,7 +215,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
    <p className="muted">Use your existing spreadsheet. You do not need to rearrange it into a Charis template: the importer reads your column headings and lets you match them to contact fields.</p>
    <label>Choose a spreadsheet or delimited text file<input type="file" accept=".csv,.tsv,.txt,.xlsx,text/csv,text/tab-separated-values,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={busy||fileLoading} onChange={e=>fileSelected(e.target.files?.[0])}/>{fileLoading&&<span className="muted" role="status">Reading spreadsheet and detecting headings…</span>}</label>
    <p className="muted">Maximum 5 MB, 5,000 contact rows and 60 columns. CSV, TSV, TXT and Excel (.xlsx) files are supported; column order and common bank-export delimiters are detected automatically. <a className="inline-link" href="/samples/contacts-import.csv" download>Basic example</a> · <a className="inline-link" href="/samples/contacts-extra-fields.csv" download>Example with extra details</a></p>
-   <label>Phone numbers without country codes<select value={country} disabled={busy||complete} onChange={e=>{setCountry(e.target.value as 'none'|'NG');invalidate();}}><option value="none">Keep numbers as they are</option><option value="NG">Convert Nigerian 080… numbers to +234…</option></select></label>
+   <label>How should local phone numbers be handled?<select value={country} disabled={busy||complete} onChange={e=>{setCountry(e.target.value as 'none'|'NG');invalidate();}}><option value="NG">Nigeria (+234) — recommended for Charis exports</option><option value="none">Do not assume a country code</option></select><span className="muted">For Nigerian exports, numbers such as 080… and Excel-trimmed 80… / 90… are converted to +234. Existing +234 and valid international numbers are preserved. Invalid or unrecognised phone values are ignored; email is what identifies the customer.</span></label>
   </div>
   {preview&&<>
    <div className="admin-form" hidden={step!==2}>
@@ -223,7 +223,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
     <p className="muted"><strong>{preview.filename}</strong> · {preview.rows.length.toLocaleString()} customer rows · {preview.headers.length} columns found. Common headings are matched automatically; you can change any match below.</p>
     <h3>Main customer information</h3>
     <div className="mapping-grid">{mainFields.map(field=><label key={field.key}>{field.label}<select value={mapping[field.key]} disabled={busy||complete} onChange={e=>{setMapping(old=>({...old,[field.key]:Number(e.target.value)}));invalidate();}}><option value={-1}>Not included</option>{preview.headers.map((header,index)=><option value={index} key={index}>{header} (column {index+1})</option>)}</select></label>)}</div>
-    <p className="muted">You need at least Email or Phone. Names are optional. A column labelled Full Name, Customer Name, Client Name or Account Name is recognised automatically; the first name is taken as the first word and the remaining words become the last name. Check the preview before importing. Permission must be confirmed in Step 4; no permission is inferred from a customer account.</p>
+    <p className="muted">Email is required. Phone numbers are optional and can be left unmapped or ignored. A column labelled Full Name, Customer Name, Client Name or Account Name is recognised automatically; the first name is taken as the first word and the remaining words become the last name. Check the preview before importing. Permission must be confirmed in Step 4; no permission is inferred from a customer account.</p>
     <div className="workspace-heading"><div><h3>Other spreadsheet columns</h3><p className="muted">Choose additional details you want to keep for your campaigns. Rename them if needed.</p></div><button className="btn secondary" type="button" onClick={selectSuggested} disabled={busy||complete}>Select suggested fields</button></div>
     <p className="muted"><strong>{selectedExtras.length} of {MAX_EXTRA} extra fields selected.</strong> Select and name the additional columns you want to append to each contact. Unselected columns are ignored. Sensitive columns such as BVN, balances and PINs are blocked.</p>
     <div className="table-scroll"><table className="admin-table"><thead><tr><th>Spreadsheet column</th><th>What to do</th><th>Save this detail as</th></tr></thead><tbody>{preview.headers.map((header,index)=>{
@@ -233,7 +233,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
      return <tr key={index}><td><strong>{header}</strong><div className="muted">Column {index+1}</div></td><td>{used?<span className="muted">Used for {used.label}</span>:blocked?<span className="muted">Restricted field</span>:<label><input type="checkbox" checked={extra.include} disabled={busy||complete} onChange={e=>changeExtra(index,{include:e.target.checked})}/> Include in campaigns</label>}</td><td>{!used&&!blocked&&extra.include?<label><span className="sr-only">Saved field name for {header}</span><input aria-label={`Saved field name for ${header}`} value={extra.name} disabled={busy||complete} maxLength={40} onChange={e=>changeExtra(index,{name:e.target.value.toLowerCase().trim()})}/></label>:<span className="muted">{used?'Mapped above':blocked?'Not imported':'Not included'}</span>}</td></tr>;
     })}</tbody></table></div>
     <p className="muted">Account references are stored as their last four digits only. Full account numbers, passwords, BVNs and account balances should not be uploaded as campaign details.</p>
-    <div className="import-actions"><button className="btn secondary" type="button" onClick={()=>setStep(1)}>Back</button><button className="btn" type="button" onClick={()=>{if(mapping.email<0&&mapping.phone<0){setError("Choose an Email or Phone column before continuing.");return;}const used=Object.values(mapping).filter(value=>value>=0);if(new Set(used).size!==used.length){setError("A column can only be mapped to one main contact field.");return;}setError("");setStep(3);}}>Next: Contact group</button></div>
+    <div className="import-actions"><button className="btn secondary" type="button" onClick={()=>setStep(1)}>Back</button><button className="btn" type="button" onClick={()=>{if(mapping.email<0){setError("Choose an Email column. Phone numbers are optional.");return;}const used=Object.values(mapping).filter(value=>value>=0);if(new Set(used).size!==used.length){setError("A column can only be mapped to one main contact field.");return;}setError("");setStep(3);}}>Next: Contact group</button></div>
    </div>
    <div className="admin-form" hidden={step!==3}>
     <h2>Step 3 · Save customers to a group</h2>
@@ -254,7 +254,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
    {step===5&&<div className="admin-form">
     <h2>Step 5 · Review and import</h2>
     <p className="muted">Previewing the first five rows. Check the mapped columns before importing.</p>
-    <div className="table-scroll"><table className="admin-table"><thead><tr><th>First name</th><th>Last name</th><th>Email</th><th>Phone</th>{selectedExtras.map(item=><th key={item.index}>{item.header}</th>)}</tr></thead><tbody>{prepared.slice(0,5).map((row,index)=><tr key={index}><td>{row.first_name||'—'}</td><td>{row.last_name||'—'}</td><td>{row.email||'—'}</td><td>{row.phone||'—'}</td>{selectedExtras.map(item=><td key={item.index}>{previewColumnValue(item.key,preview.rows[index]?.[item.index]||'')||'—'}</td>)}</tr>)}</tbody></table></div>
+    <div className="table-scroll"><table className="admin-table"><thead><tr><th>First name</th><th>Last name</th><th>Email</th><th>Phone (optional)</th>{selectedExtras.map(item=><th key={item.index}>{item.header}</th>)}</tr></thead><tbody>{prepared.slice(0,5).map((row,index)=><tr key={index}><td>{row.first_name||'—'}</td><td>{row.last_name||'—'}</td><td>{row.email||'—'}</td><td>{row.phone||'—'}</td>{selectedExtras.map(item=><td key={item.index}>{previewColumnValue(item.key,preview.rows[index]?.[item.index]||'')||'—'}</td>)}</tr>)}</tbody></table></div>
     <div className="import-actions"><button className="btn secondary" type="button" onClick={()=>setStep(4)} disabled={busy}>Back</button><button className="btn" type="button" onClick={importRows} disabled={busy||complete}>{busy?'Importing customers…':complete?'Import complete':'Import customers'}</button></div>
     {(busy||processed>0)&&<><progress max={prepared.length} value={processed} className="import-progress"/><p className="muted">Processed {processed} of {prepared.length} · Added {counts.inserted} · Duplicates {counts.skipped} · Invalid {counts.rejected}</p></>}
     {complete&&<div role="status" className="feedback-success"><p>Import complete. Existing contacts and opt-outs were preserved; suppressed emails were skipped. Product-limited permissions do not grant general broadcast eligibility.</p>{issueBatchCount>0&&<p><strong>{issueBatchCount} batch(es) contain duplicates or invalid rows.</strong> <Link href={`/dashboard/imports?org=${org}&review=${reviewBatch}#import-review`}>Review those rows →</Link> Select other batches from the review dropdown if needed.</p>}<Link href="/dashboard/communications/new">Create a campaign →</Link></div>}
