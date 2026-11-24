@@ -3,21 +3,35 @@ import {revalidatePath} from 'next/cache';
 import {z} from 'zod';
 import {contactsAccess,organizationIdSchema} from '@/lib/contacts/access';
 export type FormResult = {success?: string; error?: string};
-/** Bank-authorised contact management. Hard deletion is refused for delivery history. */
+/** Bank-authorised contact management with staff-friendly feedback. */
+function contactActionMessage(message?:string, code?:string):string {
+ if(code==='23505') return 'A customer with this email address or phone number already exists.';
+ if(message?.toLowerCase().includes('delivery history') ||
+    message?.toLowerCase().includes('submitted/approved campaign') ||
+    message?.toLowerCase().includes('approved campaign'))
+  return 'This customer has campaign history and cannot be permanently deleted. Archive the customer instead.';
+ if(message?.toLowerCase().includes('not authorised') ||
+    message?.toLowerCase().includes('permission'))
+  return 'You do not have permission to manage customers. Please contact your administrator.';
+ if(message?.toLowerCase().includes('not found'))
+  return 'This customer is no longer available. Refresh the page and try again.';
+ return 'We could not complete that action. Please try again. If the problem continues, contact your administrator.';
+}
+
 export async function manageContact(_:FormResult,form:FormData):Promise<FormResult>{
  try{
   const org=organizationIdSchema.parse(form.get('organization_id'));
   const id=organizationIdSchema.parse(form.get('contact_id'));
   const operation=z.enum(['archive','restore','delete']).parse(form.get('operation'));
   const {db,authorized}=await contactsAccess(org);
-  if(!authorized)return {error:'You do not have customer management permission.'};
+  if(!authorized)return {error:'You do not have permission to manage customers. Please contact your administrator.'};
   const {error}=operation==='delete'
    ?await db.rpc('charis_contact_delete',{p_org:org,p_contact:id})
    :await db.rpc('charis_contact_archive',{p_org:org,p_contact:id,p_archive:operation==='archive'});
-  if(error)return {error:error.message};
+  if(error)return {error:contactActionMessage(error.message,error.code)};
   revalidatePath('/dashboard/contacts');revalidatePath('/dashboard');
-  return {success:operation==='delete'?'Customer permanently deleted.':operation==='restore'?'Customer restored. Marketing remains opted out until a separately documented opt-in.':'Customer archived and removed from eligible audiences.'};
- }catch{return {error:'Unable to manage customer. Confirm migration 018 is installed.'};}
+  return {success:operation==='delete'?'Customer deleted.':operation==='restore'?'Customer restored. Marketing remains stopped until permission is recorded again.':'Customer archived and removed from future marketing.'};
+ }catch{return {error:'We could not complete that action. Please refresh the page and try again.'};}
 }
 
 const contactSchema=z.object({
@@ -92,19 +106,28 @@ export async function createSegment(_:FormResult,form:FormData):Promise<FormResu
  }catch{return {error:'Unable to save segment'};}
 }
 
-/** Operational batch changes: Supabase validates access, membership and audit constraints. */
+/** Bulk contact actions report each result without exposing backend errors. */
 export async function bulkContactsAction(_:FormResult,form:FormData):Promise<FormResult>{
  try{
   const org=organizationIdSchema.parse(form.get('organization_id'));
   const ids=z.array(z.string().uuid()).min(1).max(100).parse(JSON.parse(String(form.get('contacts')||'[]')));
   const operation=z.enum(['archive','delete']).parse(form.get('operation'));
   const {db,authorized}=await contactsAccess(org);
-  if(!authorized)throw new Error('Customer management access required');
-  const {data,error}=await db.rpc('charis_bulk_contacts',{p_org:org,p_contacts:ids,p_action:operation});
-  if(error)throw new Error(error.message);
-  revalidatePath('/dashboard/contacts');revalidatePath('/dashboard/lists');
-  return {success:`${data||ids.length} customers ${operation==='archive'?'archived':'deleted'} successfully.`};
- }catch(e){return {error:e instanceof Error?e.message:'Unable to manage selected customers'};}
+  if(!authorized)return {error:'You do not have permission to manage customers. Please contact your administrator.'};
+  const {data,error}=await db.rpc('charis_bulk_contacts_safe',{p_org:org,p_contacts:ids,p_action:operation});
+  if(error)return {error:'We could not process the selected customers. Please refresh the page and try again.'};
+  const summary=data as {requested?:number;succeeded?:number;failed?:number;results?:Array<{success?:boolean;message?:string}>}|null;
+  const succeeded=Number(summary?.succeeded||0);
+  const failed=Number(summary?.failed||0);
+  revalidatePath('/dashboard/contacts');revalidatePath('/dashboard/lists');revalidatePath('/dashboard');
+  if(failed===0)return {success:`${succeeded} customers ${operation==='archive'?'archived':'deleted'} successfully.`};
+  const protectedCount=summary?.results?.filter(item=>!item.success&&item.message?.includes('campaign history')).length||0;
+  if(succeeded===0&&operation==='delete'&&protectedCount===failed)
+    return {error:`None of the ${ids.length} selected customers could be permanently deleted because they have campaign history. Archive them instead.`};
+  return {success:`${succeeded} of ${ids.length} customers ${operation==='archive'?'archived':'deleted'}. ${failed} could not be processed. ${protectedCount?protectedCount+' with campaign history should be archived.':''}`};
+ }catch{
+  return {error:'We could not process the selected customers. Please check your selection and try again.'};
+ }
 }
 export async function bulkListAction(_:FormResult,form:FormData):Promise<FormResult>{
  try{
