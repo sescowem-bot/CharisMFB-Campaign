@@ -136,7 +136,7 @@ export async function bulkListAction(_:FormResult,form:FormData):Promise<FormRes
   const ids=z.array(z.string().uuid()).min(1).max(200).parse(JSON.parse(String(form.get('contacts')||'[]')));
   const add=z.enum(['add','remove']).parse(form.get('operation'))==='add';
   const {db,authorized}=await contactsAccess(org);
-  if(!authorized)throw new Error('List management access required');
+  if(!authorized)return {error:'You do not have permission to manage contact groups. Please contact your administrator.'};
   const {data,error}=await db.rpc('charis_list_batch',{p_org:org,p_list:list,p_contacts:ids,p_add:add});
   if(error)return {error:'We could not update the selected group members. Please refresh and try again.'};
   revalidatePath('/dashboard/lists');
