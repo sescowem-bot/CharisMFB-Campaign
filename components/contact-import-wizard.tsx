@@ -20,14 +20,25 @@ const MAX_RECORDS=5000;
 const MAX_COLUMNS=60;
 const MAX_EXTRA=12;
 const headings:Record<MainField,string[]>={
- first_name:['firstname','first','givenname','customerfirstname','customerfirstname','forename','fname','first_name','firstnames','given_name'],
- last_name:['lastname','surname','familyname','customerlastname','lname','last_name','family_name'],
- email:['email','emailaddress','mail','customeremail','e_mail','emailid','email_id','email_address','customer_email'],
- phone:['phone','phonenumber','mobile','mobilenumber','telephone','whatsapp','contactnumber','phone_number','mobile_number','mobilephone','cellphone','contact_phone','customerphone','customer_phone']
+ first_name:['firstname','first','givenname','customerfirstname','forename','fname','first_name','firstnames','given_name','customer_first_name','clientfirstname'],
+ last_name:['lastname','surname','familyname','customerlastname','lname','last_name','family_name','customer_last_name','clientlastname'],
+ email:['email','emailaddress','mail','customeremail','e_mail','emailid','email_id','email_address','customer_email','mailid','emailaddr','clientemail'],
+ phone:['phone','phonenumber','mobile','mobilenumber','telephone','whatsapp','contactnumber','phone_number','mobile_number','mobilephone','cellphone','contact_phone','customerphone','customer_phone','mobile_no','phone_no','telephone_no','clientphone','contact']
 };
 const emptyCounts=()=>({inserted:0,skipped:0,rejected:0});
+function normalizedHeader(header:string){return header.trim().toLowerCase().replace(/[^a-z0-9]/g,'');}
+function detectHeaderRow(matrix:string[][]){
+ const aliases=new Set(Object.values(headings).flat().map(value=>value.replace(/[^a-z0-9]/g,'')));
+ let best=0,bestScore=0;
+ for(let i=0;i<Math.min(matrix.length,20);i++){
+  const values=matrix[i].map(normalizedHeader).filter(Boolean);
+  const score=new Set(values.filter(value=>aliases.has(value))).size;
+  if(score>bestScore){best=i;bestScore=score;}
+ }
+ return bestScore>=1?best:0;
+}
 function autoMap(field:MainField,header:string){
- const normalized=header.trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+ const normalized=normalizedHeader(header);
  return headings[field].includes(normalized);
 }
 
@@ -51,6 +62,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
  const [counts,setCounts]=useState<Counts>(emptyCounts);
  const [processed,setProcessed]=useState(0);
  const [busy,setBusy]=useState(false);
+ const [fileLoading,setFileLoading]=useState(false);
  const [error,setError]=useState('');
  const [complete,setComplete]=useState(false);
  const [reviewBatch,setReviewBatch]=useState('');
@@ -93,7 +105,8 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
  async function fileSelected(file?:File){
   invalidate();setPreview(null);setExtraColumns({});setStep(1);listRef.current=null;
   if(!file)return;
-  if(file.size>MAX_FILE_BYTES){setError('This file is too large. Maximum size is 5 MB.');return;}
+  setFileLoading(true);
+  if(file.size>MAX_FILE_BYTES){setFileLoading(false);{setError('This file is too large. Maximum size is 5 MB.');return;}
   if(!/\.(csv|xlsx)$/i.test(file.name)){setError('Choose a CSV or Excel (.xlsx) file.');return;}
   try{
    let matrix:string[][];
@@ -103,15 +116,19 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
     const values=await readSheet(file);
     matrix=values.map(row=>row.map(cell=>cell==null?'':String(cell)));
    }
-   if(matrix.length<2)throw new Error('The file must have column headings and at least one customer.');
-   if(matrix.length>MAX_RECORDS+1)throw new Error('You can import at most 5,000 contacts at a time.');
-   if(matrix[0].length>MAX_COLUMNS)throw new Error('You can upload a file with at most 60 columns.');
-   const headers=matrix[0].map((item,index)=>String(item||`Column ${index+1}`).trim());
+   const headerRow=detectHeaderRow(matrix);
+   const dataRows=matrix.slice(headerRow+1).filter(row=>row.some(cell=>String(cell??'').trim()!==''));
+   if(dataRows.length<1)throw new Error('We could not find a header row with customer records below it. Check that your file contains column headings and contact rows.');
+   if(dataRows.length>MAX_RECORDS)throw new Error('You can import at most 5,000 contacts at a time.');
+   const rawHeaders=matrix[headerRow]||[];
+   if(rawHeaders.length>MAX_COLUMNS)throw new Error('You can upload a file with at most 60 columns.');
+   const headers=rawHeaders.map((item,index)=>String(item||`Column ${index+1}`).trim());
    const defaults=Object.fromEntries(mainFields.map(({key})=>[key,headers.findIndex(h=>autoMap(key,h))])) as Record<MainField,number>;
    setMapping(defaults);
    setExtraColumns(Object.fromEntries(headers.map((header,index)=>[index,{include:false,name:normalizeColumnKey(header)}])));
-   setPreview({headers,rows:matrix.slice(1),filename:file.name});setStep(2);
+   setPreview({headers,rows:dataRows.map(row=>headers.map((_,index)=>String(row[index]??''))),filename:file.name});setStep(2);
   }catch(e){setError(e instanceof Error?e.message:'The spreadsheet could not be read.');}
+  finally{setFileLoading(false);}
  }
  function changeExtra(index:number,partial:Partial<ExtraColumn>){
   invalidate();setExtraColumns(current=>({...current,[index]:{...current[index],...partial}}));
@@ -191,8 +208,8 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
   <div className="admin-form" hidden={step!==1}>
    <h2>Step 1 · Upload your customer file</h2>
    <p className="muted">Use your existing spreadsheet. You do not need to rearrange it into a Charis template: the importer reads your column headings and lets you match them to contact fields.</p>
-   <label>Choose any CSV or Excel (.xlsx) file<input type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={busy} onChange={e=>fileSelected(e.target.files?.[0])}/></label>
-   <p className="muted">Maximum 5 MB, 5,000 rows and 60 spreadsheet columns. <a className="inline-link" href="/samples/contacts-import.csv" download>Basic example</a> · <a className="inline-link" href="/samples/contacts-extra-fields.csv" download>Example with extra details</a></p>
+   <label>Choose a CSV or Excel (.xlsx) file<input type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={busy||fileLoading} onChange={e=>fileSelected(e.target.files?.[0])}/>{fileLoading&&<span className="muted" role="status">Reading spreadsheet and detecting headings…</span>}</label>
+   <p className="muted">Maximum 5 MB, 5,000 contact rows and 60 columns. CSV and Excel files are supported; column order and common bank-export delimiters are detected automatically. <a className="inline-link" href="/samples/contacts-import.csv" download>Basic example</a> · <a className="inline-link" href="/samples/contacts-extra-fields.csv" download>Example with extra details</a></p>
    <label>Phone numbers without country codes<select value={country} disabled={busy||complete} onChange={e=>{setCountry(e.target.value as 'none'|'NG');invalidate();}}><option value="none">Keep numbers as they are</option><option value="NG">Convert Nigerian 080… numbers to +234…</option></select></label>
   </div>
   {preview&&<>
@@ -230,6 +247,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
     <label>Evidence/register reference<input value={consentReference} maxLength={200} disabled={busy||complete} onChange={e=>{setConsentReference(e.target.value);invalidate();}} placeholder="Consent register batch, form or record ID"/></label>
     <label>Date of existing permission<input type="date" value={consentDate} max={new Date().toISOString().slice(0,10)} disabled={busy||complete} onChange={e=>{setConsentDate(e.target.value);invalidate();}}/></label>
     <label><input type="checkbox" checked={consentConfirmed} disabled={busy||complete} onChange={e=>{setConsentConfirmed(e.target.checked);invalidate();}}/> I confirm that evidence is available for each contact in this file, and that this import does not include people who declined or withdrew promotional permission.</label>
+    <div className="import-actions"><button className="btn secondary" type="button" onClick={()=>setStep(3)}>Back</button><button className="btn" type="button" onClick={()=>{if(!consentConfirmed||consentReference.trim().length<8||!/^\\d{4}-\\d{2}-\\d{2}$/.test(consentDate)||consentDate>new Date().toISOString().slice(0,10)||(consentScope==='product_specific'&&consentProduct.trim().length<2)){setError("Complete the consent evidence details and confirmation before continuing.");return;}setError("");setStep(5);}}>Next: Review import</button></div>
     </>}
    </div>
    {step===5&&<div className="admin-form">
