@@ -10,9 +10,9 @@ export async function POST(request:Request){
   if(!parsed.success)return NextResponse.json({error:'Enter a list name between 2 and 100 characters'},{status:400});
   const {db,user,authorized}=await contactsAccess(parsed.data.organization_id);
   if(!user)return NextResponse.json({error:'Sign in required'},{status:401});
-  if(!authorized)return NextResponse.json({error:'Not authorized'},{status:403});
+  if(!authorized)return NextResponse.json({error:'You do not have permission to manage contact groups. Please contact your administrator.'},{status:403});
   const {data,error}=await db.rpc('save_contact_list',{p_org:parsed.data.organization_id,p_name:parsed.data.name,p_description:'Created from a contact import'});
-  if(error)return NextResponse.json({error:error.code==='23505'?'This list already exists. Choose an existing list or another name.':error.message},{status:422});
+  if(error)return NextResponse.json({error:error.code==='23505'?'This group already exists. Choose another name.':'We could not create this group. Please try again.'},{status:422});
   return NextResponse.json({id:data},{headers:{'Cache-Control':'no-store'}});
  }catch(e){return bodyErrorResponse(e)||NextResponse.json({error:'Cannot create list'},{status:400});}
 }

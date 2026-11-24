@@ -6,7 +6,7 @@ import {parseCsv,normalizePhone} from '@/lib/contacts/parse-csv.mjs';
 import {importColumnValue,normalizeColumnKey,previewColumnValue,restrictedColumn,suggestedColumn} from '@/lib/contacts/import-mapping.mjs';
 
 const mainFields=[
- {key:'first_name',label:'First name'},
+ {key:'first_name',label:'First name / Full name'},
  {key:'last_name',label:'Last name'},
  {key:'email',label:'Email address'},
  {key:'phone',label:'Phone number'}
@@ -18,9 +18,9 @@ type Preview={headers:string[];rows:string[][];filename:string};
 const MAX_FILE_BYTES=5*1024*1024;
 const MAX_RECORDS=5000;
 const MAX_COLUMNS=60;
-const MAX_EXTRA=12;
+const MAX_EXTRA=56;
 const headings:Record<MainField,string[]>={
- first_name:['firstname','first','givenname','customerfirstname','forename','fname','first_name','firstnames','given_name','customer_first_name','clientfirstname','fullname','customername','clientname','name','fullcustomername'],
+ first_name:['firstname','first','givenname','customerfirstname','forename','fname','first_name','firstnames','given_name','customer_first_name','clientfirstname','fullname','customername','clientname','name','fullcustomername','customerfullname','clientfullname','fullnamecustomer','nameofcustomer','customernameof','accountname','account_name','beneficiaryname'],
  last_name:['lastname','surname','familyname','customerlastname','lname','last_name','family_name','customer_last_name','clientlastname'],
  email:['email','emailaddress','mail','customeremail','e_mail','emailid','email_id','email_address','customer_email','mailid','emailaddr','clientemail'],
  phone:['phone','phonenumber','mobile','mobilenumber','telephone','whatsapp','contactnumber','phone_number','mobile_number','mobilephone','cellphone','contact_phone','customerphone','customer_phone','mobile_no','phone_no','telephone_no','clientphone','contact']
@@ -36,6 +36,10 @@ function detectHeaderRow(matrix:string[][]){
   if(score>bestScore){best=i;bestScore=score;}
  }
  return bestScore>=1?best:0;
+}
+function isCombinedNameHeader(header:string){
+ const normalized=normalizedHeader(header);
+ return new Set(['fullname','fullcustomername','customerfullname','clientfullname','fullnamecustomer','customername','clientname','name','nameofcustomer','accountname','beneficiaryname']).has(normalized);
 }
 function autoMap(field:MainField,header:string){
  const normalized=normalizedHeader(header);
@@ -53,11 +57,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
  const [mapping,setMapping]=useState<Record<MainField,number>>({first_name:-1,last_name:-1,email:-1,phone:-1});
  const [extraColumns,setExtraColumns]=useState<Record<number,ExtraColumn>>({});
  const [consentConfirmed,setConsentConfirmed]=useState(false);
- const [consentScope,setConsentScope]=useState<'all_marketing'|'product_specific'>('all_marketing');
  const [consentSource,setConsentSource]=useState('signed_form');
- const [consentReference,setConsentReference]=useState('');
- const [consentDate,setConsentDate]=useState('');
- const [consentProduct,setConsentProduct]=useState('');
  const [country,setCountry]=useState<'none'|'NG'>('none');
  const [counts,setCounts]=useState<Counts>(emptyCounts);
  const [processed,setProcessed]=useState(0);
@@ -90,7 +90,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
   return preview.rows.map(row=>{
    const firstValue=read(row,'first_name');
    const lastValue=read(row,'last_name');
-   const fullNameColumn=mapping.first_name>=0&&mapping.last_name<0&&/^(full.?name|customer.?name|client.?name|name)$/i.test(normalizedHeader(preview.headers[mapping.first_name]));
+   const fullNameColumn=mapping.first_name>=0&&mapping.last_name<0&&isCombinedNameHeader(preview.headers[mapping.first_name]);
    const nameParts=fullNameColumn?firstValue.trim().split(/\s+/).filter(Boolean):[];
    const firstName=fullNameColumn?(nameParts.shift()||''):firstValue;
    const lastName=fullNameColumn?nameParts.join(' '):lastValue;
@@ -171,10 +171,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
    if(names.has(entry.key))return `You have used the field name "${entry.key}" twice. Give each extra field a different name.`;
    names.add(entry.key);
   }
-  if(!consentConfirmed)return 'Confirm that each included customer has already agreed to receive the selected bank campaigns and updates.';
-  if(consentReference.trim().length<8)return 'Enter a consent register, signed-form or CRM record reference (at least 8 characters).';
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(consentDate)||consentDate>new Date().toISOString().slice(0,10))return 'Enter the actual date the permission was recorded.';
-  if(consentScope==='product_specific'&&consentProduct.trim().length<2)return 'Enter the product or service covered by the permission.';
+  if(!consentConfirmed)return 'Confirm that the selected consent type is supported by existing customer records.';
   if(listTarget==='new'&&!newListName.trim())return 'Enter a name for your new customer group.';
   return '';
  }
@@ -184,7 +181,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
   // Preserve batch keys when retrying a partial network failure.
   setError('');setComplete(false);setCounts(emptyCounts());setProcessed(0);setReviewBatch('');setIssueBatchCount(0);setBusy(true);
   // Extra values can make requests large. Keep below the server's 95 KB body limit.
-  const batchSize=selectedExtras.length?25:100;
+  const batchSize=selectedExtras.length>20?4:selectedExtras.length?25:100;
   const totalBatches=Math.ceil(prepared.length/batchSize);
   if(batches.current.length!==totalBatches)batches.current=Array.from({length:totalBatches},()=>crypto.randomUUID());
   let inserted=0,skipped=0,rejected=0;
@@ -199,7 +196,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
    }
    for(let i=0;i<totalBatches;i++){
     const rows=prepared.slice(i*batchSize,(i+1)*batchSize).map((row,j)=>({...row,source_row:i*batchSize+j+2}));
-    const response=await fetch('/api/contacts/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({organization_id:org,batch_key:batches.current[i],rows,...(listId?{list_id:listId}:{}),consent:{confirmed:true,scope:consentScope,source:consentSource,reference:consentReference.trim(),recorded_on:consentDate,product:consentProduct.trim()}})});
+    const response=await fetch('/api/contacts/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({organization_id:org,batch_key:batches.current[i],rows,...(listId?{list_id:listId}:{}),consent:{confirmed:true,scope:'all_marketing',source:consentSource,reference:`staff-confirmed-import:${batches.current[i]}`,recorded_on:new Date().toISOString().slice(0,10),product:''}})});
     const result=await response.json();
     if(!response.ok)throw new Error(`Batch ${i+1}: ${result.error||'The import could not be completed.'}`);
     inserted+=result.inserted;skipped+=result.skipped;rejected+=result.rejected;
@@ -211,7 +208,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
   finally{setBusy(false);}
  }
  return <div className="import-flow">
-  <div className="import-stepper" aria-label="Import progress"><ol>{["Upload","Match columns","Contact group","Consent","Review"].map((label,index)=><li key={label} aria-current={step===index+1?"step":undefined} className={step>index+1?"is-complete":step===index+1?"is-current":""}><span>{step>index+1?"✓":index+1}</span><small>{label}</small></li>)}</ol></div>
+  <div className="import-stepper" aria-label="Import progress"><ol>{["Upload","Match columns","Contact group","Permission","Review"].map((label,index)=><li key={label} aria-current={step===index+1?"step":undefined} className={step>index+1?"is-complete":step===index+1?"is-current":""}><span>{step>index+1?"✓":index+1}</span><small>{label}</small></li>)}</ol></div>
   {error&&<p role="alert" className="feedback-error">{error}</p>}
   <div className="admin-form" hidden={step!==1}>
    <h2>Step 1 · Upload your customer file</h2>
@@ -226,7 +223,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
     <p className="muted"><strong>{preview.filename}</strong> · {preview.rows.length.toLocaleString()} customer rows · {preview.headers.length} columns found. Common headings are matched automatically; you can change any match below.</p>
     <h3>Main customer information</h3>
     <div className="mapping-grid">{mainFields.map(field=><label key={field.key}>{field.label}<select value={mapping[field.key]} disabled={busy||complete} onChange={e=>{setMapping(old=>({...old,[field.key]:Number(e.target.value)}));invalidate();}}><option value={-1}>Not included</option>{preview.headers.map((header,index)=><option value={index} key={index}>{header} (column {index+1})</option>)}</select></label>)}</div>
-    <p className="muted">You need at least Email or Phone. Names are optional. Consent must be documented in Step 4; no permission is inferred from a customer account.</p>
+    <p className="muted">You need at least Email or Phone. Names are optional. A column labelled Full Name, Customer Name, Client Name or Account Name is recognised automatically; the first name is taken as the first word and the remaining words become the last name. Check the preview before importing. Permission must be confirmed in Step 4; no permission is inferred from a customer account.</p>
     <div className="workspace-heading"><div><h3>Other spreadsheet columns</h3><p className="muted">Choose additional details you want to keep for your campaigns. Rename them if needed.</p></div><button className="btn secondary" type="button" onClick={selectSuggested} disabled={busy||complete}>Select suggested fields</button></div>
     <p className="muted"><strong>{selectedExtras.length} of {MAX_EXTRA} extra fields selected.</strong> Select and name the additional columns you want to append to each contact. Unselected columns are ignored. Sensitive columns such as BVN, balances and PINs are blocked.</p>
     <div className="table-scroll"><table className="admin-table"><thead><tr><th>Spreadsheet column</th><th>What to do</th><th>Save this detail as</th></tr></thead><tbody>{preview.headers.map((header,index)=>{
@@ -243,26 +240,22 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
     <p className="muted">Group customers together so you can easily choose them when creating a campaign.</p>
     <label>Choose a group<select value={listTarget} disabled={busy||complete} onChange={e=>{setListTarget(e.target.value);listRef.current=null;invalidate();}}><option value="new">Create a new group</option>{lists.map(list=><option value={list.id} key={list.id}>{list.name}</option>)}<option value="none">Do not use a group</option></select></label>
     {listTarget==='new'&&<label>New group name<input value={newListName} disabled={busy||complete} maxLength={100} onChange={e=>{setNewListName(e.target.value);listRef.current=null;invalidate();}} placeholder="October account updates"/></label>}
-    <div className="import-actions"><button className="btn secondary" type="button" onClick={()=>setStep(2)}>Back</button><button className="btn" type="button" onClick={()=>{if(listTarget==='new'&&!newListName.trim()){setError("Enter a name for the new contact group.");return;}setError("");setStep(4);}}>Next: Consent</button></div>
+    <div className="import-actions"><button className="btn secondary" type="button" onClick={()=>setStep(2)}>Back</button><button className="btn" type="button" onClick={()=>{if(listTarget==='new'&&!newListName.trim()){setError("Enter a name for the new contact group.");return;}setError("");setStep(4);}}>Next: Permission</button></div>
    </div>
    <div className="admin-form" hidden={step!==4&&step!==5}>
     {step===4&&<>
-    <h2>Step 4 · Confirm existing customer email permission</h2>
-    <p className="muted">Import only customers whose existing bank application or consent records confirm permission. A new upload will never undo a previous opt-out. Contacts whose permission is limited to one product are stored without eligibility for general marketing broadcasts.</p>
-    <label>Permission covers<select value={consentScope} disabled={busy||complete} onChange={e=>{setConsentScope(e.target.value as 'all_marketing'|'product_specific');invalidate();}}><option value="all_marketing">All Charis customer campaigns and updates (existing permission required)</option><option value="product_specific">Only one product or service (not eligible for general broadcasts)</option></select></label>
-    {consentScope==='product_specific'&&<label>Approved product/service<input value={consentProduct} maxLength={80} disabled={busy||complete} onChange={e=>{setConsentProduct(e.target.value);invalidate();}} placeholder="e.g. Fixed deposits"/></label>}
-    <label>Where was permission recorded?<select value={consentSource} disabled={busy||complete} onChange={e=>{setConsentSource(e.target.value);invalidate();}}><option value="consent_register">Bank consent register / CRM</option><option value="signed_form">Signed bank application / account-opening form</option><option value="digital_form">Online opt-in form</option><option value="recorded_call">Recorded customer permission</option><option value="other">Other documented evidence</option></select></label>
-    <label>Evidence/register reference<input value={consentReference} maxLength={200} disabled={busy||complete} onChange={e=>{setConsentReference(e.target.value);invalidate();}} placeholder="Consent register batch, form or record ID"/></label>
-    <label>Date of existing permission<input type="date" value={consentDate} max={new Date().toISOString().slice(0,10)} disabled={busy||complete} onChange={e=>{setConsentDate(e.target.value);invalidate();}}/></label>
-    <label><input type="checkbox" checked={consentConfirmed} disabled={busy||complete} onChange={e=>{setConsentConfirmed(e.target.checked);invalidate();}}/> I confirm that evidence is available for each contact in this file, and that this import does not include people who declined or withdrew promotional permission.</label>
-    <div className="import-actions"><button className="btn secondary" type="button" onClick={()=>setStep(3)}>Back</button><button className="btn" type="button" onClick={()=>{if(!consentConfirmed||consentReference.trim().length<8||!/^\d{4}-\d{2}-\d{2}$/.test(consentDate)||consentDate>new Date().toISOString().slice(0,10)||(consentScope==='product_specific'&&consentProduct.trim().length<2)){setError("Complete the consent evidence details and confirmation before continuing.");return;}setError("");setStep(5);}}>Next: Review import</button></div>
+    <h2>Step 4 · Confirm customer permission</h2>
+    <p className="muted">Choose the existing permission record type and confirm that customers in this file have agreed to receive Charis marketing emails. Previous opt-outs and unsubscribes remain protected.</p>
+    <label>Consent record type<select value={consentSource} disabled={busy||complete} onChange={e=>{setConsentSource(e.target.value);invalidate();}}><option value="signed_form">Signed account-opening / application form</option><option value="consent_register">Bank consent register / CRM</option><option value="digital_form">Digital opt-in</option><option value="recorded_call">Recorded customer permission</option><option value="other">Other documented permission</option></select></label>
+    <label><input type="checkbox" checked={consentConfirmed} disabled={busy||complete} onChange={e=>{setConsentConfirmed(e.target.checked);invalidate();}}/> I confirm that the selected permission type is supported by existing records for every customer in this import.</label>
+    <div className="import-actions"><button className="btn secondary" type="button" onClick={()=>setStep(3)}>Back</button><button className="btn" type="button" onClick={()=>{if(!consentConfirmed){setError("Please confirm existing customer permission before continuing.");return;}setError("");setStep(5);}}>Next: Review import</button></div>
     </>}
    </div>
    {step===5&&<div className="admin-form">
     <h2>Step 5 · Review and import</h2>
     <p className="muted">Previewing the first five rows. Check the mapped columns before importing.</p>
     <div className="table-scroll"><table className="admin-table"><thead><tr><th>First name</th><th>Last name</th><th>Email</th><th>Phone</th>{selectedExtras.map(item=><th key={item.index}>{item.header}</th>)}</tr></thead><tbody>{prepared.slice(0,5).map((row,index)=><tr key={index}><td>{row.first_name||'—'}</td><td>{row.last_name||'—'}</td><td>{row.email||'—'}</td><td>{row.phone||'—'}</td>{selectedExtras.map(item=><td key={item.index}>{previewColumnValue(item.key,preview.rows[index]?.[item.index]||'')||'—'}</td>)}</tr>)}</tbody></table></div>
-    <div className="import-actions"><button className="btn secondary" type="button" onClick={()=>setStep(4)} disabled={busy}>Back</button><button className="btn" type="button" onClick={importRows} disabled={busy||complete}>{busy?'Importing customers…':complete?'Import complete':'Import customers with recorded consent'}</button></div>
+    <div className="import-actions"><button className="btn secondary" type="button" onClick={()=>setStep(4)} disabled={busy}>Back</button><button className="btn" type="button" onClick={importRows} disabled={busy||complete}>{busy?'Importing customers…':complete?'Import complete':'Import customers'}</button></div>
     {(busy||processed>0)&&<><progress max={prepared.length} value={processed} className="import-progress"/><p className="muted">Processed {processed} of {prepared.length} · Added {counts.inserted} · Duplicates {counts.skipped} · Invalid {counts.rejected}</p></>}
     {complete&&<div role="status" className="feedback-success"><p>Import complete. Existing contacts and opt-outs were preserved; suppressed emails were skipped. Product-limited permissions do not grant general broadcast eligibility.</p>{issueBatchCount>0&&<p><strong>{issueBatchCount} batch(es) contain duplicates or invalid rows.</strong> <Link href={`/dashboard/imports?org=${org}&review=${reviewBatch}#import-review`}>Review those rows →</Link> Select other batches from the review dropdown if needed.</p>}<Link href="/dashboard/communications/new">Create a campaign →</Link></div>}
    </div>}
