@@ -31,7 +31,7 @@ export function WorkspaceResetPanel() {
 
   useEffect(() => { void loadPreview(); }, []);
 
-  const categories = preview?.categories || [];
+  const categories = useMemo(() => preview?.categories ?? [], [preview]);
   const chosen = useMemo(() => categories.filter((item) => selected.includes(item.key)), [categories, selected]);
   const total = chosen.reduce((sum, item) => sum + Number(item.count || 0), 0);
   const blocked = chosen.filter((item) => item.blocked?.length);
@@ -114,7 +114,7 @@ export function WorkspaceResetPanel() {
           <div className="charis-reset-final-icon">!</div>
           <h2>Confirm permanent deletion</h2>
           <p>You are about to permanently delete <strong>{total.toLocaleString()} records</strong> from the following groups:</p>
-          <ul>{chosen.map((item) => <li key={item}><span>{item.label}</span><strong>{item.count.toLocaleString()}</strong></li>)}</ul>
+          <ul>{chosen.map((item) => <li key={item.key}><span>{item.label}</span><strong>{item.count.toLocaleString()}</strong></li>)}</ul>
           <div className="charis-reset-protected"><strong>These will remain untouched</strong>
             <ul>{(preview.preserved || []).map((item) => <li key={item}>{item}</li>)}</ul>
           </div>
