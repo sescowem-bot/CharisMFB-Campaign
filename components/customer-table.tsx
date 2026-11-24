@@ -10,8 +10,7 @@ export function CustomerTable({org,people}:{org:string;people:Customer[]}){
  const [result,action,pending]=useActionState(bulkContactsAction,{});
  const current=people.map(c=>c.id);
  const allSelected=current.length>0&&current.every(id=>selected.includes(id));
- useEffect(()=>{if(result.success){setSelected([]);}},[result.success]);
- useEffect(()=>{setSelected(old=>old.filter(id=>current.includes(id)));},[people]);
+ useEffect(()=>{if(result.success){setSelected([]);}},[result]);
  return <>
   <div className="charis-bulk-bar"><strong>{selected.length} selected</strong>
    <button type="button" className="btn secondary" disabled={!people.length} onClick={()=>setSelected(allSelected?[]:current)}> {allSelected?'Clear page':'Select page'} </button>
