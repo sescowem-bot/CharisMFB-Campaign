@@ -112,11 +112,11 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
   invalidate();setPreview(null);setExtraColumns({});setStep(1);listRef.current=null;
   if(!file)return;
   if(file.size>MAX_FILE_BYTES){setError('This file is too large. Maximum size is 5 MB.');return;}
-  if(!/\\.(csv|xlsx)$/i.test(file.name)){setError('Choose a CSV or Excel (.xlsx) file.');return;}
+  if(!/\\.(csv|tsv|txt|xlsx)$/i.test(file.name)){setError('Choose a CSV, TSV, TXT or Excel (.xlsx) file.');return;}
   setFileLoading(true);
   try{
    let matrix:string[][];
-   if(/\\.csv$/i.test(file.name))matrix=parseCsv(await file.text(),{maxRows:MAX_RECORDS+20,maxColumns:MAX_COLUMNS});
+   if(/\\.(csv|tsv|txt)$/i.test(file.name))matrix=parseCsv(await file.text(),{maxRows:MAX_RECORDS+20,maxColumns:MAX_COLUMNS});
    else {
     const {readSheet}=await import('read-excel-file/browser');
     const values=await readSheet(file);
@@ -216,8 +216,8 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
   <div className="admin-form" hidden={step!==1}>
    <h2>Step 1 · Upload your customer file</h2>
    <p className="muted">Use your existing spreadsheet. You do not need to rearrange it into a Charis template: the importer reads your column headings and lets you match them to contact fields.</p>
-   <label>Choose a CSV or Excel (.xlsx) file<input type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={busy||fileLoading} onChange={e=>fileSelected(e.target.files?.[0])}/>{fileLoading&&<span className="muted" role="status">Reading spreadsheet and detecting headings…</span>}</label>
-   <p className="muted">Maximum 5 MB, 5,000 contact rows and 60 columns. CSV and Excel files are supported; column order and common bank-export delimiters are detected automatically. <a className="inline-link" href="/samples/contacts-import.csv" download>Basic example</a> · <a className="inline-link" href="/samples/contacts-extra-fields.csv" download>Example with extra details</a></p>
+   <label>Choose a spreadsheet or delimited text file<input type="file" accept=".csv,.tsv,.txt,.xlsx,text/csv,text/tab-separated-values,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={busy||fileLoading} onChange={e=>fileSelected(e.target.files?.[0])}/>{fileLoading&&<span className="muted" role="status">Reading spreadsheet and detecting headings…</span>}</label>
+   <p className="muted">Maximum 5 MB, 5,000 contact rows and 60 columns. CSV, TSV, TXT and Excel (.xlsx) files are supported; column order and common bank-export delimiters are detected automatically. <a className="inline-link" href="/samples/contacts-import.csv" download>Basic example</a> · <a className="inline-link" href="/samples/contacts-extra-fields.csv" download>Example with extra details</a></p>
    <label>Phone numbers without country codes<select value={country} disabled={busy||complete} onChange={e=>{setCountry(e.target.value as 'none'|'NG');invalidate();}}><option value="none">Keep numbers as they are</option><option value="NG">Convert Nigerian 080… numbers to +234…</option></select></label>
   </div>
   {preview&&<>
