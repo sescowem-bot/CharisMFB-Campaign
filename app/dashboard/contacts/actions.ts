@@ -63,9 +63,9 @@ export async function saveContact(_:FormResult,form:FormData):Promise<FormResult
  }catch{return {error:'Could not read extra customer fields.'};}
  try{
   const {db,authorized}=await contactsAccess(data.organization_id);
-  if(!authorized)return {error:'Not authorized to manage contacts'};
+  if(!authorized)return {error:'You do not have permission to manage customers. Please contact your administrator.'};
   const {error}=await db.rpc('charis_save_contact_with_details',{p_org:data.organization_id,p_id:data.contact_id||null,p_first:data.first_name,p_last:data.last_name,p_email:data.email,p_phone:data.phone,p_consent:data.consent_status,p_evidence:data.consent_evidence,p_details:details});
-  if(error)return {error:error.code==='23505'?'A contact with this email or phone already exists':error.code==='PGRST202'?'Apply Charis SQL migration 021 before adding custom fields.':error.message};
+  if(error)return {error:contactActionMessage(error.message,error.code)};
   revalidatePath('/dashboard/contacts');return {success:'Contact saved successfully.'};
  }catch{return {error:'Unable to save contact'};}
 }
@@ -73,9 +73,9 @@ export async function createList(_:FormResult,form:FormData):Promise<FormResult>
  const parsed=z.object({org:organizationIdSchema,name:z.string().trim().min(2).max(100),description:z.string().max(500)}).safeParse({org:form.get('organization_id'),name:form.get('name'),description:form.get('description')||''});
  if(!parsed.success)return {error:'List name must contain 2–100 characters'};
  try{
-  const {db,authorized}=await contactsAccess(parsed.data.org);if(!authorized)return {error:'Not authorized'};
+  const {db,authorized}=await contactsAccess(parsed.data.org);if(!authorized)return {error:'You do not have permission to manage contact groups. Please contact your administrator.'};
   const {error}=await db.rpc('save_contact_list',{p_org:parsed.data.org,p_name:parsed.data.name,p_description:parsed.data.description});
-  if(error)return {error:error.code==='23505'?'This list name already exists':error.message};
+  if(error)return {error:error.code==='23505'?'This group name already exists. Choose another name.':'We could not create this group. Please try again.'};
   revalidatePath('/dashboard/lists');return {success:'Contact list created.'};
  }catch{return {error:'Unable to create list'};}
 }
@@ -83,9 +83,9 @@ export async function changeListMembership(_:FormResult,form:FormData):Promise<F
  const parsed=z.object({org:organizationIdSchema,list:organizationIdSchema,contact:organizationIdSchema,add:z.enum(['true','false'])}).safeParse({org:form.get('organization_id'),list:form.get('list_id'),contact:form.get('contact_id'),add:form.get('add')});
  if(!parsed.success)return {error:'Invalid membership change'};
  try{
-  const {db,authorized}=await contactsAccess(parsed.data.org);if(!authorized)return {error:'Not authorized'};
+  const {db,authorized}=await contactsAccess(parsed.data.org);if(!authorized)return {error:'You do not have permission to manage contact groups. Please contact your administrator.'};
   const {error}=await db.rpc('add_contact_to_list',{p_org:parsed.data.org,p_list:parsed.data.list,p_contact:parsed.data.contact,p_add:parsed.data.add==='true'});
-  if(error)return {error:error.message};revalidatePath('/dashboard/lists');return {success:'List membership updated.'};
+  if(error)return {error:'We could not update this group membership. Please refresh and try again.'};revalidatePath('/dashboard/lists');return {success:'Group membership updated.'};
  }catch{return {error:'Unable to update list'};}
 }
 export async function createSegment(_:FormResult,form:FormData):Promise<FormResult>{
