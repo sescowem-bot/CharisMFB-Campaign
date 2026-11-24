@@ -20,10 +20,10 @@ const MAX_RECORDS=5000;
 const MAX_COLUMNS=60;
 const MAX_EXTRA=12;
 const headings:Record<MainField,string[]>={
- first_name:['firstname','first','givenname','customerfirstname','forename'],
- last_name:['lastname','surname','familyname','customerlastname'],
- email:['email','emailaddress','mail','customeremail'],
- phone:['phone','phonenumber','mobile','mobilenumber','telephone','whatsapp','contactnumber']
+ first_name:['firstname','first','givenname','customerfirstname','customerfirstname','forename','fname','first_name','firstnames','given_name'],
+ last_name:['lastname','surname','familyname','customerlastname','lname','last_name','family_name'],
+ email:['email','emailaddress','mail','customeremail','e_mail','emailid','email_id','email_address','customer_email'],
+ phone:['phone','phonenumber','mobile','mobilenumber','telephone','whatsapp','contactnumber','phone_number','mobile_number','mobilephone','cellphone','contact_phone','customerphone','customer_phone']
 };
 const emptyCounts=()=>({inserted:0,skipped:0,rejected:0});
 function autoMap(field:MainField,header:string){
@@ -188,19 +188,20 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
  return <div className="import-flow">
   <div className="admin-form">
    <h2>Step 1 · Upload your customer file</h2>
-   <label>Choose CSV or Excel (.xlsx)<input type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={busy} onChange={e=>fileSelected(e.target.files?.[0])}/></label>
+   <p className="muted">Use your existing spreadsheet. You do not need to rearrange it into a Charis template: the importer reads your column headings and lets you match them to contact fields.</p>
+   <label>Choose any CSV or Excel (.xlsx) file<input type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={busy} onChange={e=>fileSelected(e.target.files?.[0])}/></label>
    <p className="muted">Maximum 5 MB, 5,000 rows and 60 spreadsheet columns. <a className="inline-link" href="/samples/contacts-import.csv" download>Basic example</a> · <a className="inline-link" href="/samples/contacts-extra-fields.csv" download>Example with extra details</a></p>
    <label>Phone numbers without country codes<select value={country} disabled={busy||complete} onChange={e=>{setCountry(e.target.value as 'none'|'NG');invalidate();}}><option value="none">Keep numbers as they are</option><option value="NG">Convert Nigerian 080… numbers to +234…</option></select></label>
   </div>
   {preview&&<>
    <div className="admin-form">
-    <h2>Step 2 · Choose what each column means</h2>
-    <p className="muted"><strong>{preview.filename}</strong> · {preview.rows.length.toLocaleString()} customer rows · {preview.headers.length} columns found.</p>
+    <h2>Step 2 · Match your spreadsheet headings</h2>
+    <p className="muted"><strong>{preview.filename}</strong> · {preview.rows.length.toLocaleString()} customer rows · {preview.headers.length} columns found. Common headings are matched automatically; you can change any match below.</p>
     <h3>Main customer information</h3>
     <div className="mapping-grid">{mainFields.map(field=><label key={field.key}>{field.label}<select value={mapping[field.key]} disabled={busy||complete} onChange={e=>{setMapping(old=>({...old,[field.key]:Number(e.target.value)}));invalidate();}}><option value={-1}>Not included</option>{preview.headers.map((header,index)=><option value={index} key={index}>{header} (column {index+1})</option>)}</select></label>)}</div>
     <p className="muted">You need at least Email or Phone. Names are optional. Consent must be documented in Step 4; no permission is inferred from a customer account.</p>
     <div className="workspace-heading"><div><h3>Other spreadsheet columns</h3><p className="muted">Choose additional details you want to keep for your campaigns. Rename them if needed.</p></div><button className="btn secondary" type="button" onClick={selectSuggested} disabled={busy||complete}>Select suggested fields</button></div>
-    <p className="muted"><strong>{selectedExtras.length} of {MAX_EXTRA} extra fields selected.</strong> Other spreadsheet columns are ignored. Sensitive columns such as BVN, balances and PINs are not imported.</p>
+    <p className="muted"><strong>{selectedExtras.length} of {MAX_EXTRA} extra fields selected.</strong> Select and name the additional columns you want to append to each contact. Unselected columns are ignored. Sensitive columns such as BVN, balances and PINs are blocked.</p>
     <div className="table-scroll"><table className="admin-table"><thead><tr><th>Spreadsheet column</th><th>What to do</th><th>Save this detail as</th></tr></thead><tbody>{preview.headers.map((header,index)=>{
      const used=mainFields.find(field=>mapping[field.key]===index);
      const extra=extraColumns[index]||{include:false,name:normalizeColumnKey(header)};
