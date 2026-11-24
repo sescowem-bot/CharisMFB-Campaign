@@ -1,6 +1,6 @@
 -- ============================================================
 -- CHARIS MFB CAMPAIGN
--- MIGRATION 045: SAFE CONTACT DELETION AND BULK SELECTION
+-- MIGRATION 048: SAFE CONTACT DELETION AND BULK SELECTION
 -- ============================================================
 -- Adds a per-customer bulk operation so one protected customer
 -- does not cancel the entire selection.

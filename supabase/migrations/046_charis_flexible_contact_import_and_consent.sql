@@ -1,6 +1,6 @@
--- Charis Migration 044: lighter staff consent confirmation and flexible customer attributes.
+-- Charis Migration 046: lighter staff consent confirmation and flexible customer attributes.
 -- Updates existing security-definer functions without changing their authorization or audit behaviour.
--- Apply after migration 043. Back up the database before applying.
+-- Apply after migration 045. Back up the database before applying.
 BEGIN;
 
 DO $migration$
@@ -11,7 +11,7 @@ DECLARE
 BEGIN
   v_oid := to_regprocedure('public.charis_save_contact_with_details(uuid,uuid,text,text,text,text,text,text,jsonb)');
   IF v_oid IS NULL THEN
-    RAISE EXCEPTION 'Migration 021 is required before migration 044';
+    RAISE EXCEPTION 'Migration 021 is required before migration 046';
   END IF;
   v_def := pg_get_functiondef(v_oid);
   v_original := v_def;
@@ -24,7 +24,7 @@ BEGIN
 
   v_oid := to_regprocedure('public.charis_import_consented_batch(uuid,uuid,jsonb,jsonb,uuid)');
   IF v_oid IS NULL THEN
-    RAISE EXCEPTION 'Migration 041 is required before migration 044';
+    RAISE EXCEPTION 'Migration 041 is required before migration 046';
   END IF;
   v_def := pg_get_functiondef(v_oid);
   v_original := v_def;
