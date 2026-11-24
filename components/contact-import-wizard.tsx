@@ -20,7 +20,7 @@ const MAX_RECORDS=5000;
 const MAX_COLUMNS=60;
 const MAX_EXTRA=12;
 const headings:Record<MainField,string[]>={
- first_name:['firstname','first','givenname','customerfirstname','forename','fname','first_name','firstnames','given_name','customer_first_name','clientfirstname'],
+ first_name:['firstname','first','givenname','customerfirstname','forename','fname','first_name','firstnames','given_name','customer_first_name','clientfirstname','fullname','customername','clientname','name','fullcustomername'],
  last_name:['lastname','surname','familyname','customerlastname','lname','last_name','family_name','customer_last_name','clientlastname'],
  email:['email','emailaddress','mail','customeremail','e_mail','emailid','email_id','email_address','customer_email','mailid','emailaddr','clientemail'],
  phone:['phone','phonenumber','mobile','mobilenumber','telephone','whatsapp','contactnumber','phone_number','mobile_number','mobilephone','cellphone','contact_phone','customerphone','customer_phone','mobile_no','phone_no','telephone_no','clientphone','contact']
@@ -88,6 +88,12 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
   if(!preview)return [];
   const read=(row:string[],field:MainField)=>mapping[field]>=0?String(row[mapping[field]]??'').trim():'';
   return preview.rows.map(row=>{
+   const firstValue=read(row,'first_name');
+   const lastValue=read(row,'last_name');
+   const fullNameColumn=mapping.first_name>=0&&mapping.last_name<0&&/^(full.?name|customer.?name|client.?name|name)$/i.test(normalizedHeader(preview.headers[mapping.first_name]));
+   const nameParts=fullNameColumn?firstValue.trim().split(/\\s+/).filter(Boolean):[];
+   const firstName=fullNameColumn?(nameParts.shift()||''):firstValue;
+   const lastName=fullNameColumn?nameParts.join(' '):lastValue;
    const attributes:Record<string,string>={};
    for(const item of selectedExtras){
     // Only values from deliberately selected, valid fields are sent to the server.
@@ -96,7 +102,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
     if(value)attributes[item.key]=value;
    }
    return {
-    first_name:read(row,'first_name'),last_name:read(row,'last_name'),
+    first_name:firstName,last_name:lastName,
     email:read(row,'email').toLowerCase(),phone:normalizePhone(read(row,'phone'),country),attributes
    };
   });
