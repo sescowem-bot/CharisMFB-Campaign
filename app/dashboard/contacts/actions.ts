@@ -31,7 +31,12 @@ const contactSchema=z.object({
  consent_evidence:z.string().max(500)
 }).refine(v=>!!v.email||!!v.phone,{message:'Email or phone is required'}).refine(v=>v.consent_status!=='granted'||v.consent_evidence.trim().length>=6,{message:'Provide evidence of opt-in consent'});
 export async function saveContact(_:FormResult,form:FormData):Promise<FormResult>{
- const submitted=Object.fromEntries(['organization_id','contact_id','first_name','last_name','email','phone','consent_status','consent_evidence'].map(k=>[k,String(form.get(k)||'').trim()]));
+ const consentStatus=String(form.get('consent_status')||'unknown');
+ const consentSource=z.enum(['signed_form','consent_register','digital_form','recorded_call','other']).safeParse(form.get('consent_source'));
+ const consentConfirmed=form.get('consent_confirmed')==='yes';
+ const consentEvidence=consentStatus==='granted'&&consentConfirmed&&consentSource.success?`Staff confirmed existing permission via ${consentSource.data} on ${new Date().toISOString().slice(0,10)}.`:'';
+ const submitted=Object.fromEntries(['organization_id','contact_id','first_name','last_name','email','phone','consent_status'].map(k=>[k,String(form.get(k)||'').trim()]));
+ submitted.consent_evidence=consentEvidence;
  const parsed=contactSchema.safeParse(submitted);
  if(!parsed.success)return {error:parsed.error.issues[0]?.message||'Invalid contact'};
  const data=parsed.data;
@@ -39,7 +44,7 @@ export async function saveContact(_:FormResult,form:FormData):Promise<FormResult
  try{
   const value=JSON.parse(String(form.get('custom_details')||'{}')) as unknown;
   if(!value||typeof value!=='object'||Array.isArray(value))return {error:'Extra customer fields are invalid.'};
-  const entries=Object.entries(value);if(entries.length>12)return {error:'Maximum of 12 extra fields.'};
+  const entries=Object.entries(value);if(entries.length>56)return {error:'Maximum of 56 extra fields.'};
   for(const [key,entry] of entries){if(!/^[a-z][a-z0-9_]{0,39}$/.test(key)||/(password|pin|otp|bvn|nin|cvv|card_number|secret|token)/.test(key)||typeof entry!=='string'||entry.length>200)return {error:'Use a short field name and text value. Do not enter sensitive credentials.'};if(['account_number','account_no','account_reference'].includes(key)&&entry.replace(/\D/g,'').length>4)return {error:'Enter only the last four digits for account references.'};details[key]=entry;}
  }catch{return {error:'Could not read extra customer fields.'};}
  try{
