@@ -36,7 +36,7 @@ export async function POST(request:Request){
    p_org:parsed.data.organization_id,p_batch_key:parsed.data.batch_key,p_rows:parsed.data.rows,
    p_list:parsed.data.list_id||null,p_consent:parsed.data.consent
   });
-  if(error)return NextResponse.json({error:'Contact import rejected: '+error.message},{status:422});
+  if(error)return NextResponse.json({error:'We could not import this group of customers. Please check the customer details and try again. If the problem continues, contact your administrator.'},{status:422});
   const summary=Array.isArray(data)?data[0]:data;
   const {data:batch}=await db.from('contact_import_batches').select('id').eq('organization_id',parsed.data.organization_id).eq('batch_key',parsed.data.batch_key).maybeSingle();
   return NextResponse.json({inserted:summary?.inserted??0,skipped:summary?.skipped??0,rejected:summary?.rejected??0,batch_id:batch?.id||null},{headers:{'Cache-Control':'private, no-store'}});
