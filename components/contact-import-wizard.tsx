@@ -6,7 +6,7 @@ import {parseCsv,normalizePhone} from '@/lib/contacts/parse-csv.mjs';
 import {importColumnValue,normalizeColumnKey,previewColumnValue,restrictedColumn,suggestedColumn} from '@/lib/contacts/import-mapping.mjs';
 
 const mainFields=[
- {key:'first_name',label:'First name'},
+ {key:'first_name',label:'First name / Full name'},
  {key:'last_name',label:'Last name'},
  {key:'email',label:'Email address'},
  {key:'phone',label:'Phone number'}
@@ -230,7 +230,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
     <p className="muted"><strong>{preview.filename}</strong> · {preview.rows.length.toLocaleString()} customer rows · {preview.headers.length} columns found. Common headings are matched automatically; you can change any match below.</p>
     <h3>Main customer information</h3>
     <div className="mapping-grid">{mainFields.map(field=><label key={field.key}>{field.label}<select value={mapping[field.key]} disabled={busy||complete} onChange={e=>{setMapping(old=>({...old,[field.key]:Number(e.target.value)}));invalidate();}}><option value={-1}>Not included</option>{preview.headers.map((header,index)=><option value={index} key={index}>{header} (column {index+1})</option>)}</select></label>)}</div>
-    <p className="muted">You need at least Email or Phone. Names are optional. Consent must be documented in Step 4; no permission is inferred from a customer account.</p>
+    <p className="muted">You need at least Email or Phone. Names are optional. A column labelled Full Name, Customer Name, Client Name or Account Name is recognised automatically; the first name is taken as the first word and the remaining words become the last name. Check the preview before importing. Consent must be documented in Step 4; no permission is inferred from a customer account.</p>
     <div className="workspace-heading"><div><h3>Other spreadsheet columns</h3><p className="muted">Choose additional details you want to keep for your campaigns. Rename them if needed.</p></div><button className="btn secondary" type="button" onClick={selectSuggested} disabled={busy||complete}>Select suggested fields</button></div>
     <p className="muted"><strong>{selectedExtras.length} of {MAX_EXTRA} extra fields selected.</strong> Select and name the additional columns you want to append to each contact. Unselected columns are ignored. Sensitive columns such as BVN, balances and PINs are blocked.</p>
     <div className="table-scroll"><table className="admin-table"><thead><tr><th>Spreadsheet column</th><th>What to do</th><th>Save this detail as</th></tr></thead><tbody>{preview.headers.map((header,index)=>{
