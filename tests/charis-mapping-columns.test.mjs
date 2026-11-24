@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {normalizeColumnKey,restrictedColumn,suggestedColumn,importColumnValue,previewColumnValue} from '../lib/contacts/import-mapping.mjs';
+import fs from 'node:fs';
+const wizard=fs.readFileSync(new URL('../components/contact-import-wizard.tsx',import.meta.url),'utf8');
 
 test('spreadsheet column headings convert to valid field names',()=>{
  assert.equal(normalizeColumnKey('Branch Name'),'branch_name');
@@ -28,4 +30,11 @@ test('unselected sensitive values cannot become user attributes through mapping 
  assert.equal(importColumnValue('bvn','12345678909'),'');
  assert.equal(importColumnValue('account_balance','500000'),'');
  assert.equal(importColumnValue('branch','Surulere'),'Surulere');
+});
+
+test('contact importer recognises full-name headings from bank exports and splits combined names',()=>{
+ for(const heading of ['fullname','customername','clientname','fullcustomername','customerfullname','clientfullname','nameofcustomer','accountname','beneficiaryname']) assert.match(wizard,new RegExp(`'${heading}'`));
+ assert.match(wizard,/isCombinedNameHeader/);
+ assert.match(wizard,/nameParts\.shift\(\)/);
+ assert.match(wizard,/lastName=fullNameColumn\?nameParts\.join\(' '\)/);
 });
