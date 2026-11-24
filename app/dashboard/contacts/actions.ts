@@ -99,9 +99,9 @@ export async function createSegment(_:FormResult,form:FormData):Promise<FormResu
  const parsed=z.object({org:organizationIdSchema,name:z.string().trim().min(2).max(100),description:z.string().max(500),rules:z.object({consent_status:z.enum(['unknown','granted','denied']).optional(),source:z.enum(['manual','import']).optional(),has_email:z.boolean().optional()}).refine(r=>Object.keys(r).length>0)}).safeParse({org:form.get('organization_id'),name:form.get('name'),description:form.get('description')||'',rules});
  if(!parsed.success)return {error:'Enter a name and at least one valid filter'};
  try{
-  const {db,authorized}=await contactsAccess(parsed.data.org);if(!authorized)return {error:'Not authorized'};
+  const {db,authorized}=await contactsAccess(parsed.data.org);if(!authorized)return {error:'You do not have permission to manage smart groups. Please contact your administrator.'};
   const {error}=await db.rpc('save_contact_segment',{p_org:parsed.data.org,p_name:parsed.data.name,p_description:parsed.data.description,p_rules:parsed.data.rules});
-  if(error)return {error:error.code==='23505'?'This segment name already exists':error.message};
+  if(error)return {error:error.code==='23505'?'This smart group name already exists. Choose another name.':'We could not save this smart group. Please try again.'};
   revalidatePath('/dashboard/segments');return {success:'Dynamic segment created.'};
  }catch{return {error:'Unable to save segment'};}
 }
@@ -138,8 +138,8 @@ export async function bulkListAction(_:FormResult,form:FormData):Promise<FormRes
   const {db,authorized}=await contactsAccess(org);
   if(!authorized)throw new Error('List management access required');
   const {data,error}=await db.rpc('charis_list_batch',{p_org:org,p_list:list,p_contacts:ids,p_add:add});
-  if(error)throw new Error(error.message);
+  if(error)return {error:'We could not update the selected group members. Please refresh and try again.'};
   revalidatePath('/dashboard/lists');
   return {success:`${data||ids.length} customers ${add?'added to':'removed from'} the group.`};
- }catch(e){return {error:e instanceof Error?e.message:'Unable to update selected list members'};}
+ }catch{return {error:'We could not update the selected group members. Please check your selection and try again.'};}
 }
