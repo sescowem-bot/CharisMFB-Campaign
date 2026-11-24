@@ -38,6 +38,7 @@ function autoMap(field:MainField,header:string){
  */
 export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;name:string}[]}){
  const [preview,setPreview]=useState<Preview|null>(null);
+ const [step,setStep]=useState(1);
  const [mapping,setMapping]=useState<Record<MainField,number>>({first_name:-1,last_name:-1,email:-1,phone:-1});
  const [extraColumns,setExtraColumns]=useState<Record<number,ExtraColumn>>({});
  const [consentConfirmed,setConsentConfirmed]=useState(false);
@@ -90,7 +91,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
  },[preview,mapping,country,selectedExtras]);
 
  async function fileSelected(file?:File){
-  invalidate();setPreview(null);setExtraColumns({});listRef.current=null;
+  invalidate();setPreview(null);setExtraColumns({});setStep(1);listRef.current=null;
   if(!file)return;
   if(file.size>MAX_FILE_BYTES){setError('This file is too large. Maximum size is 5 MB.');return;}
   if(!/\.(csv|xlsx)$/i.test(file.name)){setError('Choose a CSV or Excel (.xlsx) file.');return;}
@@ -109,7 +110,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
    const defaults=Object.fromEntries(mainFields.map(({key})=>[key,headers.findIndex(h=>autoMap(key,h))])) as Record<MainField,number>;
    setMapping(defaults);
    setExtraColumns(Object.fromEntries(headers.map((header,index)=>[index,{include:false,name:normalizeColumnKey(header)}])));
-   setPreview({headers,rows:matrix.slice(1),filename:file.name});
+   setPreview({headers,rows:matrix.slice(1),filename:file.name});setStep(2);
   }catch(e){setError(e instanceof Error?e.message:'The spreadsheet could not be read.');}
  }
  function changeExtra(index:number,partial:Partial<ExtraColumn>){
@@ -186,7 +187,8 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
   finally{setBusy(false);}
  }
  return <div className="import-flow">
-  <div className="admin-form">
+  <div className="import-stepper" aria-label="Import progress"><ol>{["Upload","Match columns","Contact group","Consent","Review"].map((label,index)=><li key={label} aria-current={step===index+1?"step":undefined} className={step>index+1?"is-complete":step===index+1?"is-current":""}><span>{step>index+1?"✓":index+1}</span><small>{label}</small></li>)}</ol></div>
+  <div className="admin-form" hidden={step!==1}>
    <h2>Step 1 · Upload your customer file</h2>
    <p className="muted">Use your existing spreadsheet. You do not need to rearrange it into a Charis template: the importer reads your column headings and lets you match them to contact fields.</p>
    <label>Choose any CSV or Excel (.xlsx) file<input type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={busy} onChange={e=>fileSelected(e.target.files?.[0])}/></label>
@@ -194,7 +196,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
    <label>Phone numbers without country codes<select value={country} disabled={busy||complete} onChange={e=>{setCountry(e.target.value as 'none'|'NG');invalidate();}}><option value="none">Keep numbers as they are</option><option value="NG">Convert Nigerian 080… numbers to +234…</option></select></label>
   </div>
   {preview&&<>
-   <div className="admin-form">
+   <div className="admin-form" hidden={step!==2}>
     <h2>Step 2 · Match your spreadsheet headings</h2>
     <p className="muted"><strong>{preview.filename}</strong> · {preview.rows.length.toLocaleString()} customer rows · {preview.headers.length} columns found. Common headings are matched automatically; you can change any match below.</p>
     <h3>Main customer information</h3>
@@ -209,14 +211,17 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
      return <tr key={index}><td><strong>{header}</strong><div className="muted">Column {index+1}</div></td><td>{used?<span className="muted">Used for {used.label}</span>:blocked?<span className="muted">Restricted field</span>:<label><input type="checkbox" checked={extra.include} disabled={busy||complete} onChange={e=>changeExtra(index,{include:e.target.checked})}/> Include in campaigns</label>}</td><td>{!used&&!blocked&&extra.include?<label><span className="sr-only">Saved field name for {header}</span><input aria-label={`Saved field name for ${header}`} value={extra.name} disabled={busy||complete} maxLength={40} onChange={e=>changeExtra(index,{name:e.target.value.toLowerCase().trim()})}/></label>:<span className="muted">{used?'Mapped above':blocked?'Not imported':'Not included'}</span>}</td></tr>;
     })}</tbody></table></div>
     <p className="muted">Account references are stored as their last four digits only. Full account numbers, passwords, BVNs and account balances should not be uploaded as campaign details.</p>
+    <div className="import-actions"><button className="btn secondary" type="button" onClick={()=>setStep(1)}>Back</button><button className="btn" type="button" onClick={()=>{if(mapping.email<0&&mapping.phone<0){setError("Choose an Email or Phone column before continuing.");return;}const used=Object.values(mapping).filter(value=>value>=0);if(new Set(used).size!==used.length){setError("A column can only be mapped to one main contact field.");return;}setError("");setStep(3);}}>Next: Contact group</button></div>
    </div>
-   <div className="admin-form">
+   <div className="admin-form" hidden={step!==3}>
     <h2>Step 3 · Save customers to a group</h2>
     <p className="muted">Group customers together so you can easily choose them when creating a campaign.</p>
     <label>Choose a group<select value={listTarget} disabled={busy||complete} onChange={e=>{setListTarget(e.target.value);listRef.current=null;invalidate();}}><option value="new">Create a new group</option>{lists.map(list=><option value={list.id} key={list.id}>{list.name}</option>)}<option value="none">Do not use a group</option></select></label>
     {listTarget==='new'&&<label>New group name<input value={newListName} disabled={busy||complete} maxLength={100} onChange={e=>{setNewListName(e.target.value);listRef.current=null;invalidate();}} placeholder="October account updates"/></label>}
+    <div className="import-actions"><button className="btn secondary" type="button" onClick={()=>setStep(2)}>Back</button><button className="btn" type="button" onClick={()=>{if(listTarget==='new'&&!newListName.trim()){setError("Enter a name for the new contact group.");return;}setError("");setStep(4);}}>Next: Consent</button></div>
    </div>
-   <div className="admin-form">
+   <div className="admin-form" hidden={step!==4&&step!==5}>
+    {step===4&&<>
     <h2>Step 4 · Confirm existing customer email permission</h2>
     <p className="muted">Import only customers whose existing bank application or consent records confirm permission. A new upload will never undo a previous opt-out. Contacts whose permission is limited to one product are stored without eligibility for general marketing broadcasts.</p>
     <label>Permission covers<select value={consentScope} disabled={busy||complete} onChange={e=>{setConsentScope(e.target.value as 'all_marketing'|'product_specific');invalidate();}}><option value="all_marketing">All Charis customer campaigns and updates (existing permission required)</option><option value="product_specific">Only one product or service (not eligible for general broadcasts)</option></select></label>
@@ -225,14 +230,18 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
     <label>Evidence/register reference<input value={consentReference} maxLength={200} disabled={busy||complete} onChange={e=>{setConsentReference(e.target.value);invalidate();}} placeholder="Consent register batch, form or record ID"/></label>
     <label>Date of existing permission<input type="date" value={consentDate} max={new Date().toISOString().slice(0,10)} disabled={busy||complete} onChange={e=>{setConsentDate(e.target.value);invalidate();}}/></label>
     <label><input type="checkbox" checked={consentConfirmed} disabled={busy||complete} onChange={e=>{setConsentConfirmed(e.target.checked);invalidate();}}/> I confirm that evidence is available for each contact in this file, and that this import does not include people who declined or withdrew promotional permission.</label>
+    </>}
+   </div>
+   {step===5&&<div className="admin-form">
     <h2>Step 5 · Review and import</h2>
     <p className="muted">Previewing the first five rows. Check the mapped columns before importing.</p>
     <div className="table-scroll"><table className="admin-table"><thead><tr><th>First name</th><th>Last name</th><th>Email</th><th>Phone</th>{selectedExtras.map(item=><th key={item.index}>{item.header}</th>)}</tr></thead><tbody>{prepared.slice(0,5).map((row,index)=><tr key={index}><td>{row.first_name||'—'}</td><td>{row.last_name||'—'}</td><td>{row.email||'—'}</td><td>{row.phone||'—'}</td>{selectedExtras.map(item=><td key={item.index}>{previewColumnValue(item.key,preview.rows[index]?.[item.index]||'')||'—'}</td>)}</tr>)}</tbody></table></div>
-    <button className="btn" type="button" onClick={importRows} disabled={busy||complete}>{busy?'Importing customers…':complete?'Import complete':'Import customers with recorded consent'}</button>
+    <div className="import-actions"><button className="btn secondary" type="button" onClick={()=>setStep(4)} disabled={busy}>Back</button><button className="btn" type="button" onClick={importRows} disabled={busy||complete}>{busy?'Importing customers…':complete?'Import complete':'Import customers with recorded consent'}</button></div>
     {(busy||processed>0)&&<><progress max={prepared.length} value={processed} className="import-progress"/><p className="muted">Processed {processed} of {prepared.length} · Added {counts.inserted} · Duplicates {counts.skipped} · Invalid {counts.rejected}</p></>}
     {complete&&<div role="status" className="feedback-success"><p>Import complete. Existing contacts and opt-outs were preserved; suppressed emails were skipped. Product-limited permissions do not grant general broadcast eligibility.</p>{issueBatchCount>0&&<p><strong>{issueBatchCount} batch(es) contain duplicates or invalid rows.</strong> <Link href={`/dashboard/imports?org=${org}&review=${reviewBatch}#import-review`}>Review those rows →</Link> Select other batches from the review dropdown if needed.</p>}<Link href="/dashboard/communications/new">Create a campaign →</Link></div>}
     {error&&<p role="alert" className="feedback-error">{error}</p>}
    </div>
+   </div>}
   </>}
   {!preview&&error&&<p role="alert" className="feedback-error">{error}</p>}
  </div>;
