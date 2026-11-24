@@ -91,7 +91,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
    const firstValue=read(row,'first_name');
    const lastValue=read(row,'last_name');
    const fullNameColumn=mapping.first_name>=0&&mapping.last_name<0&&/^(full.?name|customer.?name|client.?name|name)$/i.test(normalizedHeader(preview.headers[mapping.first_name]));
-   const nameParts=fullNameColumn?firstValue.trim().split(/\\s+/).filter(Boolean):[];
+   const nameParts=fullNameColumn?firstValue.trim().split(/\s+/).filter(Boolean):[];
    const firstName=fullNameColumn?(nameParts.shift()||''):firstValue;
    const lastName=fullNameColumn?nameParts.join(' '):lastValue;
    const attributes:Record<string,string>={};
