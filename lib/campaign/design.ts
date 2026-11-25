@@ -1,7 +1,7 @@
 import {z} from 'zod';
 const https=z.string().url().startsWith('https://').max(1800);
 const color=z.string().regex(/^#[0-9a-fA-F]{6}$/);
-const textFormat=z.object({color:color.optional(),backgroundColor:color.optional(),fontSize:z.number().int().min(10).max(48).optional(),fontFamily:z.enum(['Arial','Georgia','Verdana','Tahoma','Trebuchet MS']).optional(),align:z.enum(['left','center','right','justify']).optional(),bold:z.boolean().optional(),italic:z.boolean().optional(),underline:z.boolean().optional()}).strict();
+const textFormat=z.object({color:color.optional(),backgroundColor:color.optional(),fontSize:z.number().int().min(10).max(48).optional(),fontFamily:z.enum(['Arial','Georgia','Verdana','Tahoma','Trebuchet MS']).optional(),align:z.enum(['left','center','right','justify']).optional(),lineHeight:z.number().min(1).max(3).optional(),paragraphSpacing:z.number().int().min(0).max(64).optional(),letterSpacing:z.number().min(-1).max(10).optional(),bold:z.boolean().optional(),italic:z.boolean().optional(),underline:z.boolean().optional()}).strict();
 const footerSchema=z.object({address:z.string().max(500).optional(),website:z.union([z.literal(''),https]).optional(),alignment:z.enum(['left','center','right']).optional(),backgroundColor:color.optional(),textColor:color.optional(),showCompany:z.boolean().optional(),social:z.array(z.object({platform:z.enum(['facebook','instagram','x','linkedin','youtube','tiktok']),url:https}).strict()).max(8).optional()}).strict();
 export const blockSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('heading'),text:z.string(),format:textFormat.optional()}).strict(),
