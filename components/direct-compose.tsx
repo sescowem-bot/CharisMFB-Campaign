@@ -20,9 +20,9 @@ type Contact={id:string;first_name:string|null;last_name:string|null;email:strin
 type Group={id:string;name:string};
 type Template={id:string;name:string;subject:string;design:EmailDesign;source:'bank'|'starter'};
 type MediaAsset={id:string;file_name:string;public_url:string};
-export function DirectCompose({token,userId,organizationId,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,assets,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false,customFields=[],providerChoiceAvailable=false,readyEmailProviders=[]}:{
+export function DirectCompose({token,userId,organizationId,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,assets,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false,customFields=[],readyEmailProviders=[]}:{
  token:string;userId:string;organizationId:string;contacts:Contact[];groups:Group[];canBulk:boolean;emailEnabled:boolean;smsEnabled:boolean;maxRecipients:number;
- templates:Template[];assets:MediaAsset[];templateStudioUrl:string;brand:{name:string;color:string;address:string;website:string;social?:Record<string,string>};schedulingEnabled:boolean;approvalRequired?:boolean;customFields?:string[];providerChoiceAvailable?:boolean;readyEmailProviders?:string[];
+ templates:Template[];assets:MediaAsset[];templateStudioUrl:string;brand:{name:string;color:string;address:string;website:string;social?:Record<string,string>};schedulingEnabled:boolean;approvalRequired?:boolean;customFields?:string[];readyEmailProviders?:string[];
 }){
  const [state,submit,pending]=useActionState(createDirectMessage,{});
  const [step,setStep]=useState(0);
@@ -213,7 +213,6 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
   audience==='list'?groups.find(g=>g.id===groupId)?.name||(groupId?'Imported recipient group':'No group chosen'):'All eligible contacts (within your limit)';
  const typeLabel=purpose==='general_notice'?'General notice':purpose==='service_notice'?'Service update':'Account notification';
  const productLabel=({general:'General banking',savings:'Savings',current:'Current account',fixed_deposit:'Fixed deposit',loans:'Loans',mobile_app:'Mobile banking',other:'Other'} as Record<string,string>)[product]||'General banking';
- const purposeHint=purpose==='general_notice'?'For announcements, opening hours, or general information.':purpose==='service_notice'?'For changes to bank services, channels, or availability.':'For a notice related to a customer account. Do not include passwords, PINs or OTPs.';
  const steps=[{label:'Write message',icon:MessageSquareText},
               {label:'Recipients',icon:UsersRound},
               {label:'Preview',icon:Eye},
