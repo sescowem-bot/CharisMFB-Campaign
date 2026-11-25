@@ -32,7 +32,7 @@ export function renderCampaign(input:{design:unknown;subject:string;preheader?:s
  if(!/^https:\/\//.test(unsubscribe))throw new Error('Unsubscribe link must use HTTPS.');
  const content=design.blocks.map(b=>{
   if(b.type==='heading')return `<h1 style="font-size:${style==='announcement'?30:26}px;line-height:1.3;color:${headingColor};margin:0 0 20px;${formatStyle(b.format)}">${replace(b.text)}</h1>`;
-  if(b.type==='paragraph')return `<p style="${formatStyle(b.format)}margin:0 0 16px">${replace(b.text)}</p>`;
+  if(b.type==='paragraph')return `<p style="${formatStyle(b.format)}margin:0 0 ${Math.max(0,Math.min(64,b.format?.paragraphSpacing??16))}px">${replace(b.text)}</p>`;
   if(b.type==='button')return `<table role="presentation" cellpadding="0" cellspacing="0"><tr><td bgcolor="${color}" style="padding:14px 22px"><a href="${escapeHtml(b.url)}" style="color:#ffffff;text-decoration:none">${replace(b.text)}</a></td></tr></table>`;
   if(b.type==='divider')return '<hr style="border:0;border-top:1px solid #e2e8f0;margin:24px 0"/>';
   if(b.type==='image'){
