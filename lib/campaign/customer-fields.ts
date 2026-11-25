@@ -11,10 +11,10 @@ const accountKeys=new Set(['account_number','account_no','account_reference','ac
 export function safeCustomerAttribute(key:string):boolean{
  return /^[a-z][a-z0-9_]{0,39}$/.test(key)&&!core.has(key)&&!hidden.test(key)&&(!(key.startsWith('account')||key.startsWith('acct'))||accountKeys.has(key)||key==='account_type');
 }
-export const isAccountAttribute=(key:string)=>accountKeys.has(key);
+export const isAccountAttribute=(key:string)=>accountKeys.has(key)||((key.startsWith('account')||key.startsWith('acct'))&&key!=='account_type');
 export function customerFieldOptions(keys:string[]){
  const uniques=[...new Set(keys.filter(safeCustomerAttribute))].sort().slice(0,30);
- return [...basicCustomerFields,...uniques.map(key=>({key:'attributes.'+key,label:isAccountAttribute(key)?'Account (last four digits)':key.replaceAll('_',' ').replace(/^./,a=>a.toUpperCase())}))];
+ return [...basicCustomerFields,...uniques.map(key=>({key:'attributes.'+key,label:isAccountAttribute(key)?'Account number (masked · last 4 digits)':key.replaceAll('_',' ').replace(/^./,a=>a.toUpperCase())}))];
 }
 export function allowedCustomerToken(key:string){
  return basicCustomerFields.some(f=>f.key===key)||(key.startsWith('attributes.')&&safeCustomerAttribute(key.slice(11)));

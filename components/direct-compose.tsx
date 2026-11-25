@@ -12,6 +12,7 @@ import {campaignParagraphs,checkDirectDesign} from '@/lib/direct/campaign-design
 import {customerFieldOptions} from '@/lib/campaign/customer-fields';
 import {makeSimpleEmailDesign,simpleEmailStyles,type SimpleEmailStyle} from '@/lib/direct/simple-email';
 import {DirectCampaignReceipt} from '@/components/direct-campaign-receipt';
+import {ContactImportWizard} from '@/components/contact-import-wizard';
 import {campaignDraftKey,readCampaignDraft,storeCampaignDraft,discardCampaignDraft,type CampaignDraft} from '@/lib/direct/browser-draft';
 const GrapesEmailEditor=dynamic(()=>import('@/components/grapes-email-editor').then(m=>m.GrapesEmailEditor),{ssr:false,loading:()=> <p className="muted" role="status">Opening visual email editor…</p>});
 
@@ -19,9 +20,9 @@ type Contact={id:string;first_name:string|null;last_name:string|null;email:strin
 type Group={id:string;name:string};
 type Template={id:string;name:string;subject:string;design:EmailDesign;source:'bank'|'starter'};
 type MediaAsset={id:string;file_name:string;public_url:string};
-export function DirectCompose({token,userId,organizationId,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,assets,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false,customFields=[],providerChoiceAvailable=false,readyEmailProviders=[]}:{
+export function DirectCompose({token,userId,organizationId,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,assets,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false,customFields=[],readyEmailProviders=[]}:{
  token:string;userId:string;organizationId:string;contacts:Contact[];groups:Group[];canBulk:boolean;emailEnabled:boolean;smsEnabled:boolean;maxRecipients:number;
- templates:Template[];assets:MediaAsset[];templateStudioUrl:string;brand:{name:string;color:string;address:string;website:string};schedulingEnabled:boolean;approvalRequired?:boolean;customFields?:string[];providerChoiceAvailable?:boolean;readyEmailProviders?:string[];
+ templates:Template[];assets:MediaAsset[];templateStudioUrl:string;brand:{name:string;color:string;address:string;website:string;social?:Record<string,string>};schedulingEnabled:boolean;approvalRequired?:boolean;customFields?:string[];readyEmailProviders?:string[];
 }){
  const [state,submit,pending]=useActionState(createDirectMessage,{});
  const [step,setStep]=useState(0);
@@ -90,6 +91,8 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
  }
 
  const [variable,setVariable]=useState('first_name');
+ const [newSocialPlatform,setNewSocialPlatform]=useState<'facebook'|'instagram'|'x'|'linkedin'|'youtube'|'tiktok'>('facebook');
+ const [newSocialUrl,setNewSocialUrl]=useState('');
  const fieldChoices=customerFieldOptions(customFields);
  const [mode,setMode]=useState<'now'|'later'>('now');
  const [sendAt,setSendAt]=useState('');
@@ -189,7 +192,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
  },[search]);
  const filtered=(search.length<2?contacts:results).filter(c=>search.length<2||`${c.first_name||''} ${c.last_name||''} ${c.email||''} ${c.phone||''}`.toLowerCase().includes(search.toLowerCase())).slice(0,40);
  const richBody=design?campaignParagraphs(design):body;
- const effectiveDesign=useMemo(()=>channel==='email'?(design??makeSimpleEmailDesign(body,simpleGreeting,simpleStyle)):null,[channel,design,body,simpleGreeting,simpleStyle]);
+ const effectiveDesign=useMemo(()=>{if(channel!=='email')return null;const base=design??makeSimpleEmailDesign(body,simpleGreeting,simpleStyle);const social=Object.entries(brand.social||{}).flatMap(([platform,url])=>['facebook','instagram','x','linkedin','youtube','tiktok'].includes(platform)&&url?[{platform:platform as 'facebook'|'instagram'|'x'|'linkedin'|'youtube'|'tiktok',url}]:[]);return {...base,footer:{...base.footer,address:base.footer?.address??brand.address,website:base.footer?.website??brand.website,social:base.footer?.social??social}};},[channel,design,body,simpleGreeting,simpleStyle,brand]);
  const composedBody=channel==='email'&&design?richBody:body.trim();
  // Keep typing responsive: render HTML for review/confirmation, not during editing.
  const designError=useMemo(()=>{
@@ -203,14 +206,12 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
   if(designError)return {html:'',subject,error:designError,sampleName:'Sample customer'};
   return renderDirectEmailPreview({design:effectiveDesign,subject,body,brand,contact:sampleContact,customFields});
  },[step,channel,effectiveDesign,subject,body,brand,designError,sampleContact,customFields]);
- const messageReady=subject.trim().length>=3&&subject.trim().length<=180&&composedBody.trim().length>=10&&composedBody.trim().length<=2000&&!designError;
+ const messageReady=subject.trim().length>=3&&subject.trim().length<=180&&composedBody.trim().length>=10&&(channel!=='sms'||composedBody.trim().length<=480)&&!designError;
  const recipientsReady=audience==='selected'?chosen.length>0:audience==='list'?Boolean(groupId):canBulk;
  const scheduleReady=mode==='now'||(schedulingEnabled&&sendAt.trim().length>0);
  const audienceLabel=audience==='selected'?chosen.length+' selected contact'+(chosen.length===1?'':'s'):
-  audience==='list'?groups.find(g=>g.id===groupId)?.name||'No group chosen':'All eligible contacts (within your limit)';
- const typeLabel=purpose==='general_notice'?'General notice':purpose==='service_notice'?'Service update':'Account notification';
+  audience==='list'?groups.find(g=>g.id===groupId)?.name||(groupId?'Imported recipient group':'No group chosen'):'All eligible contacts (within your limit)';
  const productLabel=({general:'General banking',savings:'Savings',current:'Current account',fixed_deposit:'Fixed deposit',loans:'Loans',mobile_app:'Mobile banking',other:'Other'} as Record<string,string>)[product]||'General banking';
- const purposeHint=purpose==='general_notice'?'For announcements, opening hours, or general information.':purpose==='service_notice'?'For changes to bank services, channels, or availability.':'For a notice related to a customer account. Do not include passwords, PINs or OTPs.';
  const steps=[{label:'Write message',icon:MessageSquareText},
               {label:'Recipients',icon:UsersRound},
               {label:'Preview',icon:Eye},
@@ -247,6 +248,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
    [items[index],items[target]]=[items[target],items[index]];
    return {...d,blocks:items};});
  }
+ function updateFooter(patch:Partial<NonNullable<EmailDesign['footer']>>){setDesign(d=>{const base=d??effectiveDesign;if(!base)return d;return {...base,footer:{...base.footer,...patch}};});}
  function addBlock(type:'heading'|'paragraph'|'divider'|'button'){
   setDesign(d=>{if(!d||d.blocks.length>=30)return d;
    const newBlock:EmailBlock=type==='heading'?{type:'heading',text:'New heading'}:
@@ -271,7 +273,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
   <input type="hidden" name="purpose" value={purpose}/>
   <input type="hidden" name="product" value={showProduct?product:'general'}/>
   <input type="hidden" name="channel" value={channel}/>
-  <input type="hidden" name="send_provider" value={channel==='email'?emailProvider:''}/>
+  <input type="hidden" name="send_provider" value="sendbyte"/>
   <input type="hidden" name="audience" value={audience}/>
   <input type="hidden" name="contact_ids" value={chosen.join(',')}/>
   <input type="hidden" name="list_id" value={audience==='list'?groupId:''}/>
@@ -298,21 +300,6 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
      {emailEnabled&&<button type="button" aria-pressed={channel==='email'} onClick={()=>{setChannel('email');setChosen([]);setSelectedDetails({});setAudience('selected');}}><Mail size={17}/> Email</button>}
      {smsEnabled&&<button type="button" aria-pressed={channel==='sms'} onClick={()=>{if(design){setBody(richBody.replace(/\{\{[^}]*\}\}/g,'').trim());setDesign(null);setTemplateId('');}setChannel('sms');setCcEmails('');setBccEmails('');setChosen([]);setSelectedDetails({});setAudience('selected');}}><Smartphone size={17}/> SMS</button>}
     </fieldset>
-    <div className="charis-purpose-choice">
-     <label>What is this message about?<select aria-label="Message purpose" value={purpose} onChange={e=>{setPurpose(e.target.value);setConfirmed(false);}}>
-      <option value="general_notice">General announcement</option>
-      <option value="service_notice">Bank service update</option>
-      <option value="account_update">Customer account notice</option>
-     </select></label>
-     <p className="charis-purpose-hint">{purposeHint}</p>
-    </div>
-   </div>
-   <div className="charis-optional-product">
-    <label><input type="checkbox" checked={showProduct} onChange={e=>{setShowProduct(e.target.checked);if(!e.target.checked)setProduct('general');}}/> This message concerns a particular banking product</label>
-    {showProduct&&<label>Choose product<select aria-label="Related banking product" value={product} onChange={e=>setProduct(e.target.value)}>
-     <option value="general">General banking</option><option value="savings">Savings</option><option value="current">Current account</option>
-     <option value="fixed_deposit">Fixed deposit</option><option value="loans">Loans</option><option value="mobile_app">Mobile banking</option><option value="other">Other</option>
-    </select></label>}
    </div>
    {channel==='email'&&<details className="charis-template-choice" open={Boolean(templateId)}>
     <summary>{templateId?'Email design selected — change template':'Use a saved email design (optional)'}</summary>
@@ -350,7 +337,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
     </fieldset>
     <label>Email greeting<input aria-label="Email greeting" maxLength={200} value={simpleGreeting} onChange={e=>setSimpleGreeting(e.target.value)} placeholder="Hello {{first_name}},"/></label>
    </section>}
-   {!design||channel==='sms'?<label>Message<textarea rows={6} maxLength={channel==='sms'?480:2000} value={body} onChange={e=>setBody(e.target.value)} placeholder="Write a clear message. Never request a PIN, password or OTP."/><small className="muted">{body.length}/{channel==='sms'?480:2000}</small></label>:
+   {!design||channel==='sms'?<label>Message<textarea rows={6} maxLength={channel==='sms'?480:undefined} value={body} onChange={e=>setBody(e.target.value)} placeholder="Write a clear message. Never request a PIN, password or OTP."/><small className="muted">{channel==='sms'?`${body.length}/480 characters`:'Email message length is not capped.'}</small></label>:
     <div className="direct-editor">
      <div className="actions" role="group" aria-label="Email editing mode">
       <button type="button" className="btn secondary" aria-pressed={editorMode==='visual'} onClick={()=>setEditorMode('visual')}>Visual drag-and-drop editor</button>
@@ -358,7 +345,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
      </div>
      {editorMode==='visual'?<GrapesEmailEditor design={design} onChange={setDesign} assets={assets} brandName={brand.name} brandColor={brand.color} websiteUrl={brand.website} availableFields={customFields}/>:
      <><h3>Email sections</h3>{design.blocks.map((block,index)=><div key={index} className="direct-block-editor"><div className="direct-block-top"><strong>{block.type==='shape'?'Accent':block.type}</strong><span><button type="button" onClick={()=>moveBlock(index,-1)} disabled={index===0} aria-label="Move section up">↑</button><button type="button" onClick={()=>moveBlock(index,1)} disabled={index===design.blocks.length-1} aria-label="Move section down">↓</button><button type="button" disabled={design.blocks.length===1} onClick={()=>setDesign(d=>d?{...d,blocks:d.blocks.filter((_,i)=>i!==index)}:d)} aria-label="Remove section">×</button></span></div>
-     {['heading','paragraph','shape'].includes(block.type)&&<textarea aria-label={`Section ${index+1} text`} rows={block.type==='paragraph'?4:2} value={block.text} onChange={e=>updateBlock(index,{text:e.target.value})} maxLength={block.type==='paragraph'?2000:200}/>}
+     {['heading','paragraph','shape'].includes(block.type)&&<textarea aria-label={`Section ${index+1} text`} rows={block.type==='paragraph'?4:2} value={block.text} onChange={e=>updateBlock(index,{text:e.target.value})} maxLength={block.type==='shape'?200:undefined}/>}
      {block.type==='button'&&<><label>Button label<input value={block.text} maxLength={200} onChange={e=>updateBlock(index,{text:e.target.value})}/></label><label>Button destination<input type="url" value={block.url} onChange={e=>updateBlock(index,{url:e.target.value} as Partial<EmailBlock>)}/></label></>}
      {block.type==='image'&&<small className="muted">Bank-approved image · {block.text}</small>}
     </div>)}
@@ -366,6 +353,19 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
      </>}
      {designError&&<p role="alert" className="feedback-error">{designError}</p>}<p className="muted">Full email preview is available in step 3. No email is sent while editing.</p>
     </div>}
+   {channel==='email'&&<section className="charis-campaign-footer-editor" aria-label="Campaign footer and social links">
+    <h3>Email footer & social links</h3><p>These details apply to this campaign only. They will not change the bank’s saved brand settings.</p>
+    <label>Contact / office address<textarea rows={2} maxLength={500} value={effectiveDesign?.footer?.address??brand.address} onChange={e=>updateFooter({address:e.target.value})}/></label>
+    <label>Website URL<input type="url" value={effectiveDesign?.footer?.website??brand.website} onChange={e=>updateFooter({website:e.target.value})} placeholder="https://…"/></label>
+    <strong>Social media profiles</strong>
+    {(effectiveDesign?.footer?.social||[]).map((item,index)=><div className="charis-footer-social-row" key={item.platform}>
+     <label>Platform<select value={item.platform} onChange={e=>updateFooter({social:(effectiveDesign?.footer?.social||[]).map((x,i)=>i===index?{...x,platform:e.target.value as typeof item.platform}:x)})}>{['facebook','instagram','x','linkedin','youtube','tiktok'].map(v=><option key={v} value={v}>{v}</option>)}</select></label>
+     <label>Profile URL<input type="url" value={item.url} onChange={e=>updateFooter({social:(effectiveDesign?.footer?.social||[]).map((x,i)=>i===index?{...x,url:e.target.value}:x)})}/></label>
+     <button type="button" className="btn secondary" aria-label="Move social link up" disabled={index===0} onClick={()=>{const items=[...(effectiveDesign?.footer?.social||[])];[items[index-1],items[index]]=[items[index],items[index-1]];updateFooter({social:items});}}>↑</button><button type="button" className="btn secondary" aria-label="Move social link down" disabled={index===(effectiveDesign?.footer?.social||[]).length-1} onClick={()=>{const items=[...(effectiveDesign?.footer?.social||[])];[items[index],items[index+1]]=[items[index+1],items[index]];updateFooter({social:items});}}>↓</button><button type="button" className="btn secondary" onClick={()=>updateFooter({social:(effectiveDesign?.footer?.social||[]).filter((_,i)=>i!==index)})}>Remove</button>
+    </div>)}
+    <div className="charis-footer-social-row"><label>New profile<select value={newSocialPlatform} onChange={e=>setNewSocialPlatform(e.target.value as typeof newSocialPlatform)}>{['facebook','instagram','x','linkedin','youtube','tiktok'].map(v=><option key={v} value={v}>{v}</option>)}</select></label><label>Profile URL<input type="url" value={newSocialUrl} onChange={e=>setNewSocialUrl(e.target.value)} placeholder="https://…"/></label><button type="button" className="btn secondary" disabled={!newSocialUrl.startsWith('https://')||(effectiveDesign?.footer?.social||[]).some(x=>x.platform===newSocialPlatform)||(effectiveDesign?.footer?.social||[]).length>=8} onClick={()=>{updateFooter({social:[...(effectiveDesign?.footer?.social||[]),{platform:newSocialPlatform,url:newSocialUrl}]});setNewSocialUrl('');}}>Add link</button></div>
+    <div className="charis-footer-style-row"><label>Footer alignment<select value={effectiveDesign?.footer?.alignment||'left'} onChange={e=>updateFooter({alignment:e.target.value as 'left'|'center'|'right'})}><option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option></select></label><label>Footer background<input type="color" value={effectiveDesign?.footer?.backgroundColor||'#f8fafc'} onChange={e=>updateFooter({backgroundColor:e.target.value})}/></label><label>Footer text colour<input type="color" value={effectiveDesign?.footer?.textColor||'#64748b'} onChange={e=>updateFooter({textColor:e.target.value})}/></label></div>
+   </section>}
   </section>
   <section style={{display:step===1?'block':'none'}} aria-label="Choose recipients" className="charis-flow-panel"><div className="charis-flow-panel-heading"><span className="charis-flow-panel-icon"><UsersRound size={21}/></span><div><h3>Choose your recipients</h3><p>Find the customers who should receive this message. Only eligible recipients are included.</p></div></div>
    <div className="direct-audience-head"><h3>Recipients</h3><small className="muted">Maximum {maxRecipients} per campaign</small></div>
@@ -379,7 +379,8 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
     <div className="direct-contact-list">{filtered.filter(c=>channel==='email'?!!c.email:!!c.phone).map(c=><label className="direct-contact-row" key={c.id}><input type="checkbox" checked={chosen.includes(c.id)} disabled={!chosen.includes(c.id)&&chosen.length>=maxRecipients} onChange={e=>{if(e.target.checked){setChosen(old=>old.length>=maxRecipients?old:[...old,c.id]);setSelectedDetails(old=>({...old,[c.id]:c}));}else{setChosen(old=>old.filter(id=>id!==c.id));setSelectedDetails(old=>{const updated={...old};delete updated[c.id];return updated;});}}}/><span><strong>{[c.first_name,c.last_name].filter(Boolean).join(' ')||'Customer'}</strong><small>{channel==='email'?c.email:c.phone}</small></span></label>)}</div>
     {chosen.length>0&&<div className="direct-selection-summary" aria-live="polite"><strong>{chosen.length} selected</strong>{chosen.map(id=><button key={id} type="button" className="direct-selection-chip" onClick={()=>{setChosen(old=>old.filter(x=>x!==id));setSelectedDetails(old=>{const updated={...old};delete updated[id];return updated;});}} aria-label={`Remove ${selectedDetails[id]?.first_name||'contact'}`}><span>{[selectedDetails[id]?.first_name,selectedDetails[id]?.last_name].filter(Boolean).join(' ')||selectedDetails[id]?.email||'Contact'}</span><span aria-hidden="true"> ×</span></button>)}</div>}
    </div>}
-   {audience==='list'&&<label>Contact group<select value={groupId} onChange={e=>setGroupId(e.target.value)}><option value="">Choose group</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></label>}
+   {audience==='list'&&<label>Contact group<select value={groupId} onChange={e=>setGroupId(e.target.value)}><option value="">Choose group</option>{groupId&&!groups.some(g=>g.id===groupId)&&<option value={groupId}>Imported recipient group</option>}{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></label>}
+   {audience==='selected'&&<details className="charis-template-choice charis-recipient-upload"><summary>Upload a recipient spreadsheet</summary><p className="muted">Import a customer file here, review its columns and confirm existing marketing permission. Imported customers can be added to this campaign immediately.</p><ContactImportWizard org={organizationId} lists={groups} campaignMode onComplete={id=>{if(id){setGroupId(id);setAudience('list');setChosen([]);setSelectedDetails({});setDraftWarning('Imported group selected. Review the recipient group before continuing.');}}}/></details>}
    {audience==='all'&&<p className="muted">The system checks recipient eligibility and your access. If the audience exceeds {maxRecipients}, choose a smaller group.</p>}
   </section>
   <section style={{display:step===2?'block':'none'}} aria-label="Preview campaign" className="charis-flow-panel"><div className="charis-flow-panel-heading"><span className="charis-flow-panel-icon"><Eye size={21}/></span><div><h3>Review your message</h3><p>Read the email carefully and inspect how it appears on a computer or phone.</p></div></div>
@@ -387,7 +388,6 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
    <p className="muted">Review the message and recipients. Nothing will be sent on this step.</p>
    <dl className="charis-flow-summary" aria-label="Campaign review summary">
     <div><dt>Channel</dt><dd>{channel==='email'?'Email':'SMS'}</dd></div>
-    <div><dt>Message type</dt><dd>{typeLabel}</dd></div>
     <div><dt>Subject</dt><dd>{subject}</dd></div>
     {channel==='email'&&ccEmails.trim()&&<div><dt>CC</dt><dd>{ccEmails}</dd></div>}{channel==='email'&&bccEmails.trim()&&<div><dt>BCC</dt><dd>{bccEmails}</dd></div>}
     <div><dt>Audience</dt><dd>{audienceLabel}</dd></div>
@@ -405,21 +405,12 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
     <div><dt>Subject</dt><dd>{subject}</dd></div>
     <div><dt>Recipients</dt><dd>{audienceLabel}</dd></div>
     {audience==='selected'&&<div><dt>Delivery groups</dt><dd>{Math.ceil(chosen.length/50)} group{Math.ceil(chosen.length/50)===1?'':'s'} of up to 50</dd></div>}
-    <div><dt>Channel & type</dt><dd>{channel.toUpperCase()} · {typeLabel}</dd></div>
+    <div><dt>Channel</dt><dd>{channel.toUpperCase()}</dd></div>
     {showProduct&&<div><dt>Product</dt><dd>{productLabel}</dd></div>}
    </dl>
    {channel==='email'?(step===3&&<DirectEmailPreview key="confirmation" preview={preview} finalReview/>):
     <div className="direct-review" style={{whiteSpace:'pre-wrap'}} aria-label="Final SMS preview">{composedBody}</div>}
-   {channel==='email'&&<div className="charis-final-provider-choice">
-    <label>Send using
-     <select aria-label="Email provider for this campaign" value={emailProvider} disabled={!providerChoiceAvailable||!readyEmailProviders.length} onChange={e=>{setEmailProvider(e.target.value);setConfirmed(false);}}>
-      <option value="sendbyte" disabled={!readyEmailProviders.includes('sendbyte')}>SendByte · Primary</option>
-      <option value="resend" disabled={!readyEmailProviders.includes('resend')}>Resend</option>
-      <option value="brevo" disabled={!readyEmailProviders.includes('brevo')}>Brevo</option>
-     </select>
-    </label>
-    <p>{!providerChoiceAvailable?'Email sending is not available yet.':!readyEmailProviders.length?'No email provider is connected yet. Please contact your administrator.':'This campaign will use only the provider selected here. If it is unavailable, the campaign will stop for review.'}</p>
-   </div>}
+   {channel==='email'&&<p className={'charis-flow-guidance'}><Info size={16}/><span>Email is sent through the bank’s configured email service. Staff do not need to select a provider.</span></p>}
    <label>When to send<select value={mode} onChange={e=>{setConfirmed(false);setMode(e.target.value as 'now'|'later');}}><option value="now">Send now</option>{schedulingEnabled&&<option value="later">Schedule for later</option>}</select></label>
    {mode==='later'&&<label>Send on (Nigeria time · WAT)<input type="datetime-local" value={sendAt} onChange={e=>{setConfirmed(false);setSendAt(e.target.value);}}/></label>}
    <div className="charis-flow-guidance"><Info size={16}/><span>Review the message and recipient list before sending.</span></div>
@@ -428,7 +419,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
    </label>
    <p className="muted">{approvalRequired?'The campaign will go for approval before sending.':mode==='later'?'It will be queued for your selected time.':'Messages will be submitted when you click Confirm & Send.'}</p>
   </section>
-  {step===0&&!messageReady&&<p className="charis-flow-guidance" role="status"><Info size={16}/><span>To continue, enter a subject (3–180 characters) and a message (10–2,000 characters), and resolve any design warnings.</span></p>}
+  {step===0&&!messageReady&&<p className="charis-flow-guidance" role="status"><Info size={16}/><span>To continue, enter a subject (3–180 characters) and a message (at least 10 characters; SMS is limited to 480), and resolve any design warnings.</span></p>}
   {step===1&&!recipientsReady&&<p className="charis-flow-guidance" role="status"><Info size={16}/><span>Select at least one customer or choose a contact group to continue.</span></p>}
   {step===2&&!!preview.error&&<p className="charis-flow-guidance" role="alert"><Info size={16}/><span>Fix the preview issue before continuing. Use Back to edit the message.</span></p>}
   <div className="direct-wizard-actions"><p className="charis-flow-navigation-note">Step {step+1} of 4 · You can go back without losing the message you have written.</p><div className="charis-flow-button-group">

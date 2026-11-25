@@ -34,10 +34,10 @@ export async function createDirectMessage(_:DirectState,form:FormData):Promise<D
   const org=account.workspace.id,db=await supabaseServer();
   const {data:permitted,error:permissionError}=await db.rpc('charis_direct_can_send',{p_org:org});
   if(permissionError||permitted!==true)throw Error('You do not have permission to send campaigns.');
-  const parsed=z.object({token:z.uuid(),subject:z.string().trim().min(3).max(180),body:z.string().trim().max(2000),channel:z.enum(['email','sms']),purpose:z.enum(['service_notice','account_update','general_notice']),product:z.enum(['general','savings','current','fixed_deposit','loans','mobile_app','other']),audience:z.enum(['selected','list','all']),mode:z.enum(['now','later'])}).parse({
+  const parsed=z.object({token:z.uuid(),subject:z.string().trim().min(3).max(180),body:z.string().trim(),channel:z.enum(['email','sms']),purpose:z.enum(['service_notice','account_update','general_notice']),product:z.enum(['general','savings','current','fixed_deposit','loans','mobile_app','other']),audience:z.enum(['selected','list','all']),mode:z.enum(['now','later'])}).parse({
    token:form.get('token'),subject:form.get('subject'),body:form.get('body'),channel:form.get('channel'),purpose:form.get('purpose'),product:form.get('product'),audience:form.get('audience'),mode:form.get('mode')
   });
-  const selectedProvider=parsed.channel==='email'?z.enum(['sendbyte','resend','brevo']).parse(String(form.get('send_provider')||'sendbyte')):'sendbyte';
+  const selectedProvider='sendbyte';
   const parseCopies=(raw:FormDataEntryValue|null)=>String(raw||'').split(/[;,\r\n]/).map(v=>v.trim()).filter(Boolean).map(mailbox);
   const cc=parseCopies(form.get('cc_emails')),bcc=parseCopies(form.get('bcc_emails'));
   if(parsed.channel==='sms'&&(cc.length||bcc.length))throw Error('CC and BCC are available for email campaigns only.');
@@ -50,7 +50,7 @@ export async function createDirectMessage(_:DirectState,form:FormData):Promise<D
   if(parsed.channel==='email'){
    // Validate routing server-side without leaking admin settings to staff.
    const readiness=await directEmailReadiness(org);
-   if(!readiness.providers.some(x=>x.provider===selectedProvider))throw Error('The selected email provider is not ready. Choose another connected provider or contact an administrator.');
+   if(!readiness.providers.some(x=>x.provider===selectedProvider))throw Error('The configured Charis email service is not ready. Please contact your administrator.');
    if(!readiness.ready)throw Error(readiness.reason==='schema_missing'
     ?'Delivery tracking needs the latest database upgrade. Contact your administrator.'
     :'No verified service email sender is ready. Contact your administrator.');
@@ -76,7 +76,7 @@ export async function createDirectMessage(_:DirectState,form:FormData):Promise<D
    renderCampaign({design,subject:parsed.subject,company:brand.display_name||'Charis Microfinance Bank',address:brand.postal_address||'',color:brand.primary_color||'#40239a',contact:{first_name:'Customer',last_name:'Example'},testPreview:true});
   }
   if(parsed.channel==='sms'&&designInput)throw Error('Email layouts cannot be used for SMS.');
-  if(finalBody.length<10||finalBody.length>2000||(parsed.channel==='sms'&&finalBody.length>480))
+  if(finalBody.length<10||(parsed.channel==='sms'&&finalBody.length>480))
    throw Error('Enter a valid message before continuing.');
   const recipients=String(form.get('contact_ids')||'').split(',').filter(Boolean).map(id=>z.uuid().parse(id));
   const group=form.get('list_id')?z.uuid().parse(form.get('list_id')):null;

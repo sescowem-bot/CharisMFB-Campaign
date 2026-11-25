@@ -18,7 +18,7 @@ test('unsafe button URLs and empty designs cannot be rendered',()=>{
 });
 test('email rendering includes fixed footer, HTTPS unsubscribe and a safe color',()=>{
  const preview=renderCampaign({design,subject:'Hi {{first_name}}',preheader:'A preview',company:'Company',address:'12 Main Street',color:'red; background:url(x)',contact:{first_name:'Alex'}});
- assert.equal(preview.subject,'Hi Alex');assert.ok(preview.html.includes('12 Main Street'));assert.ok(preview.html.includes('example.invalid/unsubscribe-preview'));assert.ok(preview.html.includes('bgcolor="#102b4e"'));assert.ok(preview.html.includes('A preview'));assert.ok(preview.html.includes('role="presentation"'));
+ assert.equal(preview.subject,'Hi Alex');assert.ok(preview.html.includes('12 Main Street'));assert.ok(preview.html.includes('example.invalid/unsubscribe-preview'));assert.ok(preview.html.includes('background:#40239a'));assert.ok(preview.html.includes('A preview'));assert.ok(preview.html.includes('role="presentation"'));
 });
 test('rendered subjects reject line breaks introduced by personalization',()=>{
  assert.throws(()=>renderCampaign({design,subject:'Hello {{first_name}}',company:'Company',address:'Address',contact:{first_name:'Name\r\nBcc: other@example.com'}}),/line breaks/);

@@ -1,7 +1,7 @@
 'use client';
 
 import {useEffect,useRef,useState} from 'react';
-import {Type,AlignLeft,Image as ImageIcon,Square,PanelTop,Circle,RectangleHorizontal,Minus,MousePointerClick,MoveUp,MoveDown,Copy,Trash2,Monitor,Smartphone,GripVertical,Shapes,Maximize2,Minimize2} from 'lucide-react';
+import {Type,AlignLeft,Image as ImageIcon,Square,PanelTop,Circle,RectangleHorizontal,Minus,MousePointerClick,MoveUp,MoveDown,Copy,Trash2,Monitor,Smartphone,GripVertical,Shapes,Maximize2,Minimize2,Upload} from 'lucide-react';
 import './template-studio-premium.css';
 import type {Editor} from 'grapesjs';
 import {designSchema,verifiedBrandWebsite,type EmailBlock,type EmailDesign} from '@/lib/campaign/design';
@@ -24,8 +24,8 @@ function starter(type:EmailBlock['type'],assets:Media[],website:string):EmailBlo
 function markup(block:EmailBlock,index:number):string {
  const attr=`data-charis-type="${block.type}" data-charis-index="${index}"${block.type==='shape'?` data-charis-shape="${block.shape}"`:''}`;
  const text=escapeHtml(block.text);
- if(block.type==='heading')return `<section ${attr} style="padding:8px 0"><h2 style="font-size:25px;color:#13233b">${text}</h2></section>`;
- if(block.type==='paragraph')return `<section ${attr} style="padding:8px 0"><p style="font-size:16px;line-height:1.7;white-space:pre-wrap">${text}</p></section>`;
+ if(block.type==='heading')return `<section ${attr} style="padding:8px 0"><h2 style="font-size:${block.format?.fontSize||25}px;line-height:${block.format?.lineHeight||1.3};letter-spacing:${block.format?.letterSpacing||0}px;background-color:${block.format?.backgroundColor||'transparent'};color:${block.format?.color||'#13233b'};font-family:${block.format?.fontFamily||'Arial'},sans-serif;text-align:${block.format?.align||'left'};font-weight:${block.format?.bold===false?'400':'700'};font-style:${block.format?.italic?'italic':'normal'};text-decoration:${block.format?.underline?'underline':'none'}">${text}</h2></section>`;
+ if(block.type==='paragraph')return `<section ${attr} style="padding:8px 0"><p style="font-size:${block.format?.fontSize||16}px;line-height:${block.format?.lineHeight||1.7};letter-spacing:${block.format?.letterSpacing||0}px;margin:0 0 ${block.format?.paragraphSpacing??16}px;white-space:pre-wrap;background-color:${block.format?.backgroundColor||'transparent'};color:${block.format?.color||'#243047'};font-family:${block.format?.fontFamily||'Arial'},sans-serif;text-align:${block.format?.align||'left'};font-weight:${block.format?.bold?'700':'400'};font-style:${block.format?.italic?'italic':'normal'};text-decoration:${block.format?.underline?'underline':'none'}">${text}</p></section>`;
  if(block.type==='divider')return `<section ${attr} style="padding:12px 0"><hr style="border:0;border-top:1px solid #d9dfeb"></section>`;
  if(block.type==='button')return `<section ${attr} style="padding:10px 0"><div style="background:#40239a;color:#fff;padding:14px 20px;display:inline-block">${text}</div></section>`;
  if(block.type==='image')return `<section ${attr} style="padding:10px 0"><img src="${escapeHtml(block.url)}" alt="${text}" style="display:block;width:100%;max-width:${block.width==='small'?180:block.width==='medium'?360:544}px;height:auto"></section>`;
@@ -53,6 +53,9 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
  const onChangeRef=useRef(onChange);
  const assetsRef=useRef(assets);
  const [error,setError]=useState('');
+ const [mediaAssets,setMediaAssets]=useState(assets);
+ const [uploading,setUploading]=useState(false);
+ const fileInput=useRef<HTMLInputElement>(null);
  const [ready,setReady]=useState(false);
  const [selectedIndex,setSelectedIndex]=useState(0);
  const [device,setDevice]=useState<'Desktop'|'Mobile'>('Desktop');
@@ -62,7 +65,8 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
  const addBlockRef=useRef<((type:EmailBlock['type'],shape?:Extract<EmailBlock,{type:'shape'}>['shape'])=>void)|null>(null);
  const website=verifiedBrandWebsite(websiteUrl);
  useEffect(()=>{onChangeRef.current=onChange;},[onChange]);
- useEffect(()=>{assetsRef.current=assets;},[assets]);
+ useEffect(()=>{setMediaAssets(assets);assetsRef.current=assets;},[assets]);
+ useEffect(()=>{assetsRef.current=mediaAssets;},[mediaAssets]);
  useEffect(()=>{
   const version=JSON.stringify(design);
   current.current=design;
@@ -92,7 +96,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
      panels:{defaults:[]},
      deviceManager:{devices:[{id:'Desktop',name:'Desktop',width:''},{id:'Mobile',name:'Mobile',width:'375px'}]},
      components:current.current.blocks.map((b,i)=>markup(b,i)).join(''),
-     style:'html{background:#f1edf8;max-width:100%;overflow-x:hidden}body{width:calc(100% - 24px)!important;max-width:600px!important;background:#fff;color:#13233b;font-family:Arial,sans-serif;box-sizing:border-box;padding:26px 22px;min-height:730px;margin:12px auto!important;box-shadow:0 7px 26px #30135720;overflow-wrap:anywhere;word-break:break-word}section[data-charis-type]{margin:12px 0;cursor:pointer;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere;word-break:break-word}section[data-charis-type] *{box-sizing:border-box;max-width:100%;overflow-wrap:anywhere;word-break:break-word}section[data-charis-type] h2,section[data-charis-type] p{white-space:pre-wrap!important;overflow-wrap:anywhere!important;word-break:break-word!important;line-height:1.5;margin:0}section[data-charis-type]:hover{outline:1px dashed #9d83e3}',
+     style:'html{background:#f1edf8;max-width:100%;overflow-x:hidden}body{width:calc(100% - 24px)!important;max-width:600px!important;background:#fff;color:#13233b;font-family:Arial,sans-serif;box-sizing:border-box;padding:26px 22px;min-height:730px;margin:12px auto!important;box-shadow:0 7px 26px #30135720;overflow-wrap:anywhere;word-break:break-word}section[data-charis-type]{margin:12px 0;cursor:pointer;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere;word-break:break-word}section[data-charis-type] *{box-sizing:border-box;max-width:100%;overflow-wrap:anywhere;word-break:break-word}section[data-charis-type] h2,section[data-charis-type] p{white-space:pre-wrap!important;overflow-wrap:anywhere!important;word-break:break-word!important}section[data-charis-type]:hover{outline:1px dashed #9d83e3}',
     });
     if(cancelled){editor.destroy();return;}
     instance.current=editor;
@@ -141,7 +145,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
        next.push({...base,text:contents.slice(0,200),...(color&&validHex(color)?{color}:{}) ,...(textColor&&validHex(textColor)?{textColor}:{})});
       }
       else if(base.type==='button')next.push({...base,text:contents.slice(0,200)});
-      else next.push({...base,text:contents.slice(0,5000)});
+      else next.push({...base,text:contents});
       if(next.length===30)break;
      }
      const result=designSchema.safeParse({...prior,blocks:next});
@@ -200,6 +204,12 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
   const blocks=[...design.blocks];[blocks[target],blocks[selectedIndex]]=[blocks[selectedIndex],blocks[target]];
   setSelectedIndex(target);onChange({...design,blocks});
  };
+ async function uploadImage(file?:File){
+  if(!file)return;setError('');setUploading(true);
+  try{const data=new FormData();data.set('asset',file);const response=await fetch('/api/direct/media/upload',{method:'POST',body:data});const result=await response.json();if(!response.ok||!result.asset)throw new Error(result.error||'Image upload failed.');const asset=result.asset as Media;assetsRef.current=[asset,...assetsRef.current];setMediaAssets(assetsRef.current);addBlockRef.current?.('image');}
+  catch(e){setError(e instanceof Error?e.message:'Unable to upload image.');}
+  finally{setUploading(false);if(fileInput.current)fileInput.current.value='';}
+ }
  const tiles=[
   {key:'heading',label:'Heading',type:'heading' as const,icon:Type},
   {key:'paragraph',label:'Paragraph',type:'paragraph' as const,icon:AlignLeft},
@@ -223,10 +233,10 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
   </div>
   <div className={"charis-gjs-workspace"+(focusCanvas?" charis-gjs-workspace-focus":"")}>
    <aside className="charis-gjs-palette" aria-label="Add email elements">
-    <div className="charis-gjs-title">Add elements</div>
+    <div className="charis-gjs-title">Add elements</div><input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={e=>void uploadImage(e.target.files?.[0])}/><button type="button" className="charis-gjs-tool charis-gjs-upload" disabled={uploading||!ready} onClick={()=>fileInput.current?.click()}><Upload aria-hidden="true"/><span>{uploading?'Uploading image…':'Upload image'}</span></button>
     <div className="charis-gjs-group">{tiles.map(t=><button type="button" className="charis-gjs-tool" key={t.key}
-     disabled={!ready||design.blocks.length>=30||(t.type==='image'&&!assets.length)||(t.type==='button'&&!website)}
-     title={t.type==='image'&&!assets.length?'Upload an approved picture in the Image library first':t.type==='button'&&!website?'Configure the bank website before adding a linked button':t.label}
+     disabled={!ready||design.blocks.length>=30||(t.type==='image'&&!mediaAssets.length)||(t.type==='button'&&!website)}
+     title={t.type==='image'&&!mediaAssets.length?'Upload an image to this campaign first':t.type==='button'&&!website?'Configure the bank website before adding a linked button':t.label}
      onClick={()=>addBlockRef.current?.(t.type,'shape' in t?t.shape:undefined)}>
      <t.icon aria-hidden="true"/><span>{t.label}</span></button>)}</div>
     <div className="charis-gjs-divider"/>
@@ -247,6 +257,21 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
       <button type="button" disabled={design.blocks.length>=30} onClick={duplicateSelected}><Copy size={14}/> Duplicate</button>
       <button type="button" className="charis-gjs-delete" aria-label="Delete selected section" disabled={design.blocks.length<=1} onClick={removeSelected}><Trash2 size={14}/> Delete section</button>
      </div>
+     {(active.type==='heading'||active.type==='paragraph')&&<div className="charis-gjs-quick-format" aria-label="Quick text formatting">
+      <strong>Quick text tools</strong>
+      <div className="charis-gjs-quick-format-buttons">
+       <button type="button" aria-label="Bold" aria-pressed={active.type==='heading'?active.format?.bold!==false:!!active.format?.bold} onClick={()=>update({format:{...active.format,bold:!(active.type==='heading'?active.format?.bold!==false:!!active.format?.bold)}})}><b>B</b><span>Bold</span></button>
+       <button type="button" aria-label="Italic" aria-pressed={!!active.format?.italic} onClick={()=>update({format:{...active.format,italic:!active.format?.italic}})}><i>I</i><span>Italic</span></button>
+       <button type="button" aria-label="Underline" aria-pressed={!!active.format?.underline} onClick={()=>update({format:{...active.format,underline:!active.format?.underline}})}><u>U</u><span>Underline</span></button>
+      </div>
+      <label>Font size · {active.format?.fontSize||(active.type==='heading'?25:16)} px<input aria-label="Font size" type="range" min="10" max="48" step="1" value={active.format?.fontSize||(active.type==='heading'?25:16)} onChange={e=>update({format:{...active.format,fontSize:Number(e.target.value)}})}/></label>
+      <label>Font family<select aria-label="Font family" value={active.format?.fontFamily||'Arial'} onChange={e=>update({format:{...active.format,fontFamily:e.target.value as 'Arial'|'Georgia'|'Verdana'|'Tahoma'|'Trebuchet MS'}})}>{['Arial','Georgia','Verdana','Tahoma','Trebuchet MS'].map(font=><option key={font}>{font}</option>)}</select></label>
+      <div className="charis-gjs-quick-format-colours">
+       <label>Text colour<input aria-label="Text colour" type="color" value={active.format?.color||'#243047'} onChange={e=>update({format:{...active.format,color:e.target.value}})}/></label>
+       <label>Highlight<input aria-label="Highlight colour" type="color" value={active.format?.backgroundColor||'#ffffff'} onChange={e=>update({format:{...active.format,backgroundColor:e.target.value}})}/></label>
+      </div>
+      <label>Alignment<select aria-label="Text alignment" value={active.format?.align||'left'} onChange={e=>update({format:{...active.format,align:e.target.value as 'left'|'center'|'right'|'justify'}})}>{['left','center','right','justify'].map(v=><option key={v} value={v}>{v[0].toUpperCase()+v.slice(1)}</option>)}</select></label>
+     </div>}
      {active.type==='shape'&&<div className="charis-gjs-quick-sizes">
       <label>{active.shape==='circle'?'Circle diameter':'Shape width'} · {active.widthPercent??100}%<input type="range" min="25" max="100" value={active.widthPercent??100} onChange={e=>update({widthPercent:Number(e.target.value)})}/></label>
       {active.shape!=='circle'&&active.shape!=='rule'&&<label>Minimum height · {active.minHeight??0}px<input type="range" min="0" max="320" step="8" value={active.minHeight??0} onChange={e=>update({minHeight:Number(e.target.value)})}/></label>}
@@ -257,11 +282,12 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
       <button type="button" className="charis-insert-field" onClick={()=>{const limit=active.type==='shape'||active.type==='button'?200:5000;update({text:(active.text+' {{'+chosenField+'}}').trim().slice(0,limit)});}}>Insert into selected section</button>
      </div>}
      {active.type!=='divider'&&!(active.type==='shape'&&active.shape==='rule')&&<label>{active.type==='image'?'Image description':'Text content'}
-      <textarea rows={4} value={active.text} maxLength={active.type==='shape'||active.type==='button'?200:active.type==='image'?160:5000} onChange={e=>update({text:e.target.value})}/>
+      <textarea rows={4} value={active.text} maxLength={active.type==='shape'||active.type==='button'?200:active.type==='image'?160:undefined} onChange={e=>update({text:e.target.value})}/>
      </label>}
+     {(active.type==='heading'||active.type==='paragraph')&&<div className="charis-gjs-format-tools"><strong>Paragraph spacing & advanced typography</strong><div className="charis-paragraph-spacing-controls"><label>Line spacing · {(active.format?.lineHeight??(active.type==='heading'?1.3:1.7)).toFixed(1)}<input type="range" min="1" max="3" step="0.1" value={active.format?.lineHeight??(active.type==='heading'?1.3:1.7)} onChange={e=>update({format:{...active.format,lineHeight:Number(e.target.value)}})}/></label>{active.type==='paragraph'&&<label>Space after paragraph · {active.format?.paragraphSpacing??16}px<input type="range" min="0" max="64" step="1" value={active.format?.paragraphSpacing??16} onChange={e=>update({format:{...active.format,paragraphSpacing:Number(e.target.value)}})}/></label>}<label>Letter spacing · {active.format?.letterSpacing??0}px<input type="range" min="-1" max="10" step="0.25" value={active.format?.letterSpacing??0} onChange={e=>update({format:{...active.format,letterSpacing:Number(e.target.value)}})}/></label></div></div>}
      {active.type==='button'&&<label>Button URL (HTTPS)<input type="url" value={active.url} onChange={e=>update({url:e.target.value})}/></label>}
      {active.type==='image'&&<><label>Approved picture<select value={active.url} onChange={e=>update({url:e.target.value})}>
-      {assets.map(a=><option value={a.public_url} key={a.id}>{a.file_name}</option>)}
+      {mediaAssets.map(a=><option value={a.public_url} key={a.id}>{a.file_name}</option>)}
      </select></label><label>Image width<select value={active.width} onChange={e=>update({width:e.target.value as 'full'|'medium'|'small'})}><option value="full">Full</option><option value="medium">Medium</option><option value="small">Small</option></select></label></>}
      {active.type==='shape'&&<><label>Shape style<select value={active.shape} onChange={e=>update({shape:e.target.value as typeof active.shape,text:e.target.value==='rule'?'':active.text})}>
       {['banner','panel','rectangle','pill','circle','rule'].map(v=><option key={v} value={v}>{v[0].toUpperCase()+v.slice(1)}</option>)}
