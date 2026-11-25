@@ -14,7 +14,7 @@ export function safeCustomerAttribute(key:string):boolean{
 export const isAccountAttribute=(key:string)=>accountKeys.has(key)||((key.startsWith('account')||key.startsWith('acct'))&&key!=='account_type');
 export function customerFieldOptions(keys:string[]){
  const uniques=[...new Set(keys.filter(safeCustomerAttribute))].sort().slice(0,30);
- return [...basicCustomerFields,...uniques.map(key=>({key:'attributes.'+key,label:isAccountAttribute(key)?'Account number (masked · last 4 digits)':key.replaceAll('_',' ').replace(/^./,a=>a.toUpperCase())}))];
+ return [...basicCustomerFields,...uniques.map(key=>({key:'attributes.'+key,label:isAccountAttribute(key)?'Account number (full)':key.replaceAll('_',' ').replace(/^./,a=>a.toUpperCase())}))];
 }
 export function allowedCustomerToken(key:string){
  return basicCustomerFields.some(f=>f.key===key)||(key.startsWith('attributes.')&&safeCustomerAttribute(key.slice(11)));
@@ -22,12 +22,10 @@ export function allowedCustomerToken(key:string){
 export function contactFieldNames(rows:{attributes?:unknown}[]):string[]{
  return [...new Set(rows.flatMap(row=>row.attributes&&typeof row.attributes==='object'&&!Array.isArray(row.attributes)?Object.keys(row.attributes):[]).filter(safeCustomerAttribute))].sort().slice(0,30);
 }
-/** A bank account reference must never display its full stored value. */
+/** Preserve complete customer account references for approved campaign personalization. */
 export function safeCustomerAttributeValue(key:string,value:unknown){
  const text=typeof value==='string'?value:typeof value==='number'?String(value):'';
- if(!isAccountAttribute(key))return text.slice(0,200);
- const last4=text.replace(/\D/g,'').slice(-4);
- return last4?'•••• '+last4:'';
+ return text.slice(0,200);
 }
 
 /** Reject unsupported or malformed manually typed merge markers before saving. */
