@@ -23,6 +23,8 @@ test('campaign designs accept safe text formatting and editable footer settings'
     }
   });
   assert.equal(parsed.success, true);
+  const longEmail = designSchema.safeParse({version:'1',blocks:[{type:'paragraph',text:'A'.repeat(12000)}]});
+  assert.equal(longEmail.success, true, 'email paragraphs should not have an arbitrary character cap');
   assert.equal(designSchema.safeParse({
     version: '1', blocks: [{type: 'paragraph', text: 'Hello'}],
     footer: {social: [{platform: 'instagram', url: 'http://instagram.com/charismfb'}]}
