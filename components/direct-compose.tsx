@@ -274,7 +274,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
   <input type="hidden" name="purpose" value={purpose}/>
   <input type="hidden" name="product" value={showProduct?product:'general'}/>
   <input type="hidden" name="channel" value={channel}/>
-  <input type="hidden" name="send_provider" value={channel==='email'?'sendbyte':''}/>
+  <input type="hidden" name="send_provider" value="sendbyte"/>
   <input type="hidden" name="audience" value={audience}/>
   <input type="hidden" name="contact_ids" value={chosen.join(',')}/>
   <input type="hidden" name="list_id" value={audience==='list'?groupId:''}/>
