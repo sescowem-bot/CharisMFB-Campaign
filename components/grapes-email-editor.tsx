@@ -145,7 +145,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
        next.push({...base,text:contents.slice(0,200),...(color&&validHex(color)?{color}:{}) ,...(textColor&&validHex(textColor)?{textColor}:{})});
       }
       else if(base.type==='button')next.push({...base,text:contents.slice(0,200)});
-      else next.push({...base,text:contents.slice(0,5000)});
+      else next.push({...base,text:contents});
       if(next.length===30)break;
      }
      const result=designSchema.safeParse({...prior,blocks:next});
@@ -267,7 +267,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
       <button type="button" className="charis-insert-field" onClick={()=>{const limit=active.type==='shape'||active.type==='button'?200:5000;update({text:(active.text+' {{'+chosenField+'}}').trim().slice(0,limit)});}}>Insert into selected section</button>
      </div>}
      {active.type!=='divider'&&!(active.type==='shape'&&active.shape==='rule')&&<label>{active.type==='image'?'Image description':'Text content'}
-      <textarea rows={4} value={active.text} maxLength={active.type==='shape'||active.type==='button'?200:active.type==='image'?160:5000} onChange={e=>update({text:e.target.value})}/>
+      <textarea rows={4} value={active.text} maxLength={active.type==='shape'||active.type==='button'?200:active.type==='image'?160:undefined} onChange={e=>update({text:e.target.value})}/>
      </label>}
      {(active.type==='heading'||active.type==='paragraph')&&<div className="charis-gjs-format-tools"><strong>Text formatting</strong><div className="charis-gjs-color-row"><label>Text colour<input type="color" value={active.format?.color||'#243047'} onChange={e=>update({format:{...active.format,color:e.target.value}})}/><label>Highlight colour<input type="color" value={active.format?.backgroundColor||'#ffffff'} onChange={e=>update({format:{...active.format,backgroundColor:e.target.value}})}/></label></label><label>Font size<input type="number" min="10" max="48" value={active.format?.fontSize||(active.type==='heading'?25:16)} onChange={e=>update({format:{...active.format,fontSize:Number(e.target.value)}})}/></label></div><label>Font family<select value={active.format?.fontFamily||'Arial'} onChange={e=>update({format:{...active.format,fontFamily:e.target.value as 'Arial'|'Georgia'|'Verdana'|'Tahoma'|'Trebuchet MS'}})}>{['Arial','Georgia','Verdana','Tahoma','Trebuchet MS'].map(font=><option key={font}>{font}</option>)}</select></label><label>Alignment<select value={active.format?.align||'left'} onChange={e=>update({format:{...active.format,align:e.target.value as 'left'|'center'|'right'|'justify'}})}>{['left','center','right','justify'].map(v=><option key={v} value={v}>{v[0].toUpperCase()+v.slice(1)}</option>)}</select></label><div className="actions"><button type="button" className="btn secondary" aria-pressed={!!active.format?.bold} onClick={()=>update({format:{...active.format,bold:!active.format?.bold}})}><strong>B</strong></button><button type="button" className="btn secondary" aria-pressed={!!active.format?.italic} onClick={()=>update({format:{...active.format,italic:!active.format?.italic}})}><em>I</em></button><button type="button" className="btn secondary" aria-pressed={!!active.format?.underline} onClick={()=>update({format:{...active.format,underline:!active.format?.underline}})}><u>U</u></button></div></div>}
      {active.type==='button'&&<label>Button URL (HTTPS)<input type="url" value={active.url} onChange={e=>update({url:e.target.value})}/></label>}
