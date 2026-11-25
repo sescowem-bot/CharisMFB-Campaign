@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {designSchema} from '../lib/campaign/design.ts';
 import {renderCampaign} from '../lib/campaigns/render.ts';
 import {customerFieldOptions,safeCustomerAttributeValue} from '../lib/campaign/customer-fields.ts';
+import {importColumnValue,previewColumnValue} from '../lib/contacts/import-mapping.mjs';
 
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 
@@ -107,6 +108,13 @@ test('paragraph typography controls are validated and rendered into the email', 
   assert.match(rendered.html, /letter-spacing:0\.75px/);
   assert.match(rendered.html, /background-color:#fff2cc/);
   assert.match(rendered.html, /margin:0 0 32px/);
+});
+
+test('account number imports and previews preserve the complete value and leading zeros', () => {
+  const value = '0012345678';
+  assert.equal(importColumnValue('account_number', value), value);
+  assert.equal(previewColumnValue('account_number', value), value);
+  assert.equal(importColumnValue('account_no', '0123456789'), '0123456789');
 });
 
 test('account number merge fields preserve and render the complete account number', () => {
