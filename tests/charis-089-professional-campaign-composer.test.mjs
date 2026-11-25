@@ -110,11 +110,14 @@ test('paragraph typography controls are validated and rendered into the email', 
   assert.match(rendered.html, /margin:0 0 32px/);
 });
 
-test('account number imports and previews preserve the complete value and leading zeros', () => {
+test('account number imports, previews and server validation preserve complete values and leading zeros', () => {
   const value = '0012345678';
   assert.equal(importColumnValue('account_number', value), value);
   assert.equal(previewColumnValue('account_number', value), value);
   assert.equal(importColumnValue('account_no', '0123456789'), '0123456789');
+  const importRoute = read('../app/api/contacts/import/route.ts');
+  assert.match(importRoute, /entry\.length<=200/);
+  assert.doesNotMatch(importRoute, /entry\.replace\(\/\\D\/g,''\)\.length<=4/);
 });
 
 test('account number merge fields preserve and render the complete account number', () => {
