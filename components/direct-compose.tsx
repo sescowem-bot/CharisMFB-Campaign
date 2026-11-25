@@ -206,7 +206,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
   if(designError)return {html:'',subject,error:designError,sampleName:'Sample customer'};
   return renderDirectEmailPreview({design:effectiveDesign,subject,body,brand,contact:sampleContact,customFields});
  },[step,channel,effectiveDesign,subject,body,brand,designError,sampleContact,customFields]);
- const messageReady=subject.trim().length>=3&&subject.trim().length<=180&&composedBody.trim().length>=10&&composedBody.trim().length<=2000&&!designError;
+ const messageReady=subject.trim().length>=3&&subject.trim().length<=180&&composedBody.trim().length>=10&&(channel!=='sms'||composedBody.trim().length<=480)&&!designError;
  const recipientsReady=audience==='selected'?chosen.length>0:audience==='list'?Boolean(groupId):canBulk;
  const scheduleReady=mode==='now'||(schedulingEnabled&&sendAt.trim().length>0);
  const audienceLabel=audience==='selected'?chosen.length+' selected contact'+(chosen.length===1?'':'s'):
@@ -337,7 +337,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
     </fieldset>
     <label>Email greeting<input aria-label="Email greeting" maxLength={200} value={simpleGreeting} onChange={e=>setSimpleGreeting(e.target.value)} placeholder="Hello {{first_name}},"/></label>
    </section>}
-   {!design||channel==='sms'?<label>Message<textarea rows={6} maxLength={channel==='sms'?480:2000} value={body} onChange={e=>setBody(e.target.value)} placeholder="Write a clear message. Never request a PIN, password or OTP."/><small className="muted">{body.length}/{channel==='sms'?480:2000}</small></label>:
+   {!design||channel==='sms'?<label>Message<textarea rows={6} maxLength={channel==='sms'?480:undefined} value={body} onChange={e=>setBody(e.target.value)} placeholder="Write a clear message. Never request a PIN, password or OTP."/><small className="muted">{channel==='sms'?`${body.length}/480 characters`:'Email message length is not capped.'}</small></label>:
     <div className="direct-editor">
      <div className="actions" role="group" aria-label="Email editing mode">
       <button type="button" className="btn secondary" aria-pressed={editorMode==='visual'} onClick={()=>setEditorMode('visual')}>Visual drag-and-drop editor</button>
@@ -345,7 +345,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
      </div>
      {editorMode==='visual'?<GrapesEmailEditor design={design} onChange={setDesign} assets={assets} brandName={brand.name} brandColor={brand.color} websiteUrl={brand.website} availableFields={customFields}/>:
      <><h3>Email sections</h3>{design.blocks.map((block,index)=><div key={index} className="direct-block-editor"><div className="direct-block-top"><strong>{block.type==='shape'?'Accent':block.type}</strong><span><button type="button" onClick={()=>moveBlock(index,-1)} disabled={index===0} aria-label="Move section up">↑</button><button type="button" onClick={()=>moveBlock(index,1)} disabled={index===design.blocks.length-1} aria-label="Move section down">↓</button><button type="button" disabled={design.blocks.length===1} onClick={()=>setDesign(d=>d?{...d,blocks:d.blocks.filter((_,i)=>i!==index)}:d)} aria-label="Remove section">×</button></span></div>
-     {['heading','paragraph','shape'].includes(block.type)&&<textarea aria-label={`Section ${index+1} text`} rows={block.type==='paragraph'?4:2} value={block.text} onChange={e=>updateBlock(index,{text:e.target.value})} maxLength={block.type==='paragraph'?2000:200}/>}
+     {['heading','paragraph','shape'].includes(block.type)&&<textarea aria-label={`Section ${index+1} text`} rows={block.type==='paragraph'?4:2} value={block.text} onChange={e=>updateBlock(index,{text:e.target.value})} maxLength={block.type==='shape'?200:undefined}/>}
      {block.type==='button'&&<><label>Button label<input value={block.text} maxLength={200} onChange={e=>updateBlock(index,{text:e.target.value})}/></label><label>Button destination<input type="url" value={block.url} onChange={e=>updateBlock(index,{url:e.target.value} as Partial<EmailBlock>)}/></label></>}
      {block.type==='image'&&<small className="muted">Bank-approved image · {block.text}</small>}
     </div>)}
@@ -419,7 +419,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
    </label>
    <p className="muted">{approvalRequired?'The campaign will go for approval before sending.':mode==='later'?'It will be queued for your selected time.':'Messages will be submitted when you click Confirm & Send.'}</p>
   </section>
-  {step===0&&!messageReady&&<p className="charis-flow-guidance" role="status"><Info size={16}/><span>To continue, enter a subject (3–180 characters) and a message (10–2,000 characters), and resolve any design warnings.</span></p>}
+  {step===0&&!messageReady&&<p className="charis-flow-guidance" role="status"><Info size={16}/><span>To continue, enter a subject (3–180 characters) and a message (at least 10 characters; SMS is limited to 480), and resolve any design warnings.</span></p>}
   {step===1&&!recipientsReady&&<p className="charis-flow-guidance" role="status"><Info size={16}/><span>Select at least one customer or choose a contact group to continue.</span></p>}
   {step===2&&!!preview.error&&<p className="charis-flow-guidance" role="alert"><Info size={16}/><span>Fix the preview issue before continuing. Use Back to edit the message.</span></p>}
   <div className="direct-wizard-actions"><p className="charis-flow-navigation-note">Step {step+1} of 4 · You can go back without losing the message you have written.</p><div className="charis-flow-button-group">
