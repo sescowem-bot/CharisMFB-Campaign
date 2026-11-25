@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {designSchema} from '../lib/campaign/design.ts';
 import {renderCampaign} from '../lib/campaigns/render.ts';
+import {customerFieldOptions,safeCustomerAttributeValue} from '../lib/campaign/customer-fields.ts';
 
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 
@@ -106,4 +107,42 @@ test('paragraph typography controls are validated and rendered into the email', 
   assert.match(rendered.html, /letter-spacing:0\.75px/);
   assert.match(rendered.html, /background-color:#fff2cc/);
   assert.match(rendered.html, /margin:0 0 32px/);
+});
+
+test('account number merge fields are always labelled and rendered as masked values', () => {
+  const fullAccountNumber = '0123456789012';
+  for (const key of ['account_number', 'account_no', 'accountnumber', 'acct_no', 'acctnumber']) {
+    assert.equal(safeCustomerAttributeValue(key, fullAccountNumber), '•••• 9012');
+  }
+  assert.equal(safeCustomerAttributeValue('account_type', 'Savings'), 'Savings');
+  assert.ok(customerFieldOptions(['account_number']).some(field => field.label === 'Account number (masked · last 4 digits)'));
+  const rendered = renderCampaign({
+    design: {version:'1', blocks:[{type:'paragraph', text:'Your account: {{attributes.account_number}}'}]},
+    subject: 'Account update',
+    company: 'Charis Microfinance Bank',
+    address: 'Lagos',
+    contact: {attributes:{account_number:fullAccountNumber}}
+  });
+  assert.ok(rendered.html.includes('•••• 9012'));
+  assert.ok(!rendered.html.includes(fullAccountNumber));
+});
+
+test('campaign editor exposes prominent quick formatting controls before advanced spacing', () => {
+  const editor = read('../components/grapes-email-editor.tsx');
+  assert.match(editor, /charis-gjs-quick-format/);
+  assert.match(editor, /aria-label="Bold"/);
+  assert.match(editor, /aria-label="Italic"/);
+  assert.match(editor, /aria-label="Underline"/);
+  assert.match(editor, /aria-label="Font size"/);
+  assert.match(editor, /Paragraph spacing & advanced typography/);
+});
+
+test('campaign email HTML does not add SendByte provider branding', () => {
+  const rendered = renderCampaign({
+    design: {version:'1', blocks:[{type:'paragraph', text:'A bank message for our customers.'}]},
+    subject: 'Charis update',
+    company: 'Charis Microfinance Bank',
+    address: 'Lagos'
+  });
+  assert.doesNotMatch(rendered.html, /SendByte/i);
 });
