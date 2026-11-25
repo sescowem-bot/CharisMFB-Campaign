@@ -18,7 +18,7 @@ export function checkDirectDesign(design:EmailDesign,bankWebsite?:string|null,su
     text.replace(/\{\{\s*[^}]+?\s*\}\}/g,'').includes('}}'))
    throw Error('A customer detail has incomplete brackets. Go back to Write message and choose the detail from the menu.');
  }
- if(paragraphs.length<10||paragraphs.length>2000)throw Error('Write a message between 10 and 2,000 characters.');
+ if(paragraphs.length<10)throw Error('Write a message of at least 10 characters.');
  const brand=verifiedBrandWebsite(bankWebsite);
  const hostname=brand?new URL(brand).hostname.toLowerCase():'';
  for(const block of design.blocks){
@@ -32,7 +32,7 @@ export function checkDirectDesign(design:EmailDesign,bankWebsite?:string|null,su
 
 /** Keep the submitted design JSON small; detailed schema validation happens on the server. */
 export function readDirectDesign(raw:string):EmailDesign {
- if(raw.length>30000)throw Error('The email design is too large.');
+ if(raw.length>1_000_000)throw Error('The email design is too large.');
  const parsed=designSchema.safeParse(JSON.parse(raw));
  if(!parsed.success)throw parsed.error;
  return parsed.data;
