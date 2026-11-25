@@ -211,7 +211,6 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
  const scheduleReady=mode==='now'||(schedulingEnabled&&sendAt.trim().length>0);
  const audienceLabel=audience==='selected'?chosen.length+' selected contact'+(chosen.length===1?'':'s'):
   audience==='list'?groups.find(g=>g.id===groupId)?.name||(groupId?'Imported recipient group':'No group chosen'):'All eligible contacts (within your limit)';
- const typeLabel=purpose==='general_notice'?'General notice':purpose==='service_notice'?'Service update':'Account notification';
  const productLabel=({general:'General banking',savings:'Savings',current:'Current account',fixed_deposit:'Fixed deposit',loans:'Loans',mobile_app:'Mobile banking',other:'Other'} as Record<string,string>)[product]||'General banking';
  const steps=[{label:'Write message',icon:MessageSquareText},
               {label:'Recipients',icon:UsersRound},
@@ -389,7 +388,6 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
    <p className="muted">Review the message and recipients. Nothing will be sent on this step.</p>
    <dl className="charis-flow-summary" aria-label="Campaign review summary">
     <div><dt>Channel</dt><dd>{channel==='email'?'Email':'SMS'}</dd></div>
-    <div><dt>Message type</dt><dd>{typeLabel}</dd></div>
     <div><dt>Subject</dt><dd>{subject}</dd></div>
     {channel==='email'&&ccEmails.trim()&&<div><dt>CC</dt><dd>{ccEmails}</dd></div>}{channel==='email'&&bccEmails.trim()&&<div><dt>BCC</dt><dd>{bccEmails}</dd></div>}
     <div><dt>Audience</dt><dd>{audienceLabel}</dd></div>
@@ -407,7 +405,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
     <div><dt>Subject</dt><dd>{subject}</dd></div>
     <div><dt>Recipients</dt><dd>{audienceLabel}</dd></div>
     {audience==='selected'&&<div><dt>Delivery groups</dt><dd>{Math.ceil(chosen.length/50)} group{Math.ceil(chosen.length/50)===1?'':'s'} of up to 50</dd></div>}
-    <div><dt>Channel & type</dt><dd>{channel.toUpperCase()} · {typeLabel}</dd></div>
+    <div><dt>Channel</dt><dd>{channel.toUpperCase()}</dd></div>
     {showProduct&&<div><dt>Product</dt><dd>{productLabel}</dd></div>}
    </dl>
    {channel==='email'?(step===3&&<DirectEmailPreview key="confirmation" preview={preview} finalReview/>):
