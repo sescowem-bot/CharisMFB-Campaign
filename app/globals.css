@@ -410,3 +410,23 @@ body{font-family:var(--platform-font,system-ui,sans-serif)}.btn:not(.secondary),
 .charis-recipient-upload{margin-top:18px}
 .charis-recipient-upload>summary{font-weight:700;color:#37218b}
 @media(max-width:680px){.charis-campaign-footer-editor{padding:13px}.charis-footer-social-row,.charis-footer-style-row{grid-template-columns:1fr}.charis-footer-social-row button{width:100%}}
+
+/* Campaign composer: keep the everyday text controls visible and easy to tap. */
+.charis-gjs-inspector{min-width:0}
+.charis-gjs-quick-format{position:sticky;top:8px;z-index:8;display:grid;gap:11px;margin:12px 0 16px;padding:14px;border:1px solid #cfc4ec;border-radius:13px;background:#fff;box-shadow:0 8px 22px #25144a14}
+.charis-gjs-quick-format>strong{font-size:13px;color:#302064}
+.charis-gjs-quick-format-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.charis-gjs-quick-format-buttons button{display:flex;align-items:center;justify-content:center;gap:7px;min-height:43px;padding:8px 7px;border:1px solid #d9d3e8;border-radius:9px;background:#fff;color:#30264b;font-size:13px;font-weight:700;cursor:pointer}
+.charis-gjs-quick-format-buttons button[aria-pressed=true]{background:#40239a;border-color:#40239a;color:#fff}
+.charis-gjs-quick-format-buttons button b,.charis-gjs-quick-format-buttons button i,.charis-gjs-quick-format-buttons button u{font-size:17px}
+.charis-gjs-quick-format label{display:grid;gap:6px;margin:0;font-size:12px;font-weight:700;color:#443a5c}
+.charis-gjs-quick-format input[type=range]{width:100%;min-height:28px;accent-color:#40239a}
+.charis-gjs-quick-format select{width:100%;min-height:40px;padding:8px;border:1px solid #d7d2e2;border-radius:8px;background:#fff;color:#252039}
+.charis-gjs-quick-format-colours{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.charis-gjs-quick-format-colours input[type=color]{width:100%;height:38px;padding:3px;border:1px solid #d7d2e2;border-radius:8px;background:#fff}
+.charis-gjs-format-tools{display:grid;gap:10px;margin:14px 0;padding:12px;border:1px solid #e6e1ef;border-radius:10px;background:#faf9fd}
+.charis-gjs-format-tools>strong{font-size:12px;color:#382477}
+.charis-paragraph-spacing-controls{display:grid;gap:12px}
+.charis-paragraph-spacing-controls label{display:grid;gap:6px;font-size:12px;font-weight:700;color:#443a5c}
+.charis-paragraph-spacing-controls input[type=range]{width:100%;accent-color:#40239a}
+@media(max-width:680px){.charis-gjs-quick-format{padding:11px}.charis-gjs-quick-format-buttons button{min-height:46px;flex-direction:column;gap:2px}.charis-gjs-quick-format-buttons button span{font-size:11px}}
