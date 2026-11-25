@@ -109,13 +109,13 @@ test('paragraph typography controls are validated and rendered into the email', 
   assert.match(rendered.html, /margin:0 0 32px/);
 });
 
-test('account number merge fields are always labelled and rendered as masked values', () => {
+test('account number merge fields preserve and render the complete account number', () => {
   const fullAccountNumber = '0123456789012';
   for (const key of ['account_number', 'account_no', 'accountnumber', 'acct_no', 'acctnumber']) {
-    assert.equal(safeCustomerAttributeValue(key, fullAccountNumber), '•••• 9012');
+    assert.equal(safeCustomerAttributeValue(key, fullAccountNumber), fullAccountNumber);
   }
   assert.equal(safeCustomerAttributeValue('account_type', 'Savings'), 'Savings');
-  assert.ok(customerFieldOptions(['account_number']).some(field => field.label === 'Account number (masked · last 4 digits)'));
+  assert.ok(customerFieldOptions(['account_number']).some(field => field.label === 'Account number (full)'));
   const rendered = renderCampaign({
     design: {version:'1', blocks:[{type:'paragraph', text:'Your account: {{attributes.account_number}}'}]},
     subject: 'Account update',
@@ -123,8 +123,7 @@ test('account number merge fields are always labelled and rendered as masked val
     address: 'Lagos',
     contact: {attributes:{account_number:fullAccountNumber}}
   });
-  assert.ok(rendered.html.includes('•••• 9012'));
-  assert.ok(!rendered.html.includes(fullAccountNumber));
+  assert.ok(rendered.html.includes(fullAccountNumber));
 });
 
 test('campaign editor exposes prominent quick formatting controls before advanced spacing', () => {
