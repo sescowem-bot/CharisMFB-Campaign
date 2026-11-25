@@ -11,7 +11,7 @@ test('campaign designs accept safe text formatting and editable footer settings'
     version: '1',
     blocks: [{type: 'heading', text: 'Welcome', format: {
       color: '#123456', fontSize: 28, fontFamily: 'Georgia', align: 'center',
-      bold: true, italic: true, underline: true
+      bold: true, italic: true, underline: true, lineHeight: 2.1, paragraphSpacing: 28, letterSpacing: 0.5
     }}],
     footer: {
       address: '12 Marina Road, Lagos',
@@ -79,4 +79,31 @@ test('campaign email delivery uses the configured SendByte route without a staff
   assert.match(action, /const selectedProvider='sendbyte'/);
   assert.match(composer, /name="send_provider" value="sendbyte"/);
   assert.match(composer, /Email is sent through the bank’s configured email service/);
+});
+
+test('paragraph typography controls are validated and rendered into the email', () => {
+  const design = {
+    version: '1',
+    blocks: [{
+      type: 'paragraph',
+      text: 'A paragraph with custom spacing.',
+      format: {
+        lineHeight: 2.2,
+        paragraphSpacing: 32,
+        letterSpacing: 0.75,
+        backgroundColor: '#fff2cc'
+      }
+    }]
+  };
+  assert.equal(designSchema.safeParse(design).success, true);
+  const rendered = renderCampaign({
+    design,
+    subject: 'Typography test',
+    company: 'Charis Microfinance Bank',
+    address: 'Lagos'
+  });
+  assert.match(rendered.html, /line-height:2\.2/);
+  assert.match(rendered.html, /letter-spacing:0\.75px/);
+  assert.match(rendered.html, /background-color:#fff2cc/);
+  assert.match(rendered.html, /margin:0 0 32px/);
 });
