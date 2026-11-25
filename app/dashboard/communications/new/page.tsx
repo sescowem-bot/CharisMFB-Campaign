@@ -22,7 +22,7 @@ export default async function NewCommunication(){
   db.from('contacts').select('id,first_name,last_name,email,phone').eq('organization_id',org).is('archived_at',null).order('created_at',{ascending:false}).limit(35),
   db.from('contacts').select('attributes').eq('organization_id',org).is('archived_at',null).order('created_at',{ascending:false}).limit(300),
   db.from('contact_lists').select('id,name').eq('organization_id',org).order('name').limit(100),
-  db.from('organization_branding').select('display_name,primary_color,postal_address,website_url').eq('organization_id',org).maybeSingle(),
+  db.from('organization_branding').select('display_name,primary_color,postal_address,website_url,social_links').eq('organization_id',org).maybeSingle(),
   db.from('email_templates').select('id,name,subject,design,category').or(`organization_id.eq.${org},organization_id.is.null`).in('status',['draft','approved']).order('created_at',{ascending:false}).limit(100),
   db.from('charis_media_assets').select('id,file_name,public_url').eq('organization_id',org).order('created_at',{ascending:false}).limit(80),
   process.env.CHARIS_SCHEDULING_ENABLED==='true'?directWorkerIsHealthy():Promise.resolve(false),
@@ -53,7 +53,7 @@ export default async function NewCommunication(){
   {settings.approval_required&&<p className="notice">Campaign approval is enabled.</p>}
   {!settings.email_enabled&&!settings.sms_enabled?<p role="alert" className="feedback-error">Email and SMS are currently disabled.</p>:
    <DirectCompose token={randomUUID()} userId={account.id} organizationId={org} contacts={contacts||[]} groups={bankWide===true?groups||[]:[]} canBulk={bankWide===true} emailEnabled={settings.email_enabled} smsEnabled={settings.sms_enabled} maxRecipients={settings.max_recipients}
-    templates={[...templates.map(t=>({...t,source:'bank' as const})),...starters]} assets={media||[]} templateStudioUrl={`/dashboard/templates?org=${org}`} brand={{name:branding?.display_name||'Charis Microfinance Bank',color:branding?.primary_color||'#40239a',address:branding?.postal_address||'',website:branding?.website_url||''}}
+    templates={[...templates.map(t=>({...t,source:'bank' as const})),...starters]} assets={media||[]} templateStudioUrl={`/dashboard/templates?org=${org}`} brand={{name:branding?.display_name||'Charis Microfinance Bank',color:branding?.primary_color||'#40239a',address:branding?.postal_address||'',website:branding?.website_url||'',social:branding?.social_links||{}}}
     schedulingEnabled={schedulingReady} approvalRequired={settings.approval_required} customFields={customFields} providerChoiceAvailable={!providerColumnError} readyEmailProviders={['sendbyte','resend','brevo'].filter(provider=>providerReadiness.providers.some(p=>p.provider===provider))}/>}
  </WorkspaceShell>;
 }

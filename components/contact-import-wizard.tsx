@@ -51,7 +51,7 @@ function autoMap(field:MainField,header:string){
  * chosen extra columns are saved to contacts.attributes and can be used in
  * campaign personalization. Email permission is confirmed against the bank's existing records, not inferred from spreadsheets.
  */
-export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;name:string}[]}){
+export function ContactImportWizard({org,lists,campaignMode=false,onComplete}:{org:string;lists:{id:string;name:string}[];campaignMode?:boolean;onComplete?:(listId:string|null)=>void}){
  const [preview,setPreview]=useState<Preview|null>(null);
  const [step,setStep]=useState(1);
  const [mapping,setMapping]=useState<Record<MainField,number>>({first_name:-1,last_name:-1,email:-1,phone:-1});
@@ -238,7 +238,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
    <div className="admin-form" hidden={step!==3}>
     <h2>Step 3 · Save customers to a group</h2>
     <p className="muted">Group customers together so you can easily choose them when creating a campaign.</p>
-    <label>Choose a group<select value={listTarget} disabled={busy||complete} onChange={e=>{setListTarget(e.target.value);listRef.current=null;invalidate();}}><option value="new">Create a new group</option>{lists.map(list=><option value={list.id} key={list.id}>{list.name}</option>)}<option value="none">Do not use a group</option></select></label>
+    <label>Choose a group<select value={listTarget} disabled={busy||complete} onChange={e=>{setListTarget(e.target.value);listRef.current=null;invalidate();}}><option value="new">Create a new group</option>{lists.map(list=><option value={list.id} key={list.id}>{list.name}</option>)}{!campaignMode&&<option value="none">Do not use a group</option>}</select></label>
     {listTarget==='new'&&<label>New group name<input value={newListName} disabled={busy||complete} maxLength={100} onChange={e=>{setNewListName(e.target.value);listRef.current=null;invalidate();}} placeholder="October account updates"/></label>}
     <div className="import-actions"><button className="btn secondary" type="button" onClick={()=>setStep(2)}>Back</button><button className="btn" type="button" onClick={()=>{if(listTarget==='new'&&!newListName.trim()){setError("Enter a name for the new contact group.");return;}setError("");setStep(4);}}>Next: Permission</button></div>
    </div>
@@ -257,7 +257,7 @@ export function ContactImportWizard({org,lists}:{org:string;lists:{id:string;nam
     <div className="table-scroll"><table className="admin-table"><thead><tr><th>First name</th><th>Last name</th><th>Email</th><th>Phone (optional)</th>{selectedExtras.map(item=><th key={item.index}>{item.header}</th>)}</tr></thead><tbody>{prepared.slice(0,5).map((row,index)=><tr key={index}><td>{row.first_name||'—'}</td><td>{row.last_name||'—'}</td><td>{row.email||'—'}</td><td>{row.phone||'—'}</td>{selectedExtras.map(item=><td key={item.index}>{previewColumnValue(item.key,preview.rows[index]?.[item.index]||'')||'—'}</td>)}</tr>)}</tbody></table></div>
     <div className="import-actions"><button className="btn secondary" type="button" onClick={()=>setStep(4)} disabled={busy}>Back</button><button className="btn" type="button" onClick={importRows} disabled={busy||complete}>{busy?'Importing customers…':complete?'Import complete':'Import customers'}</button></div>
     {(busy||processed>0)&&<><progress max={prepared.length} value={processed} className="import-progress"/><p className="muted">Processed {processed} of {prepared.length} · Added {counts.inserted} · Duplicates {counts.skipped} · Invalid {counts.rejected}</p></>}
-    {complete&&<div role="status" className="feedback-success"><p>Import complete. Existing contacts and opt-outs were preserved; suppressed emails were skipped. Product-limited permissions do not grant general broadcast eligibility.</p>{issueBatchCount>0&&<p><strong>{issueBatchCount} batch(es) contain duplicates or invalid rows.</strong> <Link href={`/dashboard/imports?org=${org}&review=${reviewBatch}#import-review`}>Review those rows →</Link> Select other batches from the review dropdown if needed.</p>}<Link href="/dashboard/communications/new">Create a campaign →</Link></div>}
+    {complete&&<div role="status" className="feedback-success"><p>Import complete. Existing contacts and opt-outs were preserved; suppressed emails were skipped. Product-limited permissions do not grant general broadcast eligibility.</p>{campaignMode&&<button type="button" className="btn" onClick={()=>onComplete?.(listTarget==='none'?null:listTarget==='new'?listRef.current:listTarget)}>Use imported recipients in this campaign</button>}{issueBatchCount>0&&<p><strong>{issueBatchCount} batch(es) contain duplicates or invalid rows.</strong> <Link href={`/dashboard/imports?org=${org}&review=${reviewBatch}#import-review`}>Review those rows →</Link> Select other batches from the review dropdown if needed.</p>}<Link href="/dashboard/communications/new">Create a campaign →</Link></div>}
    </div>}
   </>}
   </div>;

@@ -395,3 +395,18 @@ body{font-family:var(--platform-font,system-ui,sans-serif)}.btn:not(.secondary),
 .charis-group-empty{background:#fff;border:1px dashed #cbd5e1;border-radius:14px;padding:28px;text-align:center}
 .charis-group-empty p{margin:8px 0 0}
 @media(max-width:560px){.charis-group-summary{grid-template-columns:1fr}.charis-group-toolbar>*{width:100%;justify-content:center}}
+
+/* Professional campaign composer additions */
+.charis-campaign-footer-editor{display:grid;gap:14px;margin:20px 0;padding:20px;border:1px solid #e1dced;border-radius:16px;background:#fbfaff}
+.charis-campaign-footer-editor h3{margin:0 0 4px;color:#23164f}
+.charis-campaign-footer-editor>p{margin:0 0 4px;color:#6d6681;font-size:13px;line-height:1.6}
+.charis-footer-social-row{display:grid;grid-template-columns:minmax(130px,.7fr) minmax(220px,1.5fr) auto;gap:12px;align-items:end;padding:12px;border:1px solid #e7e2f0;border-radius:12px;background:#fff}
+.charis-footer-social-row label{min-width:0}
+.charis-footer-style-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.charis-gjs-format-tools{display:grid;gap:10px;margin:14px 0;padding:12px;border:1px solid #e6e1ef;border-radius:10px;background:#faf9fd}
+.charis-gjs-format-tools>strong{font-size:12px;color:#382477}
+.charis-gjs-format-tools input[type=number]{max-width:100%;width:100%}
+.charis-gjs-upload{width:100%;margin:0 0 10px}
+.charis-recipient-upload{margin-top:18px}
+.charis-recipient-upload>summary{font-weight:700;color:#37218b}
+@media(max-width:680px){.charis-campaign-footer-editor{padding:13px}.charis-footer-social-row,.charis-footer-style-row{grid-template-columns:1fr}.charis-footer-social-row button{width:100%}}
