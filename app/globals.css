@@ -400,7 +400,7 @@ body{font-family:var(--platform-font,system-ui,sans-serif)}.btn:not(.secondary),
 .charis-campaign-footer-editor{display:grid;gap:14px;margin:20px 0;padding:20px;border:1px solid #e1dced;border-radius:16px;background:#fbfaff}
 .charis-campaign-footer-editor h3{margin:0 0 4px;color:#23164f}
 .charis-campaign-footer-editor>p{margin:0 0 4px;color:#6d6681;font-size:13px;line-height:1.6}
-.charis-footer-social-row{display:grid;grid-template-columns:minmax(130px,.7fr) minmax(220px,1.5fr) auto;gap:12px;align-items:end;padding:12px;border:1px solid #e7e2f0;border-radius:12px;background:#fff}
+.charis-footer-social-row{display:grid;grid-template-columns:minmax(130px,.7fr) minmax(220px,1.5fr) auto auto auto;gap:12px;align-items:end;padding:12px;border:1px solid #e7e2f0;border-radius:12px;background:#fff}
 .charis-footer-social-row label{min-width:0}
 .charis-footer-style-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .charis-gjs-format-tools{display:grid;gap:10px;margin:14px 0;padding:12px;border:1px solid #e6e1ef;border-radius:10px;background:#faf9fd}
