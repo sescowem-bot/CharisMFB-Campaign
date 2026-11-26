@@ -259,7 +259,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
     {!ready&&!error&&<p role="status" className="muted">Loading visual canvas…</p>}
    </div>
    <aside className="charis-gjs-inspector" aria-label="Selected element settings">
-    <div className="charis-gjs-title">Element settings</div><p className="charis-gjs-help">Select an element on the canvas to edit it.</p>
+    <div className="charis-gjs-title">Element settings</div>
     {active?<><h4>{active.type==='shape'?active.shape:active.type} · {selectedIndex+1}</h4><p>Edit the selected element. These options save with your template.</p>
      <div className="charis-gjs-inspector-actions">
       <button type="button" disabled={selectedIndex===0} onClick={()=>move(-1)}><MoveUp size={14}/> Move up</button>
@@ -618,6 +618,5 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
    <label>Align<select aria-label="Text alignment" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.align||'left'):'left'} onChange={e=>active&&'format' in active&&update({format:{...active.format,align:e.target.value as 'left'|'center'|'right'|'justify'}})}>{['left','center','right','justify'].map(v=><option key={v} value={v}>{v[0].toUpperCase()+v.slice(1)}</option>)}</select></label>
   </div>
   </div>
-  <div className="charis-gjs-bottom"><GripVertical size={14}/> Drag or use Move up/down to arrange sections. Click <strong>Preview email</strong> above to see how your customers will receive it.</div>
  </section>;
 }
