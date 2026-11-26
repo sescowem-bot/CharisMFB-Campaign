@@ -13,7 +13,7 @@ export default async function Dashboard(){
  if(!account)redirect('/login');
  const org=process.env.SINGLE_COMPANY_ORG_ID;
  if(!org)redirect('/setup-required');
- // One authorised database request provides all dashboard counts and recent activity.
+ // Load the workspace overview; campaign history is managed only in the Campaigns area.
  const db=await supabaseServer();
  const [{data:overview,error:dashboardError},canSend]=await Promise.all([db.rpc('charis_dashboard_overview',{p_org:org}),canSendDirect(org)]);
  if(dashboardError)return <WorkspaceShell org={org} title="Communication overview"><section className="panel"><h2>Dashboard metrics unavailable</h2><p role="alert">Charis cannot load dashboard metrics yet. Please contact the system administrator. Other modules remain available from the menu.</p></section></WorkspaceShell>;
@@ -42,11 +42,11 @@ export default async function Dashboard(){
    <span className="eyebrow">CHARIS COMMUNICATION CENTRE</span>
    <h2>Your communication workspace.</h2>
    <p>Manage customer contacts, prepare campaigns and access the tools you use every day.</p>
-   <div className="actions">{canCreate&&<Link className="btn accent" href="/dashboard/communications/new"><Mail size={16}/> Create Campaign</Link>}{canManageCustomers&&<Link className="btn secondary" href={scoped('/dashboard/imports')}><UsersRound size={16}/> Import Contacts</Link>}{!canCreate&&!canApprove&&canReadCustomers&&<Link className="btn secondary" href="/dashboard/customers"><UsersRound size={16}/> Contacts</Link>}</div>
+   <div className="actions">{canCreate&&<Link className="btn accent" href="/dashboard/communications/new"><Mail size={16}/> Create Campaign</Link>}{canManageCustomers&&<Link className="btn secondary" href={scoped('/dashboard/imports')}><UsersRound size={16}/> Import Contacts</Link>}{!canCreate&&canReadCustomers&&<Link className="btn secondary" href="/dashboard/customers"><UsersRound size={16}/> Contacts</Link>}</div>
   </section>
   <StaffGettingStarted userId={account.id} contactsPath={canManageCustomers?scoped('/dashboard/contacts'):'/dashboard/customers'}/>
   {data.status!=='active'&&<div className="notice" role="alert">Charis is currently {data.status}. Live sending remains disabled until the workspace is active.</div>}
-  <section className="stat-grid" aria-label="Campaign summary">
+  <section className="stat-grid" aria-label="Workspace summary">
    {metrics.map(({name,value,detail,icon:Icon})=><div className="stat" key={name}><div className="stat-label"><Icon size={17}/>{name}</div><strong className="stat-value">{number(value)}</strong><span className="stat-note">{detail}</span></div>)}
   </section>
   <div className="page-head" style={{marginTop:32,marginBottom:8}}><div><h2>Quick actions</h2></div></div>
