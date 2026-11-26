@@ -278,3 +278,7 @@
  .charis-gjs-formatbar select{min-width:58px}
  .charis-gjs-device-tools{width:100%}
 }
+
+
+.charis-gjs-workspace.charis-gjs-no-palette>.charis-gjs-palette{display:none!important}
+.charis-gjs-workspace.charis-gjs-no-inspector>.charis-gjs-inspector{display:none!important}
