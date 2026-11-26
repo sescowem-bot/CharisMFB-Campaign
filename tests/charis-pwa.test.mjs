@@ -17,6 +17,11 @@ test('only public offline assets are cached',()=>{
  assert.doesNotMatch(sw,/cache\.put|cache\.add\(event\.request\)/);
  assert.match(sw,/event\.request\.mode!=='navigate'/);
  assert.match(sw,/fetch\(event\.request\)/);
+ const fallback=read('public/charis-offline.html');
+ assert.match(fallback,/<h1>We couldn't load this page<\/h1>/);
+ assert.match(fallback,/Please try again\./);
+ assert.doesNotMatch(fallback,/Internet connection needed|Connection needed|setTimeout|countdown|seconds remaining/i);
+ assert.match(sw,/charis-static-offline-v2/);
 });
 test('install page requires bank sign-in and offers manual install',()=>{
  assert.match(read('app/dashboard/install/page.tsx'),/currentAccount/);

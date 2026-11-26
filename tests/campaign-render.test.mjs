@@ -23,3 +23,10 @@ test('email rendering includes fixed footer, HTTPS unsubscribe and a safe color'
 test('rendered subjects reject line breaks introduced by personalization',()=>{
  assert.throws(()=>renderCampaign({design,subject:'Hello {{first_name}}',company:'Company',address:'Address',contact:{first_name:'Name\r\nBcc: other@example.com'}}),/line breaks/);
 });
+
+test('inline selected-word formatting is safely rendered and personalized',()=>{
+ const rich={version:'1',blocks:[{type:'paragraph',text:'Hello Alex, your update is ready.',richText:[{text:'Hello '},{text:'Alex',bold:true,italic:true},{text:', your update is ready.'}]}]};
+ const preview=renderCampaign({design:rich,subject:'Update',company:'Charis',address:'Address',contact:{}});
+ assert.ok(preview.html.includes('<span style="font-weight:700;font-style:italic;">Alex</span>'));
+ assert.ok(preview.html.includes('Hello '));
+});

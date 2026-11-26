@@ -1,5 +1,5 @@
 /* Only generic public assets are cached; private bank content is never cached. */
-const CACHE_NAME='charis-static-offline-v1';
+const CACHE_NAME='charis-static-offline-v2';
 const PRECACHE=['/charis-offline.html','/charis-pwa-192.png'];
 self.addEventListener('install',event=>{
  event.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(PRECACHE)).then(()=>self.skipWaiting()));

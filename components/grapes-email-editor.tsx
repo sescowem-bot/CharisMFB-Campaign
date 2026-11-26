@@ -1,7 +1,7 @@
 'use client';
 
 import {useEffect,useRef,useState} from 'react';
-import {Type,AlignLeft,Image as ImageIcon,Square,PanelTop,Circle,RectangleHorizontal,Minus,MousePointerClick,MoveUp,MoveDown,Copy,Trash2,Monitor,Smartphone,GripVertical,Shapes,Maximize2,Minimize2,Upload} from 'lucide-react';
+import {Type,AlignLeft,Image as ImageIcon,Square,PanelTop,Circle,RectangleHorizontal,Minus,MousePointerClick,MoveUp,MoveDown,Copy,Trash2,Monitor,Smartphone,Shapes,Maximize2,Minimize2,Upload} from 'lucide-react';
 import './template-studio-premium.css';
 import type {Editor} from 'grapesjs';
 import {designSchema,verifiedBrandWebsite,type EmailBlock,type EmailDesign} from '@/lib/campaign/design';
@@ -13,6 +13,23 @@ type Props={design:EmailDesign;onChange:(next:EmailDesign)=>void;assets:Media[];
 
 function escapeHtml(value:string){return value.replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]||char));}
 const validHex=(value:string)=>/^#[0-9a-f]{6}$/i.test(value);
+type InlineRun={text:string;bold?:boolean;italic?:boolean;underline?:boolean};
+function extractInlineRuns(element:Element):InlineRun[]{
+ const runs:InlineRun[]=[];
+ const walk=(node:Node,marks:{bold?:boolean;italic?:boolean;underline?:boolean})=>{
+  if(node.nodeType===Node.TEXT_NODE){const value=node.textContent||'';if(value)runs.push({text:value,bold:!!marks.bold,italic:!!marks.italic,underline:!!marks.underline});return;}
+  if(node.nodeType!==Node.ELEMENT_NODE)return;
+  const el=node as HTMLElement,style=el.style;
+  const next={bold:style.fontWeight?style.fontWeight==='bold'||Number(style.fontWeight)>=600:el.tagName==='B'||el.tagName==='STRONG'||!!marks.bold,italic:style.fontStyle?style.fontStyle==='italic':el.tagName==='I'||el.tagName==='EM'||!!marks.italic,underline:style.textDecoration?style.textDecoration.includes('underline'):el.tagName==='U'||!!marks.underline};
+  el.childNodes.forEach(child=>walk(child,next));
+ };
+ const baseStyle=(element as HTMLElement).style;
+ const base={bold:baseStyle.fontWeight==='bold'||Number(baseStyle.fontWeight)>=600,italic:baseStyle.fontStyle==='italic',underline:baseStyle.textDecoration.includes('underline')};
+ element.childNodes.forEach(child=>walk(child,base));
+ const merged:InlineRun[]=[];
+ for(const run of runs){const last=merged[merged.length-1];if(last&&last.bold===run.bold&&last.italic===run.italic&&last.underline===run.underline)last.text+=run.text;else merged.push({...run});}
+ return merged;
+}
 function starter(type:EmailBlock['type'],assets:Media[],website:string):EmailBlock|null {
  if(type==='heading')return {type,text:'New heading'};
  if(type==='paragraph')return {type,text:'Write your message here.'};
@@ -24,8 +41,9 @@ function starter(type:EmailBlock['type'],assets:Media[],website:string):EmailBlo
 function markup(block:EmailBlock,index:number):string {
  const attr=`data-charis-type="${block.type}" data-charis-index="${index}"${block.type==='shape'?` data-charis-shape="${block.shape}"`:''}`;
  const text=escapeHtml(block.text);
- if(block.type==='heading')return `<section ${attr} style="padding:8px 0"><h2 style="font-size:${block.format?.fontSize||25}px;line-height:${block.format?.lineHeight||1.3};letter-spacing:${block.format?.letterSpacing||0}px;background-color:${block.format?.backgroundColor||'transparent'};color:${block.format?.color||'#13233b'};font-family:${block.format?.fontFamily||'Arial'},sans-serif;text-align:${block.format?.align||'left'};font-weight:${block.format?.bold===false?'400':'700'};font-style:${block.format?.italic?'italic':'normal'};text-decoration:${block.format?.underline?'underline':'none'}">${text}</h2></section>`;
- if(block.type==='paragraph')return `<section ${attr} style="padding:8px 0"><p style="font-size:${block.format?.fontSize||16}px;line-height:${block.format?.lineHeight||1.7};letter-spacing:${block.format?.letterSpacing||0}px;margin:0 0 ${block.format?.paragraphSpacing??16}px;white-space:pre-wrap;background-color:${block.format?.backgroundColor||'transparent'};color:${block.format?.color||'#243047'};font-family:${block.format?.fontFamily||'Arial'},sans-serif;text-align:${block.format?.align||'left'};font-weight:${block.format?.bold?'700':'400'};font-style:${block.format?.italic?'italic':'normal'};text-decoration:${block.format?.underline?'underline':'none'}">${text}</p></section>`;
+ const richText=(block.type==='heading'||block.type==='paragraph')&&block.richText?.length?block.richText.map(run=>{const value=escapeHtml(run.text);const style=(run.bold===true?'font-weight:700;':run.bold===false?'font-weight:400;':'')+(run.italic===true?'font-style:italic;':run.italic===false?'font-style:normal;':'')+(run.underline===true?'text-decoration:underline;':run.underline===false?'text-decoration:none;':'');return style?'<span style="'+style+'">'+value+'</span>':value;}).join(''):text;
+ if(block.type==='heading')return `<section ${attr} style="padding:8px 0"><h2 style="font-size:${block.format?.fontSize||25}px;line-height:${block.format?.lineHeight||1.3};letter-spacing:${block.format?.letterSpacing||0}px;background-color:${block.format?.backgroundColor||'transparent'};color:${block.format?.color||'#13233b'};font-family:${block.format?.fontFamily||'Arial'},sans-serif;text-align:${block.format?.align||'left'};font-weight:${block.format?.bold===false?'400':'700'};font-style:${block.format?.italic?'italic':'normal'};text-decoration:${block.format?.underline?'underline':'none'}">${richText}</h2></section>`;
+ if(block.type==='paragraph')return `<section ${attr} style="padding:8px 0"><p style="font-size:${block.format?.fontSize||16}px;line-height:${block.format?.lineHeight||1.7};letter-spacing:${block.format?.letterSpacing||0}px;margin:0 0 ${block.format?.paragraphSpacing??16}px;white-space:pre-wrap;background-color:${block.format?.backgroundColor||'transparent'};color:${block.format?.color||'#243047'};font-family:${block.format?.fontFamily||'Arial'},sans-serif;text-align:${block.format?.align||'left'};font-weight:${block.format?.bold?'700':'400'};font-style:${block.format?.italic?'italic':'normal'};text-decoration:${block.format?.underline?'underline':'none'}">${richText}</p></section>`;
  if(block.type==='divider')return `<section ${attr} style="padding:12px 0"><hr style="border:0;border-top:1px solid #d9dfeb"></section>`;
  if(block.type==='button')return `<section ${attr} style="padding:10px 0"><div style="background:#40239a;color:#fff;padding:14px 20px;display:inline-block">${text}</div></section>`;
  if(block.type==='image')return `<section ${attr} style="padding:10px 0"><img src="${escapeHtml(block.url)}" alt="${text}" style="display:block;width:100%;max-width:${block.width==='small'?180:block.width==='medium'?360:544}px;height:auto"></section>`;
@@ -60,6 +78,8 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
  const [selectedIndex,setSelectedIndex]=useState(0);
  const [device,setDevice]=useState<'Desktop'|'Mobile'>('Desktop');
  const [focusCanvas,setFocusCanvas]=useState(false);
+ const [showPalette,setShowPalette]=useState(true);
+ const [showInspector,setShowInspector]=useState(true);
  const [chosenField,setChosenField]=useState('first_name');
  const fieldChoices=customerFieldOptions(availableFields);
  const addBlockRef=useRef<((type:EmailBlock['type'],shape?:Extract<EmailBlock,{type:'shape'}>['shape'])=>void)|null>(null);
@@ -134,9 +154,11 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
       if(base?.type==='shape'&&attrs['data-charis-shape']&&index<0)
        base={...base,shape:attrs['data-charis-shape'] as typeof base.shape};
       if(!base)continue;
-      const doc=new DOMParser().parseFromString(model.toHTML(),'text/html');
-      const section=doc.body.querySelector('[data-charis-type]');
-      const contents=section?.textContent?.trim()||'';
+      const parsedDocument=new DOMParser().parseFromString(model.toHTML(),'text/html');
+      const section=parsedDocument.body.querySelector('[data-charis-type]');
+      const textElement=section?.querySelector('h2,p');
+       const inlineRuns=textElement?extractInlineRuns(textElement):[];
+       const contents=(textElement?inlineRuns.map(run=>run.text).join(''):section?.textContent||'').trim();
       if(base.type==='divider'||base.type==='image')next.push(base);
       else if(base.type==='shape'){
        const styles=model.getStyle() as Record<string,string>;
@@ -145,7 +167,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
        next.push({...base,text:contents.slice(0,200),...(color&&validHex(color)?{color}:{}) ,...(textColor&&validHex(textColor)?{textColor}:{})});
       }
       else if(base.type==='button')next.push({...base,text:contents.slice(0,200)});
-      else next.push({...base,text:contents});
+      else next.push({...base,text:contents,richText:inlineRuns.length?inlineRuns:undefined});
       if(next.length===30)break;
      }
      const result=designSchema.safeParse({...prior,blocks:next});
@@ -185,6 +207,33 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[]);
  const active=design.blocks[Math.min(selectedIndex,design.blocks.length-1)];
+ const isTextMarkActive=(mark:'bold'|'italic'|'underline')=>{
+  if(!active||(active.type!=='heading'&&active.type!=='paragraph'))return false;
+  return mark==='bold'&&active.type==='heading'?active.format?.bold!==false:!!active.format?.[mark];
+ };
+ const toggleTextMark=(mark:'bold'|'italic'|'underline')=>{
+  if(!active||(active.type!=='heading'&&active.type!=='paragraph'))return;
+  const doc=instance.current?.Canvas.getDocument(),selection=doc?.getSelection();
+  const selectedNode=instance.current?.getSelected()?.getEl();
+  const selectedElement=selectedNode?.matches('h2,p')?selectedNode:selectedNode?.closest('section[data-charis-type]')?.querySelector('h2,p')||selectedNode?.querySelector('h2,p');
+  if(!doc||!selection||!selectedElement||!selection.rangeCount){update({format:{...active.format,[mark]:!isTextMarkActive(mark)}});return;}
+  const range=selection.getRangeAt(0);
+  if(range.collapsed||!range.toString().trim()||!selectedElement.contains(range.commonAncestorContainer)){update({format:{...active.format,[mark]:!isTextMarkActive(mark)}});return;}
+  try{
+   const wrapper=doc.createElement('span');
+   const anchor=range.startContainer.nodeType===Node.ELEMENT_NODE?range.startContainer as HTMLElement:range.startContainer.parentElement;
+   const computed=anchor?doc.defaultView?.getComputedStyle(anchor):null;
+   const isActive=mark==='bold'?Number(computed?.fontWeight||0)>=600:mark==='italic'?computed?.fontStyle==='italic':(computed?.textDecorationLine||computed?.textDecoration||'').includes('underline');
+   if(mark==='bold')wrapper.style.fontWeight=isActive?'400':'700';
+   if(mark==='italic')wrapper.style.fontStyle=isActive?'normal':'italic';
+   if(mark==='underline')wrapper.style.textDecoration=isActive?'none':'underline';
+   wrapper.appendChild(range.extractContents());range.insertNode(wrapper);
+   const nextRange=doc.createRange();nextRange.selectNodeContents(wrapper);selection.removeAllRanges();selection.addRange(nextRange);
+   const runs=extractInlineRuns(selectedElement);
+   const nextDesign={...current.current,blocks:current.current.blocks.map((block,index)=>index===selectedIndex&&(block.type==='heading'||block.type==='paragraph')?{...block,text:runs.map(run=>run.text).join(''),richText:runs.some(run=>run.bold||run.italic||run.underline)?runs:undefined}:block)};
+   current.current=nextDesign;sent.current=JSON.stringify(nextDesign);onChangeRef.current(nextDesign);setError('');
+  }catch{setError('The selected text could not be formatted. Please select the text again and retry.');}
+ };
  const update=(changes:Partial<EmailBlock>)=>{
   onChange({...design,blocks:design.blocks.map((block,i)=>i===selectedIndex?{...block,...changes} as EmailBlock:block)});
  };
@@ -225,13 +274,29 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
  ];
  return <section className="charis-gjs" aria-label="Professional email design editor">
   <div className="charis-gjs-top">
-   <div><h3>Email designer</h3><p>Compose your template with editable blocks. Final output is email-safe HTML.</p></div>
-   <div className="charis-gjs-device-tools"><button type="button" className="charis-gjs-expand" onClick={()=>setFocusCanvas(x=>!x)} aria-pressed={focusCanvas}>{focusCanvas?<Minimize2 size={15}/>:<Maximize2 size={15}/>} {focusCanvas?"Show tools":"Expand canvas"}</button><div className="charis-gjs-devices" role="group" aria-label="Canvas device">
+   <div><h3>Email designer</h3></div>
+   <div className="charis-gjs-device-tools">
+    <button type="button" className="charis-gjs-panel-toggle" aria-pressed={showPalette} onClick={()=>setShowPalette(v=>!v)}>Add elements</button>
+    <button type="button" className="charis-gjs-panel-toggle" aria-pressed={showInspector} onClick={()=>setShowInspector(v=>!v)}>Element settings</button>
+    <button type="button" className="charis-gjs-expand" onClick={()=>setFocusCanvas(x=>!x)} aria-pressed={focusCanvas}>{focusCanvas?<Minimize2 size={15}/>:<Maximize2 size={15}/>} {focusCanvas?"Show tools":"Expand canvas"}</button><div className="charis-gjs-devices" role="group" aria-label="Canvas device">
     <button type="button" aria-pressed={device==='Desktop'} onClick={()=>{setDevice('Desktop');instance.current?.setDevice('Desktop');}}><Monitor size={15}/> Desktop</button>
     <button type="button" aria-pressed={device==='Mobile'} onClick={()=>{setDevice('Mobile');instance.current?.setDevice('Mobile');}}><Smartphone size={15}/> Mobile</button>
    </div></div>
   </div>
-  <div className={"charis-gjs-workspace"+(focusCanvas?" charis-gjs-workspace-focus":"")}>
+  <div className="charis-gjs-formatbar" role="toolbar" aria-label="Text formatting">
+   <strong>Text</strong>
+   <div className="charis-gjs-formatbar-marks">
+    <button type="button" aria-label="Bold" title="Bold" aria-pressed={isTextMarkActive('bold')} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onMouseDown={event=>event.preventDefault()} onClick={()=>toggleTextMark('bold')}><b>B</b></button>
+    <button type="button" aria-label="Italic" title="Italic" aria-pressed={isTextMarkActive('italic')} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onMouseDown={event=>event.preventDefault()} onClick={()=>toggleTextMark('italic')}><i>I</i></button>
+    <button type="button" aria-label="Underline" title="Underline" aria-pressed={isTextMarkActive('underline')} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onMouseDown={event=>event.preventDefault()} onClick={()=>toggleTextMark('underline')}><u>U</u></button>
+   </div>
+   <label>Size<select aria-label="Font size" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.fontSize||(active.type==='heading'?25:16)):16} onChange={e=>active&&'format' in active&&update({format:{...active.format,fontSize:Number(e.target.value)}})}>{[12,14,16,18,20,22,24,25,28,32,36,40].map(n=><option key={n} value={n}>{n}px</option>)}</select></label>
+   <label>Font<select aria-label="Font family" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.fontFamily||'Arial'):'Arial'} onChange={e=>active&&'format' in active&&update({format:{...active.format,fontFamily:e.target.value as 'Arial'|'Georgia'|'Verdana'|'Tahoma'|'Trebuchet MS'}})}>{['Arial','Georgia','Verdana','Tahoma','Trebuchet MS'].map(font=><option key={font}>{font}</option>)}</select></label>
+   <label className="charis-gjs-color-control">Text <input aria-label="Text colour" type="color" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.color||'#243047'):'#243047'} onChange={e=>active&&'format' in active&&update({format:{...active.format,color:e.target.value}})}/></label>
+   <label className="charis-gjs-color-control">Highlight <input aria-label="Highlight colour" type="color" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.backgroundColor||'#ffffff'):'#ffffff'} onChange={e=>active&&'format' in active&&update({format:{...active.format,backgroundColor:e.target.value}})}/></label>
+   <label>Align<select aria-label="Text alignment" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.align||'left'):'left'} onChange={e=>active&&'format' in active&&update({format:{...active.format,align:e.target.value as 'left'|'center'|'right'|'justify'}})}>{['left','center','right','justify'].map(v=><option key={v} value={v}>{v[0].toUpperCase()+v.slice(1)}</option>)}</select></label>
+  </div>
+  <div className={"charis-gjs-workspace"+(focusCanvas?" charis-gjs-workspace-focus":"")+(!showPalette?" charis-gjs-no-palette":"")+(!showInspector?" charis-gjs-no-inspector":"")}>
    <aside className="charis-gjs-palette" aria-label="Add email elements">
     <div className="charis-gjs-title">Add elements</div><input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={e=>void uploadImage(e.target.files?.[0])}/><button type="button" className="charis-gjs-tool charis-gjs-upload" disabled={uploading||!ready} onClick={()=>fileInput.current?.click()}><Upload aria-hidden="true"/><span>{uploading?'Uploading image…':'Upload image'}</span></button>
     <div className="charis-gjs-group">{tiles.map(t=><button type="button" className="charis-gjs-tool" key={t.key}
@@ -243,13 +308,12 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
     <p style={{fontSize:11,lineHeight:1.6,color:'#787087',margin:'0 4px'}}>Choose a shape or section to add. Then select it on the canvas to change its text, colour, size and position.</p>
    </aside>
    <div className="charis-gjs-stage">
-    <div className="charis-gjs-stage-note"><GripVertical size={14}/> Click a section to edit · use arrows to reorder · {design.blocks.length}/30 blocks</div>
     <div ref={host} className="charis-gjs-host"/>
     {error&&<p role="alert" className="feedback-error">{error}</p>}
     {!ready&&!error&&<p role="status" className="muted">Loading visual canvas…</p>}
    </div>
    <aside className="charis-gjs-inspector" aria-label="Selected element settings">
-    <div className="charis-gjs-title">Element settings</div><p className="charis-gjs-help">Select a section on the canvas, or edit its details below.</p>
+    <div className="charis-gjs-title">Element settings</div><p className="charis-gjs-help">Select an element on the canvas to edit it.</p>
     {active?<><h4>{active.type==='shape'?active.shape:active.type} · {selectedIndex+1}</h4><p>Edit the selected element. These options save with your template.</p>
      <div className="charis-gjs-inspector-actions">
       <button type="button" disabled={selectedIndex===0} onClick={()=>move(-1)}><MoveUp size={14}/> Move up</button>
@@ -257,21 +321,6 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
       <button type="button" disabled={design.blocks.length>=30} onClick={duplicateSelected}><Copy size={14}/> Duplicate</button>
       <button type="button" className="charis-gjs-delete" aria-label="Delete selected section" disabled={design.blocks.length<=1} onClick={removeSelected}><Trash2 size={14}/> Delete section</button>
      </div>
-     {(active.type==='heading'||active.type==='paragraph')&&<div className="charis-gjs-quick-format" aria-label="Quick text formatting">
-      <strong>Quick text tools</strong>
-      <div className="charis-gjs-quick-format-buttons">
-       <button type="button" aria-label="Bold" aria-pressed={active.type==='heading'?active.format?.bold!==false:!!active.format?.bold} onClick={()=>update({format:{...active.format,bold:!(active.type==='heading'?active.format?.bold!==false:!!active.format?.bold)}})}><b>B</b><span>Bold</span></button>
-       <button type="button" aria-label="Italic" aria-pressed={!!active.format?.italic} onClick={()=>update({format:{...active.format,italic:!active.format?.italic}})}><i>I</i><span>Italic</span></button>
-       <button type="button" aria-label="Underline" aria-pressed={!!active.format?.underline} onClick={()=>update({format:{...active.format,underline:!active.format?.underline}})}><u>U</u><span>Underline</span></button>
-      </div>
-      <label>Font size · {active.format?.fontSize||(active.type==='heading'?25:16)} px<input aria-label="Font size" type="range" min="10" max="48" step="1" value={active.format?.fontSize||(active.type==='heading'?25:16)} onChange={e=>update({format:{...active.format,fontSize:Number(e.target.value)}})}/></label>
-      <label>Font family<select aria-label="Font family" value={active.format?.fontFamily||'Arial'} onChange={e=>update({format:{...active.format,fontFamily:e.target.value as 'Arial'|'Georgia'|'Verdana'|'Tahoma'|'Trebuchet MS'}})}>{['Arial','Georgia','Verdana','Tahoma','Trebuchet MS'].map(font=><option key={font}>{font}</option>)}</select></label>
-      <div className="charis-gjs-quick-format-colours">
-       <label>Text colour<input aria-label="Text colour" type="color" value={active.format?.color||'#243047'} onChange={e=>update({format:{...active.format,color:e.target.value}})}/></label>
-       <label>Highlight<input aria-label="Highlight colour" type="color" value={active.format?.backgroundColor||'#ffffff'} onChange={e=>update({format:{...active.format,backgroundColor:e.target.value}})}/></label>
-      </div>
-      <label>Alignment<select aria-label="Text alignment" value={active.format?.align||'left'} onChange={e=>update({format:{...active.format,align:e.target.value as 'left'|'center'|'right'|'justify'}})}>{['left','center','right','justify'].map(v=><option key={v} value={v}>{v[0].toUpperCase()+v.slice(1)}</option>)}</select></label>
-     </div>}
      {active.type==='shape'&&<div className="charis-gjs-quick-sizes">
       <label>{active.shape==='circle'?'Circle diameter':'Shape width'} · {active.widthPercent??100}%<input type="range" min="25" max="100" value={active.widthPercent??100} onChange={e=>update({widthPercent:Number(e.target.value)})}/></label>
       {active.shape!=='circle'&&active.shape!=='rule'&&<label>Minimum height · {active.minHeight??0}px<input type="range" min="0" max="320" step="8" value={active.minHeight??0} onChange={e=>update({minHeight:Number(e.target.value)})}/></label>}
@@ -282,7 +331,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
       <button type="button" className="charis-insert-field" onClick={()=>{const limit=active.type==='shape'||active.type==='button'?200:5000;update({text:(active.text+' {{'+chosenField+'}}').trim().slice(0,limit)});}}>Insert into selected section</button>
      </div>}
      {active.type!=='divider'&&!(active.type==='shape'&&active.shape==='rule')&&<label>{active.type==='image'?'Image description':'Text content'}
-      <textarea rows={4} value={active.text} maxLength={active.type==='shape'||active.type==='button'?200:active.type==='image'?160:undefined} onChange={e=>update({text:e.target.value})}/>
+      <textarea rows={4} value={active.text} maxLength={active.type==='shape'||active.type==='button'?200:active.type==='image'?160:undefined} onChange={e=>update({text:e.target.value,richText:undefined})}/>
      </label>}
      {(active.type==='heading'||active.type==='paragraph')&&<div className="charis-gjs-format-tools"><strong>Paragraph spacing & advanced typography</strong><div className="charis-paragraph-spacing-controls"><label>Line spacing · {(active.format?.lineHeight??(active.type==='heading'?1.3:1.7)).toFixed(1)}<input type="range" min="1" max="3" step="0.1" value={active.format?.lineHeight??(active.type==='heading'?1.3:1.7)} onChange={e=>update({format:{...active.format,lineHeight:Number(e.target.value)}})}/></label>{active.type==='paragraph'&&<label>Space after paragraph · {active.format?.paragraphSpacing??16}px<input type="range" min="0" max="64" step="1" value={active.format?.paragraphSpacing??16} onChange={e=>update({format:{...active.format,paragraphSpacing:Number(e.target.value)}})}/></label>}<label>Letter spacing · {active.format?.letterSpacing??0}px<input type="range" min="-1" max="10" step="0.25" value={active.format?.letterSpacing??0} onChange={e=>update({format:{...active.format,letterSpacing:Number(e.target.value)}})}/></label></div></div>}
      {active.type==='button'&&<label>Button URL (HTTPS)<input type="url" value={active.url} onChange={e=>update({url:e.target.value})}/></label>}
@@ -306,7 +355,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
     <div className="charis-gjs-divider"/>
     <p style={{fontSize:11}}>Brand · {brandName}<br/>Colour · {validHex(brandColor)?brandColor:'#40239A'}</p>
    </aside>
+
   </div>
-  <div className="charis-gjs-bottom"><GripVertical size={14}/> Drag or use Move up/down to arrange sections. Click <strong>Preview email</strong> above to see how your customers will receive it.</div>
  </section>;
 }

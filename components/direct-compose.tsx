@@ -20,8 +20,8 @@ type Contact={id:string;first_name:string|null;last_name:string|null;email:strin
 type Group={id:string;name:string};
 type Template={id:string;name:string;subject:string;design:EmailDesign;source:'bank'|'starter'};
 type MediaAsset={id:string;file_name:string;public_url:string};
-export function DirectCompose({token,userId,organizationId,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,assets,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false,customFields=[],readyEmailProviders=[]}:{
- token:string;userId:string;organizationId:string;contacts:Contact[];groups:Group[];canBulk:boolean;emailEnabled:boolean;smsEnabled:boolean;maxRecipients:number;
+export function DirectCompose({token,userId,organizationId,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,assets,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false,customFields=[],readyEmailProviders=[],initialCampaign}:{
+ token:string;userId:string;organizationId:string;contacts:Contact[];groups:Group[];canBulk:boolean;emailEnabled:boolean;smsEnabled:boolean;maxRecipients:number;initialCampaign?:{subject:string;body:string;design:EmailDesign|null};
  templates:Template[];assets:MediaAsset[];templateStudioUrl:string;brand:{name:string;color:string;address:string;website:string;social?:Record<string,string>};schedulingEnabled:boolean;approvalRequired?:boolean;customFields?:string[];readyEmailProviders?:string[];
 }){
  const [state,submit,pending]=useActionState(createDirectMessage,{});
@@ -32,6 +32,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
  const draftKey=campaignDraftKey(organizationId,userId);
  const lastSessionDraft=useRef<CampaignDraft|null>(null);
  const submissionFinished=useRef(false);
+ const initialCampaignApplied=useRef(false);
  const [draftWarning,setDraftWarning]=useState('');
  const stepNavRef=useRef<HTMLElement|null>(null);
  useEffect(()=>{if(step>0)stepNavRef.current?.scrollIntoView({behavior:'smooth',block:'start'});},[step]);
@@ -134,6 +135,16 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
  // Reload only when staff identity changes; this effect is a one-time restore.
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[draftKey]);
+ useEffect(()=>{
+  if(!draftReady||!initialCampaign||initialCampaignApplied.current)return;
+  initialCampaignApplied.current=true;
+  setSubject(initialCampaign.subject);
+  setBody(initialCampaign.body);
+  setDesign(initialCampaign.design);
+  setTemplateId('');
+  setStep(0);
+  setDraftStatus('New campaign copied from sent message');
+ },[draftReady,initialCampaign]);
  const snapshot:CampaignDraft={version:1,savedAt:Date.now(),token:draftToken,step,subject,body,design,
   templateId,simpleStyle,simpleGreeting,purpose:purpose as CampaignDraft['purpose'],product:product as CampaignDraft['product'],showProduct,channel,audience,
   chosen:chosen.slice(0,500),groupId,mode,sendAt,emailProvider:emailProvider as CampaignDraft['emailProvider']};
@@ -311,11 +322,6 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
     <Link href={templateStudioUrl} className="inline-link">Open Design Templates</Link></div>
     <p className="muted">A template controls how the email looks. It does not change who receives it or when it is sent.</p>
    </details>}
-   <div className="charis-compose-history" role="group" aria-label="Undo and redo message changes">
-    <button type="button" className="btn secondary" onClick={undoDraft} disabled={!historyCounts.undo} title="Undo the last message edit"><Undo2 size={16}/> Undo</button>
-    <button type="button" className="btn secondary" onClick={redoDraft} disabled={!historyCounts.redo} title="Restore the last undone edit"><Redo2 size={16}/> Redo</button>
-    <span>Correct a mistake without starting over.</span>
-   </div>
    <label>Subject<input value={subject} onChange={e=>setSubject(e.target.value)} maxLength={180} placeholder="Account service update"/></label>
    {channel==='email'&&<details className="charis-template-choice"><summary>Copy other email addresses (optional)</summary><p className="muted">Separate multiple addresses with commas. CC recipients are visible to other recipients; BCC recipients are hidden.</p><label>CC<input type="text" inputMode="email" autoComplete="off" value={ccEmails} onChange={e=>setCcEmails(e.target.value)} placeholder="colleague@charis.example"/></label><label>BCC<input type="text" inputMode="email" autoComplete="off" value={bccEmails} onChange={e=>setBccEmails(e.target.value)} placeholder="archive@charis.example"/></label></details>}
    {channel==='email'&&<div className="direct-editor charis-personalise-tools" aria-label="Customer detail tools">
@@ -339,9 +345,16 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
    </section>}
    {!design||channel==='sms'?<label>Message<textarea rows={6} maxLength={channel==='sms'?480:undefined} value={body} onChange={e=>setBody(e.target.value)} placeholder="Write a clear message. Never request a PIN, password or OTP."/><small className="muted">{channel==='sms'?`${body.length}/480 characters`:'Email message length is not capped.'}</small></label>:
     <div className="direct-editor">
-     <div className="actions" role="group" aria-label="Email editing mode">
-      <button type="button" className="btn secondary" aria-pressed={editorMode==='visual'} onClick={()=>setEditorMode('visual')}>Visual drag-and-drop editor</button>
-      <button type="button" className="btn secondary" aria-pressed={editorMode==='sections'} onClick={()=>setEditorMode('sections')}>Detailed sections</button>
+     <div className="charis-editor-commandbar" role="toolbar" aria-label="Email editor actions">
+      <div className="charis-editor-history-tools">
+       <button type="button" className="btn secondary" onClick={undoDraft} disabled={!historyCounts.undo} title="Undo last message or design change"><Undo2 size={16}/> Undo</button>
+       <button type="button" className="btn secondary" onClick={redoDraft} disabled={!historyCounts.redo} title="Redo message or design change"><Redo2 size={16}/> Redo</button>
+      </div>
+      <span className="charis-editor-commandbar-hint">Editing email design · changes save to this draft</span>
+      <div className="charis-editor-mode-actions" role="group" aria-label="Email editing mode">
+       <button type="button" className="btn secondary" aria-pressed={editorMode==='visual'} onClick={()=>setEditorMode('visual')}>Visual editor</button>
+       <button type="button" className="btn secondary" aria-pressed={editorMode==='sections'} onClick={()=>setEditorMode('sections')}>Detailed sections</button>
+      </div>
      </div>
      {editorMode==='visual'?<GrapesEmailEditor design={design} onChange={setDesign} assets={assets} brandName={brand.name} brandColor={brand.color} websiteUrl={brand.website} availableFields={customFields}/>:
      <><h3>Email sections</h3>{design.blocks.map((block,index)=><div key={index} className="direct-block-editor"><div className="direct-block-top"><strong>{block.type==='shape'?'Accent':block.type}</strong><span><button type="button" onClick={()=>moveBlock(index,-1)} disabled={index===0} aria-label="Move section up">↑</button><button type="button" onClick={()=>moveBlock(index,1)} disabled={index===design.blocks.length-1} aria-label="Move section down">↓</button><button type="button" disabled={design.blocks.length===1} onClick={()=>setDesign(d=>d?{...d,blocks:d.blocks.filter((_,i)=>i!==index)}:d)} aria-label="Remove section">×</button></span></div>
