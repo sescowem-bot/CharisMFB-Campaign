@@ -20,8 +20,8 @@ type Contact={id:string;first_name:string|null;last_name:string|null;email:strin
 type Group={id:string;name:string};
 type Template={id:string;name:string;subject:string;design:EmailDesign;source:'bank'|'starter'};
 type MediaAsset={id:string;file_name:string;public_url:string};
-export function DirectCompose({token,userId,organizationId,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,assets,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false,customFields=[],readyEmailProviders=[]}:{
- token:string;userId:string;organizationId:string;contacts:Contact[];groups:Group[];canBulk:boolean;emailEnabled:boolean;smsEnabled:boolean;maxRecipients:number;
+export function DirectCompose({token,userId,organizationId,contacts,groups,canBulk,emailEnabled,smsEnabled,maxRecipients,templates,assets,templateStudioUrl,brand,schedulingEnabled,approvalRequired=false,customFields=[],readyEmailProviders=[],initialCampaign}:{
+ token:string;userId:string;organizationId:string;contacts:Contact[];groups:Group[];canBulk:boolean;emailEnabled:boolean;smsEnabled:boolean;maxRecipients:number;initialCampaign?:{subject:string;body:string;design:EmailDesign|null};
  templates:Template[];assets:MediaAsset[];templateStudioUrl:string;brand:{name:string;color:string;address:string;website:string;social?:Record<string,string>};schedulingEnabled:boolean;approvalRequired?:boolean;customFields?:string[];readyEmailProviders?:string[];
 }){
  const [state,submit,pending]=useActionState(createDirectMessage,{});
@@ -32,6 +32,7 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
  const draftKey=campaignDraftKey(organizationId,userId);
  const lastSessionDraft=useRef<CampaignDraft|null>(null);
  const submissionFinished=useRef(false);
+ const initialCampaignApplied=useRef(false);
  const [draftWarning,setDraftWarning]=useState('');
  const stepNavRef=useRef<HTMLElement|null>(null);
  useEffect(()=>{if(step>0)stepNavRef.current?.scrollIntoView({behavior:'smooth',block:'start'});},[step]);
@@ -134,6 +135,16 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
  // Reload only when staff identity changes; this effect is a one-time restore.
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[draftKey]);
+ useEffect(()=>{
+  if(!draftReady||!initialCampaign||initialCampaignApplied.current)return;
+  initialCampaignApplied.current=true;
+  setSubject(initialCampaign.subject);
+  setBody(initialCampaign.body);
+  setDesign(initialCampaign.design);
+  setTemplateId('');
+  setStep(0);
+  setDraftStatus('New campaign copied from sent message');
+ },[draftReady,initialCampaign]);
  const snapshot:CampaignDraft={version:1,savedAt:Date.now(),token:draftToken,step,subject,body,design,
   templateId,simpleStyle,simpleGreeting,purpose:purpose as CampaignDraft['purpose'],product:product as CampaignDraft['product'],showProduct,channel,audience,
   chosen:chosen.slice(0,500),groupId,mode,sendAt,emailProvider:emailProvider as CampaignDraft['emailProvider']};
