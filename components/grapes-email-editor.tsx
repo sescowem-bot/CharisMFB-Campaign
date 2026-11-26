@@ -152,9 +152,11 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
       if(base?.type==='shape'&&attrs['data-charis-shape']&&index<0)
        base={...base,shape:attrs['data-charis-shape'] as typeof base.shape};
       if(!base)continue;
-      const doc=new DOMParser().parseFromString(model.toHTML(),'text/html');
-      const section=doc.body.querySelector('[data-charis-type]');
-      const contents=section?.textContent?.trim()||'';
+      const parsedDocument=new DOMParser().parseFromString(model.toHTML(),'text/html');
+      const section=parsedDocument.body.querySelector('[data-charis-type]');
+      const textElement=section?.querySelector('h2,p');
+       const inlineRuns=textElement?extractInlineRuns(textElement):[];
+       const contents=(textElement?inlineRuns.map(run=>run.text).join(''):section?.textContent||'').trim();
       if(base.type==='divider'||base.type==='image')next.push(base);
       else if(base.type==='shape'){
        const styles=model.getStyle() as Record<string,string>;
@@ -163,7 +165,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
        next.push({...base,text:contents.slice(0,200),...(color&&validHex(color)?{color}:{}) ,...(textColor&&validHex(textColor)?{textColor}:{})});
       }
       else if(base.type==='button')next.push({...base,text:contents.slice(0,200)});
-      else next.push({...base,text:contents});
+      else next.push({...base,text:contents,richText:inlineRuns.length?inlineRuns:undefined});
       if(next.length===30)break;
      }
      const result=designSchema.safeParse({...prior,blocks:next});
