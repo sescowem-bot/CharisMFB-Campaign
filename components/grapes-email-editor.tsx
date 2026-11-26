@@ -1,7 +1,7 @@
 'use client';
 
 import {useEffect,useRef,useState} from 'react';
-import {Type,AlignLeft,Image as ImageIcon,Square,PanelTop,Circle,RectangleHorizontal,Minus,MousePointerClick,MoveUp,MoveDown,Copy,Trash2,Monitor,Smartphone,GripVertical,Shapes,Maximize2,Minimize2,Upload} from 'lucide-react';
+import {Type,AlignLeft,Image as ImageIcon,Square,PanelTop,Circle,RectangleHorizontal,Minus,MousePointerClick,MoveUp,MoveDown,Copy,Trash2,Monitor,Smartphone,Shapes,Maximize2,Minimize2,Upload} from 'lucide-react';
 import './template-studio-premium.css';
 import type {Editor} from 'grapesjs';
 import {designSchema,verifiedBrandWebsite,type EmailBlock,type EmailDesign} from '@/lib/campaign/design';
