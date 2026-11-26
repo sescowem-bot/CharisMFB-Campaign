@@ -188,9 +188,13 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[]);
  const active=design.blocks[Math.min(selectedIndex,design.blocks.length-1)];
+ const isTextMarkActive=(mark:'bold'|'italic'|'underline')=>{
+  if(!active||(active.type!=='heading'&&active.type!=='paragraph'))return false;
+  return mark==='bold'&&active.type==='heading'?active.format?.bold!==false:!!active.format?.[mark];
+ };
  const toggleTextMark=(mark:'bold'|'italic'|'underline')=>{
   if(!active||(active.type!=='heading'&&active.type!=='paragraph'))return;
-  update({format:{...active.format,[mark]:!active.format?.[mark]}});
+  update({format:{...active.format,[mark]:!isTextMarkActive(mark)}});
  };
  const update=(changes:Partial<EmailBlock>)=>{
   onChange({...design,blocks:design.blocks.map((block,i)=>i===selectedIndex?{...block,...changes} as EmailBlock:block)});
@@ -244,9 +248,9 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
   <div className="charis-gjs-formatbar" role="toolbar" aria-label="Text formatting">
    <strong>Text</strong>
    <div className="charis-gjs-formatbar-marks">
-    <button type="button" aria-label="Bold" title="Bold" aria-pressed={!!(active&&'format' in active&&active.format?.bold)} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onClick={()=>toggleTextMark('bold')}><b>B</b></button>
-    <button type="button" aria-label="Italic" title="Italic" aria-pressed={!!(active&&'format' in active&&active.format?.italic)} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onClick={()=>toggleTextMark('italic')}><i>I</i></button>
-    <button type="button" aria-label="Underline" title="Underline" aria-pressed={!!(active&&'format' in active&&active.format?.underline)} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onClick={()=>toggleTextMark('underline')}><u>U</u></button>
+    <button type="button" aria-label="Bold" title="Bold" aria-pressed={isTextMarkActive('bold')} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onClick={()=>toggleTextMark('bold')}><b>B</b></button>
+    <button type="button" aria-label="Italic" title="Italic" aria-pressed={isTextMarkActive('italic')} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onClick={()=>toggleTextMark('italic')}><i>I</i></button>
+    <button type="button" aria-label="Underline" title="Underline" aria-pressed={isTextMarkActive('underline')} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onClick={()=>toggleTextMark('underline')}><u>U</u></button>
    </div>
    <label>Size<select aria-label="Font size" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.fontSize||(active.type==='heading'?25:16)):16} onChange={e=>active&&'format' in active&&update({format:{...active.format,fontSize:Number(e.target.value)}})}>{[12,14,16,18,20,22,24,25,28,32,36,40].map(n=><option key={n} value={n}>{n}px</option>)}</select></label>
    <label>Font<select aria-label="Font family" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.fontFamily||'Arial'):'Arial'} onChange={e=>active&&'format' in active&&update({format:{...active.format,fontFamily:e.target.value as 'Arial'|'Georgia'|'Verdana'|'Tahoma'|'Trebuchet MS'}})}>{['Arial','Georgia','Verdana','Tahoma','Trebuchet MS'].map(font=><option key={font}>{font}</option>)}</select></label>
