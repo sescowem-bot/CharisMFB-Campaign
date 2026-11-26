@@ -10,7 +10,7 @@ import {designSchema} from '@/lib/campaign/design';
 import {renderCampaign} from '@/lib/campaigns/render';
 import {messageStatusLabel,deliverySummaryText} from '@/lib/direct/delivery-view';
 import {DirectRecipientOutcomes} from '@/components/direct-recipient-outcomes';
-import {Clock3,Mail,UsersRound,RefreshCcw} from 'lucide-react';
+import {Clock3,Mail,UsersRound,RefreshCcw,Copy} from 'lucide-react';
 export const dynamic='force-dynamic';
 export default async function DirectHistory({searchParams}:{searchParams:Promise<{id?:string}>}){
  const account=await currentAccount();if(!account)redirect('/login');const db=await supabaseServer(),org=account.workspace.id,params=await searchParams,id=z.uuid().safeParse(params.id);
