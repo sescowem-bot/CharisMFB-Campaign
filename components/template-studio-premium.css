@@ -188,3 +188,45 @@
 @media(max-width:920px){
  .charis-gjs-stage,.charis-gjs-inspector{position:static!important;top:auto!important;max-height:none!important;height:auto!important;overflow:visible!important}
 }
+
+
+/* Final editor workspace refinements: remove the overflow ancestor that trapped
+   sticky columns, keep the editor command bar and canvas tools reachable. */
+.charis-gjs{overflow:visible!important;border-radius:15px}
+.charis-gjs-top{
+ position:sticky;top:0;z-index:30;background:rgba(255,255,255,.97);
+ box-shadow:0 1px 0 #e9e5f1;backdrop-filter:blur(10px)
+}
+.charis-gjs-workspace{align-items:start}
+.charis-gjs-stage{
+ position:sticky!important;top:76px!important;align-self:start;
+ max-height:none!important;height:auto!important;overflow:visible!important
+}
+.charis-gjs-inspector{
+ position:sticky!important;top:76px!important;align-self:start;
+ max-height:calc(100vh - 90px)!important;height:auto!important;
+ overflow-y:auto!important;overscroll-behavior:contain!important
+}
+.charis-gjs-host{height:min(68vh,680px);min-height:480px;overflow:hidden}
+.charis-editor-commandbar{
+ position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;
+ flex-wrap:wrap;padding:10px 12px;margin:0 0 10px;background:#fff;
+ border:1px solid #e5dfef;border-radius:12px;box-shadow:0 4px 14px #2413440b
+}
+.charis-editor-commandbar .charis-editor-history-tools{display:flex;gap:6px;padding-right:12px;border-right:1px solid #e8e2f0}
+.charis-editor-commandbar .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:8px 12px;font-size:12px;white-space:nowrap}
+.charis-editor-commandbar .btn:disabled{opacity:.35;cursor:not-allowed}
+.charis-editor-commandbar-hint{font-size:12px;color:#706781;flex:1 1 180px}
+.charis-editor-mode-actions{display:flex;gap:6px;flex-wrap:wrap}
+.charis-editor-mode-actions .btn[aria-pressed=true]{background:#eee8ff;border-color:#bba8e9;color:#40239a}
+@media(max-width:920px){
+ .charis-gjs-stage,.charis-gjs-inspector{position:static!important;top:auto!important;max-height:none!important;height:auto!important;overflow:visible!important}
+ .charis-gjs-host{height:500px;min-height:500px}
+ .charis-editor-commandbar{position:static}
+}
+@media(max-width:600px){
+ .charis-editor-commandbar{align-items:stretch}
+ .charis-editor-commandbar-hint{flex-basis:100%;order:3}
+ .charis-editor-mode-actions{width:100%}
+ .charis-editor-mode-actions .btn{flex:1}
+}
