@@ -23,7 +23,7 @@ function extractInlineRuns(element:Element):InlineRun[]{
   const next={bold:style.fontWeight?style.fontWeight==='bold'||Number(style.fontWeight)>=600:el.tagName==='B'||el.tagName==='STRONG'||!!marks.bold,italic:style.fontStyle?style.fontStyle==='italic':el.tagName==='I'||el.tagName==='EM'||!!marks.italic,underline:style.textDecoration?style.textDecoration.includes('underline'):el.tagName==='U'||!!marks.underline};
   el.childNodes.forEach(child=>walk(child,next));
  };
- element.childNodes.forEach(child=>walk(child,{}));
+ const base={bold:element instanceof HTMLElement&&(element.style.fontWeight==='bold'||Number(element.style.fontWeight)>=600),italic:element instanceof HTMLElement&&element.style.fontStyle==='italic',underline:element instanceof HTMLElement&&element.style.textDecoration.includes('underline')};\n element.childNodes.forEach(child=>walk(child,base));
  const merged:InlineRun[]=[];
  for(const run of runs){const last=merged[merged.length-1];if(last&&last.bold===run.bold&&last.italic===run.italic&&last.underline===run.underline)last.text+=run.text;else merged.push({...run});}
  return merged;
