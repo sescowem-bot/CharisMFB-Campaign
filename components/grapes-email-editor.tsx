@@ -23,7 +23,9 @@ function extractInlineRuns(element:Element):InlineRun[]{
   const next={bold:style.fontWeight?style.fontWeight==='bold'||Number(style.fontWeight)>=600:el.tagName==='B'||el.tagName==='STRONG'||!!marks.bold,italic:style.fontStyle?style.fontStyle==='italic':el.tagName==='I'||el.tagName==='EM'||!!marks.italic,underline:style.textDecoration?style.textDecoration.includes('underline'):el.tagName==='U'||!!marks.underline};
   el.childNodes.forEach(child=>walk(child,next));
  };
- const baseStyle=(element as HTMLElement).style;\n const base={bold:baseStyle.fontWeight==='bold'||Number(baseStyle.fontWeight)>=600,italic:baseStyle.fontStyle==='italic',underline:baseStyle.textDecoration.includes('underline')};\n element.childNodes.forEach(child=>walk(child,base));
+ const baseStyle=(element as HTMLElement).style;
+ const base={bold:baseStyle.fontWeight==='bold'||Number(baseStyle.fontWeight)>=600,italic:baseStyle.fontStyle==='italic',underline:baseStyle.textDecoration.includes('underline')};
+ element.childNodes.forEach(child=>walk(child,base));
  const merged:InlineRun[]=[];
  for(const run of runs){const last=merged[merged.length-1];if(last&&last.bold===run.bold&&last.italic===run.italic&&last.underline===run.underline)last.text+=run.text;else merged.push({...run});}
  return merged;
