@@ -139,7 +139,7 @@ test('account number merge fields preserve and render the complete account numbe
 
 test('campaign editor exposes prominent quick formatting controls before advanced spacing', () => {
   const editor = read('../components/grapes-email-editor.tsx');
-  assert.match(editor, /charis-gjs-quick-format/);
+  assert.match(editor, /charis-gjs-formatbar/);
   assert.match(editor, /aria-label="Bold"/);
   assert.match(editor, /aria-label="Italic"/);
   assert.match(editor, /aria-label="Underline"/);
