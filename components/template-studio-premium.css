@@ -230,3 +230,51 @@
  .charis-editor-mode-actions{width:100%}
  .charis-editor-mode-actions .btn{flex:1}
 }
+
+
+/* Focused campaign editor: formatting and panel controls stay above the canvas. */
+.charis-gjs{overflow:visible!important}
+.charis-gjs-top{position:relative!important;top:auto!important;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 12px;background:#fff;border:1px solid #e9e4f0;border-radius:12px 12px 0 0}
+.charis-gjs-top h3{margin:0 0 2px;font-size:15px}
+.charis-gjs-top p{margin:0;font-size:11px;color:#716982}
+.charis-gjs-device-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.charis-gjs-panel-toggle{border:1px solid #e3ddec;border-radius:8px;background:#fff;color:#4c3b69;padding:8px 10px;font-size:11px;font-weight:700;cursor:pointer}
+.charis-gjs-panel-toggle[aria-pressed=true]{background:#f0ebfb;border-color:#c8b9e9;color:#40239a}
+.charis-gjs-formatbar{position:sticky;top:0;z-index:25;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 11px;margin:0 0 10px;background:#fbfaff;border:1px solid #e4dced;border-top:0;border-radius:0 0 11px 11px;box-shadow:0 3px 10px #2514430a}
+.charis-gjs-formatbar>strong{font-size:11px;color:#665a79;margin-right:3px}
+.charis-gjs-formatbar label{display:flex;align-items:center;gap:5px;margin:0;color:#5b526c;font-size:11px;font-weight:650}
+.charis-gjs-formatbar select{height:32px;min-width:66px;padding:4px 7px;border:1px solid #ddd5e8;border-radius:7px;background:#fff;color:#302747;font-size:11px}
+.charis-gjs-formatbar-marks{display:flex;align-items:center;gap:4px;padding-right:9px;border-right:1px solid #e4ddeb}
+.charis-gjs-formatbar-marks button{width:34px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #ded7e8;border-radius:7px;background:#fff;color:#35244e;font-size:14px;cursor:pointer}
+.charis-gjs-formatbar-marks button[aria-pressed=true]{background:#eae3fa;border-color:#b9a6e4;color:#40239a}
+.charis-gjs-formatbar-marks button:disabled,.charis-gjs-formatbar select:disabled{opacity:.4;cursor:not-allowed}
+.charis-gjs-color-control input[type=color]{width:30px;height:30px;padding:2px;border:1px solid #ddd5e8;border-radius:7px;background:#fff}
+.charis-gjs-workspace{display:grid!important;grid-template-columns:180px minmax(0,1fr) 290px;gap:10px;align-items:start}
+.charis-gjs-workspace.charis-gjs-no-palette{grid-template-columns:minmax(0,1fr) 290px}
+.charis-gjs-workspace.charis-gjs-no-inspector{grid-template-columns:180px minmax(0,1fr)}
+.charis-gjs-workspace.charis-gjs-no-palette.charis-gjs-no-inspector,
+.charis-gjs-workspace.charis-gjs-workspace-focus{grid-template-columns:minmax(0,1fr)}
+.charis-gjs-workspace-focus .charis-gjs-palette,.charis-gjs-workspace-focus .charis-gjs-inspector{display:none!important}
+.charis-gjs-palette,.charis-gjs-inspector{min-width:0;max-height:calc(100vh - 175px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.charis-gjs-stage{position:sticky!important;top:68px!important;min-width:0;max-height:calc(100vh - 175px)!important;overflow:auto!important;overscroll-behavior:contain}
+.charis-gjs-host{height:min(68vh,680px)!important;min-height:450px!important;overflow:hidden}
+.charis-gjs-inspector{position:sticky!important;top:68px!important;height:auto!important;max-height:calc(100vh - 175px)!important;overflow-y:auto!important}
+.charis-gjs-quick-format{display:none!important}
+.charis-gjs-inspector .charis-gjs-help{font-size:11px;line-height:1.45}
+@media(max-width:1050px){
+ .charis-gjs-workspace{grid-template-columns:150px minmax(0,1fr) 250px}
+ .charis-gjs-workspace.charis-gjs-no-palette{grid-template-columns:minmax(0,1fr) 250px}
+ .charis-gjs-workspace.charis-gjs-no-inspector{grid-template-columns:150px minmax(0,1fr)}
+}
+@media(max-width:820px){
+ .charis-gjs-workspace,.charis-gjs-workspace.charis-gjs-no-palette,.charis-gjs-workspace.charis-gjs-no-inspector{grid-template-columns:minmax(0,1fr)}
+ .charis-gjs-stage,.charis-gjs-inspector,.charis-gjs-palette{position:static!important;top:auto!important;max-height:none!important;overflow:visible!important}
+ .charis-gjs-host{height:520px!important;min-height:520px!important}
+ .charis-gjs-formatbar{position:relative}
+}
+@media(max-width:560px){
+ .charis-gjs-formatbar{gap:6px}
+ .charis-gjs-formatbar label{font-size:10px}
+ .charis-gjs-formatbar select{min-width:58px}
+ .charis-gjs-device-tools{width:100%}
+}
