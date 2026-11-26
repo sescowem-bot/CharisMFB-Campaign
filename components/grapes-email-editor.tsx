@@ -232,7 +232,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
  ];
  return <section className="charis-gjs" aria-label="Professional email design editor">
   <div className="charis-gjs-top">
-   <div><h3>Email designer</h3><p>Compose your template with editable blocks.</p></div>
+   <div><h3>Email designer</h3></div>
    <div className="charis-gjs-device-tools">
     <button type="button" className="charis-gjs-panel-toggle" aria-pressed={showPalette} onClick={()=>setShowPalette(v=>!v)}>Add elements</button>
     <button type="button" className="charis-gjs-panel-toggle" aria-pressed={showInspector} onClick={()=>setShowInspector(v=>!v)}>Element settings</button>
@@ -248,7 +248,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
     <button type="button" aria-label="Italic" title="Italic" aria-pressed={!!(active&&'format' in active&&active.format?.italic)} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onClick={()=>toggleTextMark('italic')}><i>I</i></button>
     <button type="button" aria-label="Underline" title="Underline" aria-pressed={!!(active&&'format' in active&&active.format?.underline)} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onClick={()=>toggleTextMark('underline')}><u>U</u></button>
    </div>
-   <label>Size<select aria-label="Font size" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.fontSize||(active.type==='heading'?25:16)):16} onChange={e=>active&&'format' in active&&update({format:{...active.format,fontSize:Number(e.target.value)}})}>{[12,14,16,18,20,22,24,28,32,36,40].map(n=><option key={n} value={n}>{n}px</option>)}</select></label>
+   <label>Size<select aria-label="Font size" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.fontSize||(active.type==='heading'?25:16)):16} onChange={e=>active&&'format' in active&&update({format:{...active.format,fontSize:Number(e.target.value)}})}>{[12,14,16,18,20,22,24,25,28,32,36,40].map(n=><option key={n} value={n}>{n}px</option>)}</select></label>
    <label>Font<select aria-label="Font family" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.fontFamily||'Arial'):'Arial'} onChange={e=>active&&'format' in active&&update({format:{...active.format,fontFamily:e.target.value as 'Arial'|'Georgia'|'Verdana'|'Tahoma'|'Trebuchet MS'}})}>{['Arial','Georgia','Verdana','Tahoma','Trebuchet MS'].map(font=><option key={font}>{font}</option>)}</select></label>
    <label className="charis-gjs-color-control">Text <input aria-label="Text colour" type="color" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.color||'#243047'):'#243047'} onChange={e=>active&&'format' in active&&update({format:{...active.format,color:e.target.value}})}/></label>
    <label className="charis-gjs-color-control">Highlight <input aria-label="Highlight colour" type="color" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.backgroundColor||'#ffffff'):'#ffffff'} onChange={e=>active&&'format' in active&&update({format:{...active.format,backgroundColor:e.target.value}})}/></label>
@@ -266,7 +266,6 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
     <p style={{fontSize:11,lineHeight:1.6,color:'#787087',margin:'0 4px'}}>Choose a shape or section to add. Then select it on the canvas to change its text, colour, size and position.</p>
    </aside>
    <div className="charis-gjs-stage">
-    <div className="charis-gjs-stage-note"><GripVertical size={14}/> Click a section to edit · use arrows to reorder · {design.blocks.length}/30 blocks</div>
     <div ref={host} className="charis-gjs-host"/>
     {error&&<p role="alert" className="feedback-error">{error}</p>}
     {!ready&&!error&&<p role="status" className="muted">Loading visual canvas…</p>}
