@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import {useMemo,useState} from 'react';
-import {Search,Mail,MessageSquare,CheckCircle2,Clock3,AlertTriangle,Archive,Eye} from 'lucide-react';
+import {Search,Mail,MessageSquare,CheckCircle2,Clock3,AlertTriangle,Archive,Eye,Copy} from 'lucide-react';
 import {messageStatusLabel} from '@/lib/direct/delivery-view';
 import {DirectApprovalForm} from '@/components/direct-approval-form';
 import './direct-delivery-history.css';
@@ -48,7 +48,7 @@ export function CampaignHistoryTable({messages,archived,canApprove,accountId}:{
     <td>{m.recipient_count}</td>
     <td><span className={'charis-history-status charis-history-status-'+(['queued','pending_approval','sending'].includes(m.status)?'pending':m.status==='completed'?'done':['paused','cancelled'].includes(m.status)?'review':'neutral')}>{messageStatusLabel(m.status,m.scheduled_at)}</span></td>
     <td className="charis-history-date">{m.scheduled_at&&new Date(m.scheduled_at).getTime()>Date.now()?'Scheduled: ':'Created: '}{new Date(m.scheduled_at&&new Date(m.scheduled_at).getTime()>Date.now()?m.scheduled_at:m.created_at).toLocaleString('en-NG',{timeZone:'Africa/Lagos',dateStyle:'medium',timeStyle:'short'})}</td>
-    <td><Link className="charis-history-open" href={'/dashboard/communications/history?id='+m.id}><Eye size={15}/> View details</Link>{!archived&&m.status==='pending_approval'&&canApprove&&m.created_by!==accountId&&<DirectApprovalForm id={m.id}/>}</td>
+    <td><Link className="charis-history-open" href={'/dashboard/communications/history?id='+m.id}><Eye size={15}/> View details</Link>{m.status==='completed'&&m.channel==='email'&&!archived&&<Link className="charis-history-open" href={'/dashboard/communications/new?copy='+m.id}><Copy size={14}/> Edit as new</Link>}{!archived&&m.status==='pending_approval'&&canApprove&&m.created_by!==accountId&&<DirectApprovalForm id={m.id}/>}</td>
    </tr>)}</tbody>
   </table></div>:<div className="charis-history-empty"><Archive size={25}/><strong>No matching campaigns</strong><span>Try another search or select All statuses.</span><button type="button" onClick={()=>{setSearch('');setFilter('all');}}>Clear filters</button></div>}
  </div>;
