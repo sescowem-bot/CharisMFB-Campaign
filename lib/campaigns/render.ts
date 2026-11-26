@@ -21,7 +21,7 @@ export function renderCampaign(input:{design:unknown;subject:string;preheader?:s
  const design=campaignDesign.parse(input.design),contact=input.contact||{};
  assertNoDemoLinks(design);
  const replace=(text:string)=>escapeHtml(personalize(text,contact,input.company));
- const replaceRuns=(text:string,runs?:Array<{text:string;bold?:boolean;italic?:boolean;underline?:boolean}>)=>{if(!runs?.length)return replace(text);return runs.map(run=>{const value=replace(run.text);const style=(run.bold?'font-weight:700;':'')+(run.italic?'font-style:italic;':'')+(run.underline?'text-decoration:underline;':'');return style?'<span style="'+style+'">'+value+'</span>':value;}).join('');};
+ const replaceRuns=(text:string,runs?:Array<{text:string;bold?:boolean;italic?:boolean;underline?:boolean}>)=>{if(!runs?.length)return replace(text);return runs.map(run=>{const value=replace(run.text);const style=(run.bold===true?'font-weight:700;':run.bold===false?'font-weight:400;':'')+(run.italic===true?'font-style:italic;':run.italic===false?'font-style:normal;':'')+(run.underline===true?'text-decoration:underline;':run.underline===false?'text-decoration:none;':'');return style?'<span style="'+style+'">'+value+'</span>':value;}).join('');};
  const color=/^#[a-f0-9]{6}$/i.test(input.color||'')?input.color:'#40239a';
  const style=design.style||'classic';
  const background=style==='minimal'?'#ffffff':style==='modern'?'#f7f6fc':style==='announcement'?'#f5f2fe':'#f1f5f9';
