@@ -13,6 +13,21 @@ type Props={design:EmailDesign;onChange:(next:EmailDesign)=>void;assets:Media[];
 
 function escapeHtml(value:string){return value.replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]||char));}
 const validHex=(value:string)=>/^#[0-9a-f]{6}$/i.test(value);
+type InlineRun={text:string;bold?:boolean;italic?:boolean;underline?:boolean};
+function extractInlineRuns(element:Element):InlineRun[]{
+ const runs:InlineRun[]=[];
+ const walk=(node:Node,marks:{bold?:boolean;italic?:boolean;underline?:boolean})=>{
+  if(node.nodeType===Node.TEXT_NODE){const value=node.textContent||'';if(value)runs.push({text:value,...(marks.bold?{bold:true}:{}),...(marks.italic?{italic:true}:{}),...(marks.underline?{underline:true}:{})});return;}
+  if(node.nodeType!==Node.ELEMENT_NODE)return;
+  const el=node as HTMLElement,style=el.style;
+  const next={bold:!!marks.bold||el.tagName==='B'||el.tagName==='STRONG'||style.fontWeight==='bold'||Number(style.fontWeight)>=600,italic:!!marks.italic||el.tagName==='I'||el.tagName==='EM'||style.fontStyle==='italic',underline:!!marks.underline||el.tagName==='U'||style.textDecoration.includes('underline')};
+  el.childNodes.forEach(child=>walk(child,next));
+ };
+ element.childNodes.forEach(child=>walk(child,{}));
+ const merged:InlineRun[]=[];
+ for(const run of runs){const last=merged[merged.length-1];if(last&&last.bold===run.bold&&last.italic===run.italic&&last.underline===run.underline)last.text+=run.text;else merged.push({...run});}
+ return merged;
+}
 function starter(type:EmailBlock['type'],assets:Media[],website:string):EmailBlock|null {
  if(type==='heading')return {type,text:'New heading'};
  if(type==='paragraph')return {type,text:'Write your message here.'};
@@ -194,7 +209,22 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
  };
  const toggleTextMark=(mark:'bold'|'italic'|'underline')=>{
   if(!active||(active.type!=='heading'&&active.type!=='paragraph'))return;
-  update({format:{...active.format,[mark]:!isTextMarkActive(mark)}});
+  const doc=instance.current?.Canvas.getDocument(),selection=doc?.getSelection();
+  const selectedElement=instance.current?.getSelected()?.getEl()?.querySelector('h2,p');
+  if(!doc||!selection||!selectedElement||!selection.rangeCount){update({format:{...active.format,[mark]:!isTextMarkActive(mark)}});return;}
+  const range=selection.getRangeAt(0);
+  if(range.collapsed||!range.toString().trim()||!selectedElement.contains(range.commonAncestorContainer)){update({format:{...active.format,[mark]:!isTextMarkActive(mark)}});return;}
+  try{
+   const wrapper=doc.createElement('span');
+   if(mark==='bold')wrapper.style.fontWeight='700';
+   if(mark==='italic')wrapper.style.fontStyle='italic';
+   if(mark==='underline')wrapper.style.textDecoration='underline';
+   wrapper.appendChild(range.extractContents());range.insertNode(wrapper);
+   const nextRange=doc.createRange();nextRange.selectNodeContents(wrapper);selection.removeAllRanges();selection.addRange(nextRange);
+   const runs=extractInlineRuns(selectedElement);
+   const nextDesign={...current.current,blocks:current.current.blocks.map((block,index)=>index===selectedIndex&&(block.type==='heading'||block.type==='paragraph')?{...block,text:runs.map(run=>run.text).join(''),richText:runs.some(run=>run.bold||run.italic||run.underline)?runs:undefined}:block)};
+   current.current=nextDesign;sent.current=JSON.stringify(nextDesign);onChangeRef.current(nextDesign);setError('');
+  }catch{setError('The selected text could not be formatted. Please select the text again and retry.');}
  };
  const update=(changes:Partial<EmailBlock>)=>{
   onChange({...design,blocks:design.blocks.map((block,i)=>i===selectedIndex?{...block,...changes} as EmailBlock:block)});
@@ -248,9 +278,9 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
   <div className="charis-gjs-formatbar" role="toolbar" aria-label="Text formatting">
    <strong>Text</strong>
    <div className="charis-gjs-formatbar-marks">
-    <button type="button" aria-label="Bold" title="Bold" aria-pressed={isTextMarkActive('bold')} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onClick={()=>toggleTextMark('bold')}><b>B</b></button>
-    <button type="button" aria-label="Italic" title="Italic" aria-pressed={isTextMarkActive('italic')} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onClick={()=>toggleTextMark('italic')}><i>I</i></button>
-    <button type="button" aria-label="Underline" title="Underline" aria-pressed={isTextMarkActive('underline')} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onClick={()=>toggleTextMark('underline')}><u>U</u></button>
+    <button type="button" aria-label="Bold" title="Bold" aria-pressed={isTextMarkActive('bold')} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onMouseDown={event=>event.preventDefault()} onClick={()=>toggleTextMark('bold')}><b>B</b></button>
+    <button type="button" aria-label="Italic" title="Italic" aria-pressed={isTextMarkActive('italic')} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onMouseDown={event=>event.preventDefault()} onClick={()=>toggleTextMark('italic')}><i>I</i></button>
+    <button type="button" aria-label="Underline" title="Underline" aria-pressed={isTextMarkActive('underline')} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onMouseDown={event=>event.preventDefault()} onClick={()=>toggleTextMark('underline')}><u>U</u></button>
    </div>
    <label>Size<select aria-label="Font size" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.fontSize||(active.type==='heading'?25:16)):16} onChange={e=>active&&'format' in active&&update({format:{...active.format,fontSize:Number(e.target.value)}})}>{[12,14,16,18,20,22,24,25,28,32,36,40].map(n=><option key={n} value={n}>{n}px</option>)}</select></label>
    <label>Font<select aria-label="Font family" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.fontFamily||'Arial'):'Arial'} onChange={e=>active&&'format' in active&&update({format:{...active.format,fontFamily:e.target.value as 'Arial'|'Georgia'|'Verdana'|'Tahoma'|'Trebuchet MS'}})}>{['Arial','Georgia','Verdana','Tahoma','Trebuchet MS'].map(font=><option key={font}>{font}</option>)}</select></label>
