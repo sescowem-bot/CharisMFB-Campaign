@@ -39,3 +39,14 @@ test('editor settings are no longer trapped in a fixed-height inner scroll panel
  assert.match(css,/max-height:none!important/);
  assert.match(css,/overflow:visible!important/);
 });
+
+test('selected text formatting is stored as safe inline runs and rendered in the email',()=>{
+ const schema=read('lib/campaign/design.ts');
+ const renderer=read('lib/campaigns/render.ts');
+ const editor=read('components/grapes-email-editor.tsx');
+ assert.match(schema,/richText:z\.array\(inlineRun\)/);
+ assert.match(editor,/applyInlineMark/);
+ assert.match(editor,/textSelection\.current/);
+ assert.match(editor,/tokenPattern/);
+ assert.match(renderer,/replaceRuns\(b\.text,b\.richText\)/);
+});
