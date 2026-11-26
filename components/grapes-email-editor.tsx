@@ -221,9 +221,12 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
   if(range.collapsed||!range.toString().trim()||!selectedElement.contains(range.commonAncestorContainer)){update({format:{...active.format,[mark]:!isTextMarkActive(mark)}});return;}
   try{
    const wrapper=doc.createElement('span');
-   if(mark==='bold')wrapper.style.fontWeight='700';
-   if(mark==='italic')wrapper.style.fontStyle='italic';
-   if(mark==='underline')wrapper.style.textDecoration='underline';
+   const anchor=range.startContainer.nodeType===Node.ELEMENT_NODE?range.startContainer as HTMLElement:range.startContainer.parentElement;
+   const computed=anchor?doc.defaultView?.getComputedStyle(anchor):null;
+   const isActive=mark==='bold'?Number(computed?.fontWeight||0)>=600:mark==='italic'?computed?.fontStyle==='italic':(computed?.textDecorationLine||computed?.textDecoration||'').includes('underline');
+   if(mark==='bold')wrapper.style.fontWeight=isActive?'400':'700';
+   if(mark==='italic')wrapper.style.fontStyle=isActive?'normal':'italic';
+   if(mark==='underline')wrapper.style.textDecoration=isActive?'none':'underline';
    wrapper.appendChild(range.extractContents());range.insertNode(wrapper);
    const nextRange=doc.createRange();nextRange.selectNodeContents(wrapper);selection.removeAllRanges();selection.addRange(nextRange);
    const runs=extractInlineRuns(selectedElement);
