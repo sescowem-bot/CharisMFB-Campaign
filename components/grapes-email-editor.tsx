@@ -63,6 +63,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
  const [focusCanvas,setFocusCanvas]=useState(false);
  const [chosenField,setChosenField]=useState('first_name');
  const textSelection=useRef({start:0,end:0});
+ const canvasTextSelection=useRef<{start:number;end:number;index:number}|null>(null);
  const fieldChoices=customerFieldOptions(availableFields);
  const addBlockRef=useRef<((type:EmailBlock['type'],shape?:Extract<EmailBlock,{type:'shape'}>['shape'])=>void)|null>(null);
  const website=verifiedBrandWebsite(websiteUrl);
@@ -178,6 +179,34 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
      const found=editor.getWrapper()?.components().models.indexOf(item)??-1;
      if(found>=0)setSelectedIndex(found);
     });
+    // Capture actual text selection inside the GrapesJS canvas iframe. The
+    // inspector buttons live outside that iframe, so relying on the textarea
+    // selection alone loses the user's highlighted canvas range.
+    const canvasDoc=editor.Canvas.getDocument();
+    const captureCanvasSelection=()=>{
+     const selection=canvasDoc?.getSelection();
+     if(!selection||selection.isCollapsed||selection.rangeCount===0)return;
+     const range=selection.getRangeAt(0);
+     const element=(range.commonAncestorContainer.nodeType===Node.ELEMENT_NODE
+      ?range.commonAncestorContainer as Element
+      :range.commonAncestorContainer.parentElement);
+     const section=element?.closest('section[data-charis-type]');
+     if(!section)return;
+     const index=Number(section.getAttribute('data-charis-index'));
+     if(!Number.isInteger(index)||index<0)return;
+     const startRange=canvasDoc!.createRange();
+     startRange.selectNodeContents(section);
+     startRange.setEnd(range.startContainer,range.startOffset);
+     const endRange=canvasDoc!.createRange();
+     endRange.selectNodeContents(section);
+     endRange.setEnd(range.endContainer,range.endOffset);
+     const start=startRange.toString().length;
+     const end=endRange.toString().length;
+     if(end<=start)return;
+     canvasTextSelection.current={start,end,index};
+     setSelectedIndex(index);
+    };
+    canvasDoc?.addEventListener('selectionchange',captureCanvasSelection);
     setReady(true);
    }catch(err){setError(err instanceof Error?err.message:'Visual editor could not load. Use the classic editor.');}
   };
@@ -187,7 +216,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[]);
  const active=design.blocks[Math.min(selectedIndex,design.blocks.length-1)];
- const applyInlineMark=(mark:'bold'|'italic'|'underline')=>{ if(!active||(active.type!=='heading'&&active.type!=='paragraph'))return; const start=textSelection.current.start,end=textSelection.current.end;if(end<=start)return;const tokenPattern=/\{\{\s*[a-z][a-z0-9_.]*\s*\}\}/g;let token:RegExpExecArray|null;while((token=tokenPattern.exec(active.text))!==null){const tokenEnd=token.index+token[0].length;if(start<tokenEnd&&end>token.index)return;} const source=active.richText?.length?active.richText:[{text:active.text}]; const next:Array<{text:string;bold?:boolean;italic?:boolean;underline?:boolean}>=[];let offset=0; for(const run of source){const from=offset;offset+=run.text.length;const left=Math.max(0,Math.min(run.text.length,start-from)),right=Math.max(0,Math.min(run.text.length,end-from));const push=(value:string,marks:{bold?:boolean;italic?:boolean;underline?:boolean})=>{if(value)next.push({text:value,...(marks.bold?{bold:true}:{}),...(marks.italic?{italic:true}:{}),...(marks.underline?{underline:true}:{})});};if(left>0)push(run.text.slice(0,left),run);if(right>left){const marks={...run,[mark]:!run[mark]};push(run.text.slice(left,right),marks);}if(right<run.text.length)push(run.text.slice(right),run);}update({richText:next});};
+ const applyInlineMark=(mark:'bold'|'italic'|'underline')=>{ if(!active||(active.type!=='heading'&&active.type!=='paragraph'))return; const canvasSelection=canvasTextSelection.current;const useCanvas=!!canvasSelection&&canvasSelection.index===selectedIndex;const start=useCanvas?canvasSelection!.start:textSelection.current.start,end=useCanvas?canvasSelection!.end:textSelection.current.end;if(end<=start)return;const tokenPattern=/\{\{\s*[a-z][a-z0-9_.]*\s*\}\}/g;let token:RegExpExecArray|null;while((token=tokenPattern.exec(active.text))!==null){const tokenEnd=token.index+token[0].length;if(start<tokenEnd&&end>token.index)return;} const source=active.richText?.length?active.richText:[{text:active.text}]; const next:Array<{text:string;bold?:boolean;italic?:boolean;underline?:boolean}>=[];let offset=0; for(const run of source){const from=offset;offset+=run.text.length;const left=Math.max(0,Math.min(run.text.length,start-from)),right=Math.max(0,Math.min(run.text.length,end-from));const push=(value:string,marks:{bold?:boolean;italic?:boolean;underline?:boolean})=>{if(value)next.push({text:value,...(marks.bold?{bold:true}:{}),...(marks.italic?{italic:true}:{}),...(marks.underline?{underline:true}:{})});};if(left>0)push(run.text.slice(0,left),run);if(right>left){const marks={...run,[mark]:!run[mark]};push(run.text.slice(left,right),marks);}if(right<run.text.length)push(run.text.slice(right),run);}update({richText:next});};
  const update=(changes:Partial<EmailBlock>)=>{
   onChange({...design,blocks:design.blocks.map((block,i)=>i===selectedIndex?{...block,...changes} as EmailBlock:block)});
  };
@@ -261,7 +290,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
       <button type="button" className="charis-gjs-delete" aria-label="Delete selected section" disabled={design.blocks.length<=1} onClick={removeSelected}><Trash2 size={14}/> Delete section</button>
      </div>
      {(active.type==='heading'||active.type==='paragraph')&&<div className="charis-gjs-quick-format" aria-label="Quick text formatting">
-      <strong>Selected text formatting</strong><p className="charis-gjs-help">Highlight words in the text box below, then apply Bold, Italic or Underline.</p>
+      <strong>Selected text formatting</strong><p className="charis-gjs-help">Highlight words directly on the email canvas or in the text box below, then choose Bold, Italic or Underline. Only the selected words will change.</p>
       <div className="charis-gjs-quick-format-buttons">
        <button type="button" aria-label="Bold" aria-pressed={false} onMouseDown={e=>e.preventDefault()} onClick={()=>applyInlineMark('bold')}><b>B</b><span>Bold</span></button>
        <button type="button" aria-label="Italic" aria-pressed={false} onMouseDown={e=>e.preventDefault()} onClick={()=>applyInlineMark('italic')}><i>I</i><span>Italic</span></button>
