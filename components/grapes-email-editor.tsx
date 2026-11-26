@@ -212,7 +212,8 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
  const toggleTextMark=(mark:'bold'|'italic'|'underline')=>{
   if(!active||(active.type!=='heading'&&active.type!=='paragraph'))return;
   const doc=instance.current?.Canvas.getDocument(),selection=doc?.getSelection();
-  const selectedElement=instance.current?.getSelected()?.getEl()?.querySelector('h2,p');
+  const selectedNode=instance.current?.getSelected()?.getEl();
+  const selectedElement=selectedNode?.matches('h2,p')?selectedNode:selectedNode?.closest('section[data-charis-type]')?.querySelector('h2,p')||selectedNode?.querySelector('h2,p');
   if(!doc||!selection||!selectedElement||!selection.rangeCount){update({format:{...active.format,[mark]:!isTextMarkActive(mark)}});return;}
   const range=selection.getRangeAt(0);
   if(range.collapsed||!range.toString().trim()||!selectedElement.contains(range.commonAncestorContainer)){update({format:{...active.format,[mark]:!isTextMarkActive(mark)}});return;}
