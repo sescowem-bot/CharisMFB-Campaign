@@ -25,8 +25,9 @@ test('heading and paragraph typography controls write through the validated bloc
 
 test('inline formatting parser recognises semantic and CSS marks without accepting arbitrary markup',()=>{
  const editor=read('components/grapes-email-editor.tsx');
+ const schema=read('lib/campaign/design.ts');
  assert.match(editor,/el\.tagName==='B'\|\|el\.tagName==='STRONG'/);
  assert.match(editor,/el\.tagName==='I'\|\|el\.tagName==='EM'/);
  assert.match(editor,/style\.textDecoration\.includes\('underline'\)/);
- assert.match(editor,/const inlineRun=/);
+ assert.match(schema,/const inlineRun=z\.object/);
 });
