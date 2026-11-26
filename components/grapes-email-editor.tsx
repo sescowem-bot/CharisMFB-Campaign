@@ -17,10 +17,10 @@ type InlineRun={text:string;bold?:boolean;italic?:boolean;underline?:boolean};
 function extractInlineRuns(element:Element):InlineRun[]{
  const runs:InlineRun[]=[];
  const walk=(node:Node,marks:{bold?:boolean;italic?:boolean;underline?:boolean})=>{
-  if(node.nodeType===Node.TEXT_NODE){const value=node.textContent||'';if(value)runs.push({text:value,...(marks.bold?{bold:true}:{}),...(marks.italic?{italic:true}:{}),...(marks.underline?{underline:true}:{})});return;}
+  if(node.nodeType===Node.TEXT_NODE){const value=node.textContent||'';if(value)runs.push({text:value,bold:!!marks.bold,italic:!!marks.italic,underline:!!marks.underline});return;}
   if(node.nodeType!==Node.ELEMENT_NODE)return;
   const el=node as HTMLElement,style=el.style;
-  const next={bold:!!marks.bold||el.tagName==='B'||el.tagName==='STRONG'||style.fontWeight==='bold'||Number(style.fontWeight)>=600,italic:!!marks.italic||el.tagName==='I'||el.tagName==='EM'||style.fontStyle==='italic',underline:!!marks.underline||el.tagName==='U'||style.textDecoration.includes('underline')};
+  const next={bold:style.fontWeight?style.fontWeight==='bold'||Number(style.fontWeight)>=600:el.tagName==='B'||el.tagName==='STRONG'||!!marks.bold,italic:style.fontStyle?style.fontStyle==='italic':el.tagName==='I'||el.tagName==='EM'||!!marks.italic,underline:style.textDecoration?style.textDecoration.includes('underline'):el.tagName==='U'||!!marks.underline};
   el.childNodes.forEach(child=>walk(child,next));
  };
  element.childNodes.forEach(child=>walk(child,{}));
@@ -39,7 +39,7 @@ function starter(type:EmailBlock['type'],assets:Media[],website:string):EmailBlo
 function markup(block:EmailBlock,index:number):string {
  const attr=`data-charis-type="${block.type}" data-charis-index="${index}"${block.type==='shape'?` data-charis-shape="${block.shape}"`:''}`;
  const text=escapeHtml(block.text);
- const richText=(block.type==='heading'||block.type==='paragraph')&&block.richText?.length?block.richText.map(run=>{const value=escapeHtml(run.text);const style=(run.bold?'font-weight:700;':'')+(run.italic?'font-style:italic;':'')+(run.underline?'text-decoration:underline;':'');return style?'<span style="'+style+'">'+value+'</span>':value;}).join(''):text;
+ const richText=(block.type==='heading'||block.type==='paragraph')&&block.richText?.length?block.richText.map(run=>{const value=escapeHtml(run.text);const style=(run.bold===true?'font-weight:700;':run.bold===false?'font-weight:400;':'')+(run.italic===true?'font-style:italic;':run.italic===false?'font-style:normal;':'')+(run.underline===true?'text-decoration:underline;':run.underline===false?'text-decoration:none;':'');return style?'<span style="'+style+'">'+value+'</span>':value;}).join(''):text;
  if(block.type==='heading')return `<section ${attr} style="padding:8px 0"><h2 style="font-size:${block.format?.fontSize||25}px;line-height:${block.format?.lineHeight||1.3};letter-spacing:${block.format?.letterSpacing||0}px;background-color:${block.format?.backgroundColor||'transparent'};color:${block.format?.color||'#13233b'};font-family:${block.format?.fontFamily||'Arial'},sans-serif;text-align:${block.format?.align||'left'};font-weight:${block.format?.bold===false?'400':'700'};font-style:${block.format?.italic?'italic':'normal'};text-decoration:${block.format?.underline?'underline':'none'}">${richText}</h2></section>`;
  if(block.type==='paragraph')return `<section ${attr} style="padding:8px 0"><p style="font-size:${block.format?.fontSize||16}px;line-height:${block.format?.lineHeight||1.7};letter-spacing:${block.format?.letterSpacing||0}px;margin:0 0 ${block.format?.paragraphSpacing??16}px;white-space:pre-wrap;background-color:${block.format?.backgroundColor||'transparent'};color:${block.format?.color||'#243047'};font-family:${block.format?.fontFamily||'Arial'},sans-serif;text-align:${block.format?.align||'left'};font-weight:${block.format?.bold?'700':'400'};font-style:${block.format?.italic?'italic':'normal'};text-decoration:${block.format?.underline?'underline':'none'}">${richText}</p></section>`;
  if(block.type==='divider')return `<section ${attr} style="padding:12px 0"><hr style="border:0;border-top:1px solid #d9dfeb"></section>`;
