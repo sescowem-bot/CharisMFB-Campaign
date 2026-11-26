@@ -59,7 +59,7 @@ export async function saveContact(_:FormResult,form:FormData):Promise<FormResult
   const value=JSON.parse(String(form.get('custom_details')||'{}')) as unknown;
   if(!value||typeof value!=='object'||Array.isArray(value))return {error:'Extra customer fields are invalid.'};
   const entries=Object.entries(value);if(entries.length>56)return {error:'Maximum of 56 extra fields.'};
-  for(const [key,entry] of entries){if(!/^[a-z][a-z0-9_]{0,39}$/.test(key)||/(password|pin|otp|bvn|nin|cvv|card_number|secret|token)/.test(key)||typeof entry!=='string'||entry.length>200)return {error:'Use a short field name and text value. Do not enter sensitive credentials.'};if(['account_number','account_no','account_reference'].includes(key)&&entry.replace(/\D/g,'').length>4)return {error:'Enter only the last four digits for account references.'};details[key]=entry;}
+  for(const [key,entry] of entries){if(!/^[a-z][a-z0-9_]{0,39}$/.test(key)||/(password|pin|otp|bvn|nin|cvv|card_number|secret|token)/.test(key)||typeof entry!=='string'||entry.length>200)return {error:'Use a short field name and text value. Do not enter sensitive credentials.'};details[key]=entry;}
  }catch{return {error:'Could not read extra customer fields.'};}
  try{
   const {db,authorized}=await contactsAccess(data.organization_id);
