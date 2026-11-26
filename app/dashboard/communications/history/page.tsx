@@ -49,7 +49,7 @@ export default async function DirectHistory({searchParams}:{searchParams:Promise
    <p className="muted">Message type: {message.purpose.replaceAll('_',' ')} · Product: {message.product.replaceAll('_',' ')}</p>
    {message.scheduled_at&&<p className="muted">Scheduled for {new Date(message.scheduled_at).toLocaleString('en-NG',{timeZone:'Africa/Lagos',dateStyle:'medium',timeStyle:'short'})} WAT</p>}
    {message.scheduled_at&&new Date(message.scheduled_at).getTime()>Date.now()&&['queued','pending_approval'].includes(message.status)&&(message.created_by===account.id||isAdmin===true)&&<CancelScheduledCampaign id={message.id}/>}
-   {canManage===true&&<div className="actions"><DirectHistoryActions id={message.id} status={message.status} archived={Boolean(message.archived_at)}/></div>}
+   {<div className="actions">{message.status==='completed'&&message.channel==='email'&&<Link className="btn secondary" href={"/dashboard/communications/new?copy="+message.id}><Copy size={15}/> Edit as new</Link>}{canManage===true&&<DirectHistoryActions id={message.id} status={message.status} archived={Boolean(message.archived_at)}/>}</div>}
   </div>
   <details className="charis-delivery-preview"><summary>View message content and email preview</summary>
    {visualPreview?<iframe title="Sent email design preview" sandbox="" referrerPolicy="no-referrer" loading="lazy" srcDoc={visualPreview} style={{width:'100%',height:530}}/>:<p style={{whiteSpace:'pre-wrap'}}>{message.body}</p>}
