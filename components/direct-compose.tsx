@@ -322,11 +322,6 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
     <Link href={templateStudioUrl} className="inline-link">Open Design Templates</Link></div>
     <p className="muted">A template controls how the email looks. It does not change who receives it or when it is sent.</p>
    </details>}
-   <div className="charis-compose-history" role="group" aria-label="Undo and redo message changes">
-    <button type="button" className="btn secondary" onClick={undoDraft} disabled={!historyCounts.undo} title="Undo the last message edit"><Undo2 size={16}/> Undo</button>
-    <button type="button" className="btn secondary" onClick={redoDraft} disabled={!historyCounts.redo} title="Restore the last undone edit"><Redo2 size={16}/> Redo</button>
-    <span>Correct a mistake without starting over.</span>
-   </div>
    <label>Subject<input value={subject} onChange={e=>setSubject(e.target.value)} maxLength={180} placeholder="Account service update"/></label>
    {channel==='email'&&<details className="charis-template-choice"><summary>Copy other email addresses (optional)</summary><p className="muted">Separate multiple addresses with commas. CC recipients are visible to other recipients; BCC recipients are hidden.</p><label>CC<input type="text" inputMode="email" autoComplete="off" value={ccEmails} onChange={e=>setCcEmails(e.target.value)} placeholder="colleague@charis.example"/></label><label>BCC<input type="text" inputMode="email" autoComplete="off" value={bccEmails} onChange={e=>setBccEmails(e.target.value)} placeholder="archive@charis.example"/></label></details>}
    {channel==='email'&&<div className="direct-editor charis-personalise-tools" aria-label="Customer detail tools">
@@ -350,7 +345,18 @@ export function DirectCompose({token,userId,organizationId,contacts,groups,canBu
    </section>}
    {!design||channel==='sms'?<label>Message<textarea rows={6} maxLength={channel==='sms'?480:undefined} value={body} onChange={e=>setBody(e.target.value)} placeholder="Write a clear message. Never request a PIN, password or OTP."/><small className="muted">{channel==='sms'?`${body.length}/480 characters`:'Email message length is not capped.'}</small></label>:
     <div className="direct-editor">
-     <div className="actions" role="group" aria-label="Email editing mode">
+     <div className="charis-editor-commandbar" role="toolbar" aria-label="Email editor actions">
+      <div className="charis-editor-history-tools">
+       <button type="button" className="btn secondary" onClick={undoDraft} disabled={!historyCounts.undo} title="Undo last message or design change"><Undo2 size={16}/> Undo</button>
+       <button type="button" className="btn secondary" onClick={redoDraft} disabled={!historyCounts.redo} title="Redo message or design change"><Redo2 size={16}/> Redo</button>
+      </div>
+      <span className="charis-editor-commandbar-hint">Editing email design · changes save to this draft</span>
+      <div className="charis-editor-mode-actions" role="group" aria-label="Email editing mode">
+       <button type="button" className="btn secondary" aria-pressed={editorMode==='visual'} onClick={()=>setEditorMode('visual')}>Visual editor</button>
+       <button type="button" className="btn secondary" aria-pressed={editorMode==='sections'} onClick={()=>setEditorMode('sections')}>Detailed sections</button>
+      </div>
+     </div>
+     <div className="actions" role="group" aria-label="Email editing mode" hidden>
       <button type="button" className="btn secondary" aria-pressed={editorMode==='visual'} onClick={()=>setEditorMode('visual')}>Visual drag-and-drop editor</button>
       <button type="button" className="btn secondary" aria-pressed={editorMode==='sections'} onClick={()=>setEditorMode('sections')}>Detailed sections</button>
      </div>
