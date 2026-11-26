@@ -5,7 +5,10 @@ const design={version:'1',blocks:[{type:'heading',text:'Hello {{first_name}}'},{
 test('personalization supports company and custom fields with missing-name fallback',()=>{
  assert.equal(personalize('Hello {{first_name}}, {{company_name}} {{attributes.account_ref}}',{attributes:{account_ref:'REF123'}},'Example'),'Hello Customer, Example REF123');
 });
-test('full account numbers, including leading zeroes, are retained in personalized email content',()=>{\n assert.equal(personalize('Account Number: {{attributes.account_number}}',{attributes:{account_number:'001234567890'}},'Charis'),'Account Number: 001234567890');\n});\ntest('unsupported and malformed variables are rejected',()=>{
+test('full account numbers, including leading zeroes, are retained in personalized email content',()=>{
+ assert.equal(personalize('Account Number: {{attributes.account_number}}',{attributes:{account_number:'001234567890'}},'Charis'),'Account Number: 001234567890');
+});
+test('unsupported and malformed variables are rejected',()=>{
  for(const value of ['{{password}}','{{attributes.constructor}}','{{first_name','{{ first_name }} }}','{{attributes.__proto__}}'])assert.throws(()=>personalize(value,{},'Company'));
 });
 test('recipient text is escaped and never reinterpreted as a variable',()=>{
