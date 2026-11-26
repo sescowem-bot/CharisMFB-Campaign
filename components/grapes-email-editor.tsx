@@ -61,9 +61,9 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
  const [selectedIndex,setSelectedIndex]=useState(0);
  const [device,setDevice]=useState<'Desktop'|'Mobile'>('Desktop');
  const [focusCanvas,setFocusCanvas]=useState(false);
+ const [showPalette,setShowPalette]=useState(true);
+ const [showInspector,setShowInspector]=useState(true);
  const [chosenField,setChosenField]=useState('first_name');
- const textSelection=useRef({start:0,end:0});
- const canvasTextSelection=useRef<{start:number;end:number;index:number}|null>(null);
  const fieldChoices=customerFieldOptions(availableFields);
  const addBlockRef=useRef<((type:EmailBlock['type'],shape?:Extract<EmailBlock,{type:'shape'}>['shape'])=>void)|null>(null);
  const website=verifiedBrandWebsite(websiteUrl);
@@ -179,34 +179,6 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
      const found=editor.getWrapper()?.components().models.indexOf(item)??-1;
      if(found>=0)setSelectedIndex(found);
     });
-    // Capture actual text selection inside the GrapesJS canvas iframe. The
-    // inspector buttons live outside that iframe, so relying on the textarea
-    // selection alone loses the user's highlighted canvas range.
-    const canvasDoc=editor.Canvas.getDocument();
-    const captureCanvasSelection=()=>{
-     const selection=canvasDoc?.getSelection();
-     if(!selection||selection.isCollapsed||selection.rangeCount===0)return;
-     const range=selection.getRangeAt(0);
-     const element=(range.commonAncestorContainer.nodeType===Node.ELEMENT_NODE
-      ?range.commonAncestorContainer as Element
-      :range.commonAncestorContainer.parentElement);
-     const section=element?.closest('section[data-charis-type]');
-     if(!section)return;
-     const index=Number(section.getAttribute('data-charis-index'));
-     if(!Number.isInteger(index)||index<0)return;
-     const startRange=canvasDoc!.createRange();
-     startRange.selectNodeContents(section);
-     startRange.setEnd(range.startContainer,range.startOffset);
-     const endRange=canvasDoc!.createRange();
-     endRange.selectNodeContents(section);
-     endRange.setEnd(range.endContainer,range.endOffset);
-     const start=startRange.toString().length;
-     const end=endRange.toString().length;
-     if(end<=start)return;
-     canvasTextSelection.current={start,end,index};
-     setSelectedIndex(index);
-    };
-    canvasDoc?.addEventListener('selectionchange',captureCanvasSelection);
     setReady(true);
    }catch(err){setError(err instanceof Error?err.message:'Visual editor could not load. Use the classic editor.');}
   };
@@ -216,7 +188,10 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[]);
  const active=design.blocks[Math.min(selectedIndex,design.blocks.length-1)];
- const applyInlineMark=(mark:'bold'|'italic'|'underline')=>{ if(!active||(active.type!=='heading'&&active.type!=='paragraph'))return; const canvasSelection=canvasTextSelection.current;const useCanvas=!!canvasSelection&&canvasSelection.index===selectedIndex;const start=useCanvas?canvasSelection!.start:textSelection.current.start,end=useCanvas?canvasSelection!.end:textSelection.current.end;if(end<=start)return;const tokenPattern=/\{\{\s*[a-z][a-z0-9_.]*\s*\}\}/g;let token:RegExpExecArray|null;while((token=tokenPattern.exec(active.text))!==null){const tokenEnd=token.index+token[0].length;if(start<tokenEnd&&end>token.index)return;} const source=active.richText?.length?active.richText:[{text:active.text}]; const next:Array<{text:string;bold?:boolean;italic?:boolean;underline?:boolean}>=[];let offset=0; for(const run of source){const from=offset;offset+=run.text.length;const left=Math.max(0,Math.min(run.text.length,start-from)),right=Math.max(0,Math.min(run.text.length,end-from));const push=(value:string,marks:{bold?:boolean;italic?:boolean;underline?:boolean})=>{if(value)next.push({text:value,...(marks.bold?{bold:true}:{}),...(marks.italic?{italic:true}:{}),...(marks.underline?{underline:true}:{})});};if(left>0)push(run.text.slice(0,left),run);if(right>left){const marks={...run,[mark]:!run[mark]};push(run.text.slice(left,right),marks);}if(right<run.text.length)push(run.text.slice(right),run);}update({richText:next});};
+ const toggleTextMark=(mark:'bold'|'italic'|'underline')=>{
+  if(!active||(active.type!=='heading'&&active.type!=='paragraph'))return;
+  update({format:{...active.format,[mark]:!active.format?.[mark]}});
+ };
  const update=(changes:Partial<EmailBlock>)=>{
   onChange({...design,blocks:design.blocks.map((block,i)=>i===selectedIndex?{...block,...changes} as EmailBlock:block)});
  };
@@ -257,13 +232,16 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
  ];
  return <section className="charis-gjs" aria-label="Professional email design editor">
   <div className="charis-gjs-top">
-   <div><h3>Email designer</h3><p>Compose your template with editable blocks. Final output is email-safe HTML.</p></div>
-   <div className="charis-gjs-device-tools"><button type="button" className="charis-gjs-expand" onClick={()=>setFocusCanvas(x=>!x)} aria-pressed={focusCanvas}>{focusCanvas?<Minimize2 size={15}/>:<Maximize2 size={15}/>} {focusCanvas?"Show tools":"Expand canvas"}</button><div className="charis-gjs-devices" role="group" aria-label="Canvas device">
+   <div><h3>Email designer</h3><p>Compose your template with editable blocks.</p></div>
+   <div className="charis-gjs-device-tools">
+    <button type="button" className="charis-gjs-panel-toggle" aria-pressed={showPalette} onClick={()=>setShowPalette(v=>!v)}>Add elements</button>
+    <button type="button" className="charis-gjs-panel-toggle" aria-pressed={showInspector} onClick={()=>setShowInspector(v=>!v)}>Element settings</button>
+    <button type="button" className="charis-gjs-expand" onClick={()=>setFocusCanvas(x=>!x)} aria-pressed={focusCanvas}>{focusCanvas?<Minimize2 size={15}/>:<Maximize2 size={15}/>} {focusCanvas?"Show tools":"Expand canvas"}</button><div className="charis-gjs-devices" role="group" aria-label="Canvas device">
     <button type="button" aria-pressed={device==='Desktop'} onClick={()=>{setDevice('Desktop');instance.current?.setDevice('Desktop');}}><Monitor size={15}/> Desktop</button>
     <button type="button" aria-pressed={device==='Mobile'} onClick={()=>{setDevice('Mobile');instance.current?.setDevice('Mobile');}}><Smartphone size={15}/> Mobile</button>
    </div></div>
   </div>
-  <div className={"charis-gjs-workspace"+(focusCanvas?" charis-gjs-workspace-focus":"")}>
+  <div className={"charis-gjs-workspace"+(focusCanvas?" charis-gjs-workspace-focus":"")+(!showPalette?" charis-gjs-no-palette":"")+(!showInspector?" charis-gjs-no-inspector":"")}>
    <aside className="charis-gjs-palette" aria-label="Add email elements">
     <div className="charis-gjs-title">Add elements</div><input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={e=>void uploadImage(e.target.files?.[0])}/><button type="button" className="charis-gjs-tool charis-gjs-upload" disabled={uploading||!ready} onClick={()=>fileInput.current?.click()}><Upload aria-hidden="true"/><span>{uploading?'Uploading image…':'Upload image'}</span></button>
     <div className="charis-gjs-group">{tiles.map(t=><button type="button" className="charis-gjs-tool" key={t.key}
@@ -281,7 +259,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
     {!ready&&!error&&<p role="status" className="muted">Loading visual canvas…</p>}
    </div>
    <aside className="charis-gjs-inspector" aria-label="Selected element settings">
-    <div className="charis-gjs-title">Element settings</div><p className="charis-gjs-help">Select a section on the canvas, or edit its details below.</p>
+    <div className="charis-gjs-title">Element settings</div><p className="charis-gjs-help">Select an element on the canvas to edit it.</p>
     {active?<><h4>{active.type==='shape'?active.shape:active.type} · {selectedIndex+1}</h4><p>Edit the selected element. These options save with your template.</p>
      <div className="charis-gjs-inspector-actions">
       <button type="button" disabled={selectedIndex===0} onClick={()=>move(-1)}><MoveUp size={14}/> Move up</button>
@@ -289,21 +267,6 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
       <button type="button" disabled={design.blocks.length>=30} onClick={duplicateSelected}><Copy size={14}/> Duplicate</button>
       <button type="button" className="charis-gjs-delete" aria-label="Delete selected section" disabled={design.blocks.length<=1} onClick={removeSelected}><Trash2 size={14}/> Delete section</button>
      </div>
-     {(active.type==='heading'||active.type==='paragraph')&&<div className="charis-gjs-quick-format" aria-label="Quick text formatting">
-      <strong>Selected text formatting</strong><p className="charis-gjs-help">Highlight words directly on the email canvas or in the text box below, then choose Bold, Italic or Underline. Only the selected words will change.</p>
-      <div className="charis-gjs-quick-format-buttons">
-       <button type="button" aria-label="Bold" aria-pressed={false} onMouseDown={e=>e.preventDefault()} onClick={()=>applyInlineMark('bold')}><b>B</b><span>Bold</span></button>
-       <button type="button" aria-label="Italic" aria-pressed={false} onMouseDown={e=>e.preventDefault()} onClick={()=>applyInlineMark('italic')}><i>I</i><span>Italic</span></button>
-       <button type="button" aria-label="Underline" aria-pressed={false} onMouseDown={e=>e.preventDefault()} onClick={()=>applyInlineMark('underline')}><u>U</u><span>Underline</span></button>
-      </div>
-      <label>Font size · {active.format?.fontSize||(active.type==='heading'?25:16)} px<input aria-label="Font size" type="range" min="10" max="48" step="1" value={active.format?.fontSize||(active.type==='heading'?25:16)} onChange={e=>update({format:{...active.format,fontSize:Number(e.target.value)}})}/></label>
-      <label>Font family<select aria-label="Font family" value={active.format?.fontFamily||'Arial'} onChange={e=>update({format:{...active.format,fontFamily:e.target.value as 'Arial'|'Georgia'|'Verdana'|'Tahoma'|'Trebuchet MS'}})}>{['Arial','Georgia','Verdana','Tahoma','Trebuchet MS'].map(font=><option key={font}>{font}</option>)}</select></label>
-      <div className="charis-gjs-quick-format-colours">
-       <label>Text colour<input aria-label="Text colour" type="color" value={active.format?.color||'#243047'} onChange={e=>update({format:{...active.format,color:e.target.value}})}/></label>
-       <label>Highlight<input aria-label="Highlight colour" type="color" value={active.format?.backgroundColor||'#ffffff'} onChange={e=>update({format:{...active.format,backgroundColor:e.target.value}})}/></label>
-      </div>
-      <label>Alignment<select aria-label="Text alignment" value={active.format?.align||'left'} onChange={e=>update({format:{...active.format,align:e.target.value as 'left'|'center'|'right'|'justify'}})}>{['left','center','right','justify'].map(v=><option key={v} value={v}>{v[0].toUpperCase()+v.slice(1)}</option>)}</select></label>
-     </div>}
      {active.type==='shape'&&<div className="charis-gjs-quick-sizes">
       <label>{active.shape==='circle'?'Circle diameter':'Shape width'} · {active.widthPercent??100}%<input type="range" min="25" max="100" value={active.widthPercent??100} onChange={e=>update({widthPercent:Number(e.target.value)})}/></label>
       {active.shape!=='circle'&&active.shape!=='rule'&&<label>Minimum height · {active.minHeight??0}px<input type="range" min="0" max="320" step="8" value={active.minHeight??0} onChange={e=>update({minHeight:Number(e.target.value)})}/></label>}
@@ -314,7 +277,7 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
       <button type="button" className="charis-insert-field" onClick={()=>{const limit=active.type==='shape'||active.type==='button'?200:5000;update({text:(active.text+' {{'+chosenField+'}}').trim().slice(0,limit)});}}>Insert into selected section</button>
      </div>}
      {active.type!=='divider'&&!(active.type==='shape'&&active.shape==='rule')&&<label>{active.type==='image'?'Image description':'Text content'}
-      <textarea rows={4} value={active.text} maxLength={active.type==='shape'||active.type==='button'?200:active.type==='image'?160:undefined} onSelect={e=>{canvasTextSelection.current=null;textSelection.current={start:e.currentTarget.selectionStart,end:e.currentTarget.selectionEnd};}} onChange={e=>{canvasTextSelection.current=null;textSelection.current={start:e.currentTarget.selectionStart,end:e.currentTarget.selectionEnd};update({text:e.target.value,richText:undefined});}}/>
+      <textarea rows={4} value={active.text} maxLength={active.type==='shape'||active.type==='button'?200:active.type==='image'?160:undefined} onChange={e=>update({text:e.target.value,richText:undefined})}/>
      </label>}
      {(active.type==='heading'||active.type==='paragraph')&&<div className="charis-gjs-format-tools"><strong>Paragraph spacing & advanced typography</strong><div className="charis-paragraph-spacing-controls"><label>Line spacing · {(active.format?.lineHeight??(active.type==='heading'?1.3:1.7)).toFixed(1)}<input type="range" min="1" max="3" step="0.1" value={active.format?.lineHeight??(active.type==='heading'?1.3:1.7)} onChange={e=>update({format:{...active.format,lineHeight:Number(e.target.value)}})}/></label>{active.type==='paragraph'&&<label>Space after paragraph · {active.format?.paragraphSpacing??16}px<input type="range" min="0" max="64" step="1" value={active.format?.paragraphSpacing??16} onChange={e=>update({format:{...active.format,paragraphSpacing:Number(e.target.value)}})}/></label>}<label>Letter spacing · {active.format?.letterSpacing??0}px<input type="range" min="-1" max="10" step="0.25" value={active.format?.letterSpacing??0} onChange={e=>update({format:{...active.format,letterSpacing:Number(e.target.value)}})}/></label></div></div>}
      {active.type==='button'&&<label>Button URL (HTTPS)<input type="url" value={active.url} onChange={e=>update({url:e.target.value})}/></label>}
@@ -338,6 +301,19 @@ export function GrapesEmailEditor({design,onChange,assets,brandName,brandColor,w
     <div className="charis-gjs-divider"/>
     <p style={{fontSize:11}}>Brand · {brandName}<br/>Colour · {validHex(brandColor)?brandColor:'#40239A'}</p>
    </aside>
+  <div className="charis-gjs-formatbar" role="toolbar" aria-label="Text formatting">
+   <strong>Text</strong>
+   <div className="charis-gjs-formatbar-marks">
+    <button type="button" aria-label="Bold" title="Bold" aria-pressed={!!(active&&'format' in active&&active.format?.bold)} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onClick={()=>toggleTextMark('bold')}><b>B</b></button>
+    <button type="button" aria-label="Italic" title="Italic" aria-pressed={!!(active&&'format' in active&&active.format?.italic)} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onClick={()=>toggleTextMark('italic')}><i>I</i></button>
+    <button type="button" aria-label="Underline" title="Underline" aria-pressed={!!(active&&'format' in active&&active.format?.underline)} disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} onClick={()=>toggleTextMark('underline')}><u>U</u></button>
+   </div>
+   <label>Size<select aria-label="Font size" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.fontSize||(active.type==='heading'?25:16)):16} onChange={e=>active&&'format' in active&&update({format:{...active.format,fontSize:Number(e.target.value)}})}>{[12,14,16,18,20,22,24,28,32,36,40].map(n=><option key={n} value={n}>{n}px</option>)}</select></label>
+   <label>Font<select aria-label="Font family" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.fontFamily||'Arial'):'Arial'} onChange={e=>active&&'format' in active&&update({format:{...active.format,fontFamily:e.target.value as 'Arial'|'Georgia'|'Verdana'|'Tahoma'|'Trebuchet MS'}})}>{['Arial','Georgia','Verdana','Tahoma','Trebuchet MS'].map(font=><option key={font}>{font}</option>)}</select></label>
+   <label className="charis-gjs-color-control">Text <input aria-label="Text colour" type="color" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.color||'#243047'):'#243047'} onChange={e=>active&&'format' in active&&update({format:{...active.format,color:e.target.value}})}/></label>
+   <label className="charis-gjs-color-control">Highlight <input aria-label="Highlight colour" type="color" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.backgroundColor||'#ffffff'):'#ffffff'} onChange={e=>active&&'format' in active&&update({format:{...active.format,backgroundColor:e.target.value}})}/></label>
+   <label>Align<select aria-label="Text alignment" disabled={!active||(active.type!=='heading'&&active.type!=='paragraph')} value={active&&'format' in active?(active.format?.align||'left'):'left'} onChange={e=>active&&'format' in active&&update({format:{...active.format,align:e.target.value as 'left'|'center'|'right'|'justify'}})}>{['left','center','right','justify'].map(v=><option key={v} value={v}>{v[0].toUpperCase()+v.slice(1)}</option>)}</select></label>
+  </div>
   </div>
   <div className="charis-gjs-bottom"><GripVertical size={14}/> Drag or use Move up/down to arrange sections. Click <strong>Preview email</strong> above to see how your customers will receive it.</div>
  </section>;
